@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: vortex-admin-pro
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: dummy-client-id
+            client-secret: dummy-client-secret
+          github:
+            client-id: dummy-client-id
+            client-secret: dummy-client-secret
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/vortex-admin
+    username: postgres
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8080
+
+vortex:
+  app:
+    frontendUrl: ${FRONTEND_URL:http://localhost:5173}
+    mailFrom: ${MAIL_FROM:no-reply@vortexadmin.com}
+  ai:
+    gemini:
+      key: ""  

@@ -1,0 +1,249 @@
+package com.vortexadmin.service.impl;
+
+import com.vortexadmin.dto.request.UpgradePlanRequest;
+import com.vortexadmin.dto.response.InvoiceResponse;
+import com.vortexadmin.dto.response.PlanResponse;
+import com.vortexadmin.dto.response.SubscriptionResponse;
+import com.vortexadmin.entity.*;
+import com.vortexadmin.exception.ApiException;
+import com.vortexadmin.repository.*;
+import com.vortexadmin.service.BillingService;
+import com.vortexadmin.util.SecurityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.Year;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+public class BillingServiceImpl implements BillingService {
+
+    private static final List<String> MANAGER_ROLES = List.of("OWNER", "ADMIN");
+
+    @Autowired
+    private SubscriptionPlanRepository planRepository;
+
+    @Autowired
+    private SubscriptionRepository subscriptionRepository;
+
+    @Autowired
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
+    @Autowired
+    private OrganizationMemberRepository memberRepository;
+
+    @Autowired
+    private FileRepository fileRepository;
+
+    private Organization requireManagedOrganization(Long organizationId) {
+        Organization org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Organization not found"));
+        Long userId = SecurityUtils.getCurrentUserId();
+        OrganizationMember member = memberRepository.findByOrganizationIdAndUserId(organizationId, userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "You are not a member of this organization"));
+        if (!MANAGER_ROLES.contains(member.getRole())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You must be an owner or admin to manage billing");
+        }
+        return org;
+    }
+
+    private PlanResponse mapToResponse(SubscriptionPlan plan) {
+        return PlanResponse.builder()
+                .id(plan.getId())
+                .name(plan.getName())
+                .monthlyPrice(plan.getMonthlyPrice())
+                .yearlyPrice(plan.getYearlyPrice())
+                .maxUsers(plan.getMaxUsers())
+                .maxStorageMb(plan.getMaxStorageMb())
+                .build();
+    }
+
+    private SubscriptionResponse mapToResponse(Subscription subscription) {
+        Organization org = subscription.getOrganization();
+        long currentUsers = memberRepository.countByOrganizationId(org.getId());
+
+        List<Long> memberUserIds = memberRepository.findByOrganizationId(org.getId()).stream()
+                .map(m -> m.getUser().getId())
+                .collect(Collectors.toList());
+        long storageUsedBytes = memberUserIds.isEmpty() ? 0L : fileRepository.sumFileSizeByUserIds(memberUserIds);
+
+        return SubscriptionResponse.builder()
+                .id(subscription.getId())
+                .organizationId(org.getId())
+                .organizationName(org.getName())
+                .plan(mapToResponse(subscription.getPlan()))
+                .status(subscription.getStatus())
+                .billingCycle(subscription.getBillingCycle())
+                .startDate(subscription.getStartDate())
+                .endDate(subscription.getEndDate())
+                .currentUsers(currentUsers)
+                .maxUsers(subscription.getPlan().getMaxUsers())
+                .storageUsedMb(storageUsedBytes / (1024 * 1024))
+                .maxStorageMb(subscription.getPlan().getMaxStorageMb())
+                .build();
+    }
+
+    private InvoiceResponse mapToResponse(Invoice invoice) {
+        return InvoiceResponse.builder()
+                .id(invoice.getId())
+                .invoiceNumber(invoice.getInvoiceNumber())
+                .amount(invoice.getAmount())
+                .status(invoice.getStatus())
+                .planName(invoice.getSubscription().getPlan().getName())
+                .issuedAt(invoice.getIssuedAt())
+                .build();
+    }
+
+    private SubscriptionPlan getPlanByName(String name) {
+        return planRepository.findByName(name.toUpperCase())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Plan not found: " + name));
+    }
+
+    private Subscription getOrCreateActiveSubscription(Organization org) {
+        return subscriptionRepository
+                .findFirstByOrganizationIdAndStatusOrderByCreatedAtDesc(org.getId(), "ACTIVE")
+                .orElseGet(() -> {
+                    SubscriptionPlan freePlan = getPlanByName("FREE");
+                    Subscription subscription = Subscription.builder()
+                            .organization(org)
+                            .plan(freePlan)
+                            .status("ACTIVE")
+                            .billingCycle("MONTHLY")
+                            .startDate(LocalDateTime.now())
+                            .build();
+                    return subscriptionRepository.save(subscription);
+                });
+    }
+
+    private String generateInvoiceNumber() {
+        return "INV-" + Year.now().getValue() + "-"
+                + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    @Override
+    public List<PlanResponse> getPlans() {
+        return planRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionResponse getSubscription(Long organizationId) {
+        Organization org = requireManagedOrganization(organizationId);
+        return mapToResponse(getOrCreateActiveSubscription(org));
+    }
+
+    @Override
+    public List<InvoiceResponse> getInvoices(Long organizationId) {
+        requireManagedOrganization(organizationId);
+        return invoiceRepository.findByOrganizationId(organizationId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionResponse upgradePlan(UpgradePlanRequest request) {
+        Organization org = requireManagedOrganization(request.getOrganizationId());
+        SubscriptionPlan newPlan = getPlanByName(request.getPlanName());
+
+        Subscription current = getOrCreateActiveSubscription(org);
+        if (current.getPlan().getId().equals(newPlan.getId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Organization is already on the " + newPlan.getName() + " plan");
+        }
+
+        // Enforce user limit when downgrading
+        long currentUsers = memberRepository.countByOrganizationId(org.getId());
+        if (newPlan.getMaxUsers() > 0 && currentUsers > newPlan.getMaxUsers()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Cannot switch to " + newPlan.getName() + ": organization has " + currentUsers
+                            + " members but the plan allows only " + newPlan.getMaxUsers());
+        }
+
+        current.setStatus("CANCELLED");
+        current.setEndDate(LocalDateTime.now());
+        subscriptionRepository.save(current);
+
+        String billingCycle = request.getBillingCycle() != null ? request.getBillingCycle() : "MONTHLY";
+        Subscription subscription = Subscription.builder()
+                .organization(org)
+                .plan(newPlan)
+                .status("ACTIVE")
+                .billingCycle(billingCycle)
+                .startDate(LocalDateTime.now())
+                .endDate("YEARLY".equals(billingCycle)
+                        ? LocalDateTime.now().plusYears(1)
+                        : LocalDateTime.now().plusMonths(1))
+                .build();
+        subscription = subscriptionRepository.save(subscription);
+
+        // Issue invoice + mock payment for paid plans
+        BigDecimal amount = "YEARLY".equals(billingCycle) ? newPlan.getYearlyPrice() : newPlan.getMonthlyPrice();
+        if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            Invoice invoice = Invoice.builder()
+                    .subscription(subscription)
+                    .amount(amount)
+                    .invoiceNumber(generateInvoiceNumber())
+                    .status("PAID")
+                    .build();
+            invoice = invoiceRepository.save(invoice);
+
+            Payment payment = Payment.builder()
+                    .invoice(invoice)
+                    .amount(amount)
+                    .paymentProvider("MOCK")
+                    .status("SUCCESS")
+                    .build();
+            paymentRepository.save(payment);
+        }
+
+        org.setPlanType(newPlan.getName());
+        organizationRepository.save(org);
+
+        return mapToResponse(subscription);
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionResponse cancelSubscription(Long organizationId) {
+        Organization org = requireManagedOrganization(organizationId);
+
+        Subscription current = getOrCreateActiveSubscription(org);
+        if ("FREE".equals(current.getPlan().getName())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Free plan cannot be cancelled");
+        }
+
+        current.setStatus("CANCELLED");
+        current.setEndDate(LocalDateTime.now());
+        subscriptionRepository.save(current);
+
+        // Revert to FREE plan
+        SubscriptionPlan freePlan = getPlanByName("FREE");
+        Subscription freeSubscription = Subscription.builder()
+                .organization(org)
+                .plan(freePlan)
+                .status("ACTIVE")
+                .billingCycle("MONTHLY")
+                .startDate(LocalDateTime.now())
+                .build();
+        freeSubscription = subscriptionRepository.save(freeSubscription);
+
+        org.setPlanType("FREE");
+        organizationRepository.save(org);
+
+        return mapToResponse(freeSubscription);
+    }
+}

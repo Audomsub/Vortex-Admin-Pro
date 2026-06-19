@@ -18,13 +18,13 @@ import com.vortexadmin.repository.OrganizationRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.repository.UserSessionRepository;
 import com.vortexadmin.service.ReportExportService;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -36,24 +36,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ReportExportServiceImpl implements ReportExportService {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private AuditLogRepository auditLogRepository;
-
-    @Autowired
-    private UserSessionRepository userSessionRepository;
-
-    @Autowired
-    private OrganizationRepository organizationRepository;
-
-    @Autowired
-    private InvoiceRepository invoiceRepository;
+    private final UserRepository userRepository;
+    private final AuditLogRepository auditLogRepository;
+    private final UserSessionRepository userSessionRepository;
+    private final OrganizationRepository organizationRepository;
+    private final InvoiceRepository invoiceRepository;
 
     private record ReportData(String title, List<String> headers, List<List<String>> rows) {
     }

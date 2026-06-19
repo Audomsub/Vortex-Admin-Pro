@@ -1,12 +1,14 @@
 package com.vortexadmin.service;
 
+import java.util.List;
+
+import org.springframework.web.multipart.MultipartFile;
+
 import com.vortexadmin.dto.request.ChangePasswordRequest;
+import com.vortexadmin.dto.request.UpdateMyProfileRequest;
 import com.vortexadmin.dto.request.UserCreateRequest;
 import com.vortexadmin.dto.request.UserUpdateRequest;
 import com.vortexadmin.dto.response.UserProfileResponse;
-import com.vortexadmin.dto.request.UpdateMyProfileRequest;
-
-import java.util.List;
 
 public interface UserService {
     UserProfileResponse getMyProfile();
@@ -16,8 +18,10 @@ public interface UserService {
 
     // Tenant Scoped CRUD
     List<UserProfileResponse> getAllUsersInMyCompany();
+    
     UserProfileResponse getUserById(Long id);
     void createUser(UserCreateRequest request);
     void updateUser(Long id, UserUpdateRequest request);
-    void deleteUser(Long id); // Soft delete
+    void deleteUser(Long id);
+    int importUsersFromCsv(MultipartFile file);
 }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import api from '../api/axios';
 import { useAuth } from './useAuth';
 
@@ -14,7 +14,7 @@ export const ThemeProvider = ({ children }) => {
     });
 
     useEffect(() => {
-        const fetchBranding = async () => {
+        async function fetchBranding() {
             try {
                 const response = await api.get('/organizations');
                 if (response.data.data && response.data.data.length > 0) {

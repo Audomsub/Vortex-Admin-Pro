@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Shield, ChevronRight, ArrowLeft, CircleCheck } from 'lucide-react';
 import api from '../api/axios';
@@ -14,7 +14,7 @@ const ResetPassword = () => {
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e) => {
+    async function handleSubmit(e) {
         e.preventDefault();
         setError('');
         if (newPassword !== confirmPassword) {
@@ -34,20 +34,20 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="min-h-screen bg-zinc-950 flex flex-col justify-center items-center p-4">
+        <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-indigo-600/10 blur-[120px]" />
                 <div className="absolute top-[60%] -right-[10%] w-[50%] h-[50%] rounded-full bg-purple-600/10 blur-[120px]" />
             </div>
 
             <div className="relative w-full max-w-md">
-                <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-3xl p-8 shadow-2xl">
+                <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl">
                     <div className="flex flex-col items-center mb-8">
                         <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 border border-indigo-500/20">
                             <Shield className="w-8 h-8 text-indigo-400" />
                         </div>
-                        <h1 className="text-2xl font-bold text-white tracking-tight">Reset Password</h1>
-                        <p className="text-zinc-400 mt-2 text-sm text-center">Choose a new password for your account.</p>
+                        <h1 className="text-2xl font-bold text-text-primary tracking-tight">Reset Password</h1>
+                        <p className="text-text-secondary mt-2 text-sm text-center">Choose a new password for your account.</p>
                     </div>
 
                     {!token && (
@@ -75,14 +75,14 @@ const ResetPassword = () => {
                                 <label className="block text-sm font-medium text-zinc-300 mb-1.5 ml-1">New Password</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-zinc-500" />
+                                        <Lock className="h-5 w-5 text-text-secondary" />
                                     </div>
                                     <input
                                         type="password"
                                         required
                                         minLength={8}
                                         autoFocus
-                                        className="block w-full pl-11 pr-4 py-3.5 bg-zinc-950/50 border border-zinc-800 rounded-2xl text-white placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                                        className="block w-full pl-11 pr-4 py-3.5 bg-background/50 border border-border rounded-2xl text-text-primary placeholder-text-secondary focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
                                         placeholder="At least 8 characters"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
@@ -94,13 +94,13 @@ const ResetPassword = () => {
                                 <label className="block text-sm font-medium text-zinc-300 mb-1.5 ml-1">Confirm New Password</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-zinc-500" />
+                                        <Lock className="h-5 w-5 text-text-secondary" />
                                     </div>
                                     <input
                                         type="password"
                                         required
                                         minLength={8}
-                                        className="block w-full pl-11 pr-4 py-3.5 bg-zinc-950/50 border border-zinc-800 rounded-2xl text-white placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                                        className="block w-full pl-11 pr-4 py-3.5 bg-background/50 border border-border rounded-2xl text-text-primary placeholder-text-secondary focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
                                         placeholder="••••••••"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
@@ -111,7 +111,7 @@ const ResetPassword = () => {
                             <button
                                 type="submit"
                                 disabled={loading || !token}
-                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-medium rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-indigo-600/20"
+                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-text-primary font-medium rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-indigo-600/20"
                             >
                                 {loading ? 'Resetting...' : 'Reset Password'}
                                 <ChevronRight className="w-4 h-4" />
@@ -119,7 +119,7 @@ const ResetPassword = () => {
 
                             <Link
                                 to="/login"
-                                className="w-full flex items-center justify-center gap-2 py-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+                                className="w-full flex items-center justify-center gap-2 py-2 text-sm text-text-secondary hover:text-zinc-200 transition-colors"
                             >
                                 <ArrowLeft className="w-4 h-4" />
                                 Back to Sign In

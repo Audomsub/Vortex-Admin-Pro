@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
@@ -7,7 +6,7 @@ import { useTheme } from '../../hooks/useTheme';
 import {
     LayoutDashboard, Users, Shield, UsersRound, CheckSquare, Calendar,
     Folder, Bell, BarChart2, Server, CreditCard, Settings, Activity, BookOpen,
-    ChevronLeft, ChevronRight, Building2, Zap, MessageSquare, Ticket
+    ChevronLeft, ChevronRight, Building2, Zap, Ticket
 } from 'lucide-react';
 import WorkspaceSwitcher from '../WorkspaceSwitcher';
 
@@ -41,14 +40,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 { title: t('nav.organizations'), icon: Building2, path: '/organizations', roles: ALL },
                 { title: t('nav.teams'), icon: UsersRound, path: '/teams', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
                 { title: t('nav.tasks'), icon: CheckSquare, path: '/tasks', roles: ALL },
-                { title: 'Support Tickets', icon: Ticket, path: '/tickets', roles: ALL },
+                { title: t('nav.supportTickets'), icon: Ticket, path: '/tickets', roles: ALL },
                 { title: t('nav.calendar'), icon: Calendar, path: '/calendar', roles: ALL },
                 { title: t('nav.files'), icon: Folder, path: '/files', roles: ALL },
                 { title: t('nav.billing'), icon: CreditCard, path: '/billing', roles: ALL },
             ],
         },
         {
-            label: 'Admin',
+            label: t('nav.admin'),
             items: [
                 { title: t('nav.users'), icon: Users, path: '/users', roles: ['SUPER_ADMIN', 'ADMIN'] },
                 { title: t('nav.roles'), icon: Shield, path: '/roles', roles: ['SUPER_ADMIN', 'ADMIN'] },
@@ -137,7 +136,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             {/* Collapse Toggle */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-surface border border-border flex items-center justify-center text-text-secondary hover:text-primary hover:border-primary/50 z-30 transition-colors shadow-sm"
+                className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-surface border border-border hidden md:flex items-center justify-center text-text-secondary hover:text-primary hover:border-primary/50 z-30 transition-colors shadow-sm"
             >
                 {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </button>

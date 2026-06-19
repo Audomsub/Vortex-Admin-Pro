@@ -50,6 +50,18 @@ public class SseEmitterService {
         }
     }
 
+    public void broadcast(String eventName, Object data) {
+        emittersByUser.forEach((userId, emitters) -> {
+            for (SseEmitter emitter : emitters) {
+                try {
+                    emitter.send(SseEmitter.event().name(eventName).data(data));
+                } catch (Exception e) {
+                    removeEmitter(userId, emitter);
+                }
+            }
+        });
+    }
+
     private void removeEmitter(Long userId, SseEmitter emitter) {
         List<SseEmitter> emitters = emittersByUser.get(userId);
         if (emitters != null) {

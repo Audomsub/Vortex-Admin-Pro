@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import {
     BarChart2, TrendingUp, Users, Activity, DollarSign, Calendar, Download, Building2, CreditCard, FileSearch, Loader2
@@ -19,11 +19,7 @@ const Reports = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchStats();
-    }, [timeframe]);
-
-    const fetchStats = async () => {
+    async function fetchStats() {
         try {
             setLoading(true);
             const res = await reportService.getStats(timeframe);
@@ -36,7 +32,13 @@ const Reports = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }
+
+    useEffect(() => {
+        fetchStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [timeframe]);
+
 
     const exportTargets = [
         { type: 'users', label: t('reports.exportUsers'), icon: Users },
@@ -46,7 +48,7 @@ const Reports = () => {
         { type: 'billing', label: t('reports.exportBilling'), icon: CreditCard },
     ];
 
-    const handleExport = async (type) => {
+    async function handleExport(type) {
         setExporting(type);
         try {
             await reportService.export(type, exportFormat);
@@ -59,10 +61,10 @@ const Reports = () => {
     };
 
     const kpiCards = stats ? [
-        { title: 'Total Revenue', value: stats.kpis.totalRevenue, trend: stats.kpis.revenueTrend, positive: stats.kpis.revenueTrend?.startsWith('+'), icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-        { title: 'Active Users', value: stats.kpis.activeUsers, trend: stats.kpis.activeUsersTrend, positive: stats.kpis.activeUsersTrend?.startsWith('+'), icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-        { title: 'System Activity', value: stats.kpis.systemActivity, trend: stats.kpis.activityTrend, positive: stats.kpis.activityTrend?.startsWith('+'), icon: Activity, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-        { title: 'Conversion Rate', value: stats.kpis.conversionRate, trend: stats.kpis.conversionTrend, positive: stats.kpis.conversionTrend?.startsWith('+'), icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+        { title: t('reports.kpiTotalRevenue'), value: stats.kpis.totalRevenue, trend: stats.kpis.revenueTrend, positive: stats.kpis.revenueTrend?.startsWith('+'), icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { title: t('reports.kpiActiveUsers'), value: stats.kpis.activeUsers, trend: stats.kpis.activeUsersTrend, positive: stats.kpis.activeUsersTrend?.startsWith('+'), icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+        { title: t('reports.kpiSystemActivity'), value: stats.kpis.systemActivity, trend: stats.kpis.activityTrend, positive: stats.kpis.activityTrend?.startsWith('+'), icon: Activity, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+        { title: t('reports.kpiConversionRate'), value: stats.kpis.conversionRate, trend: stats.kpis.conversionTrend, positive: stats.kpis.conversionTrend?.startsWith('+'), icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10' },
     ] : [];
 
     return (
@@ -73,9 +75,9 @@ const Reports = () => {
                     <div>
                         <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
                             <BarChart2 className="w-6 h-6 text-primary" />
-                            Analytics & Reports
+                            {t('reports.title')}
                         </h1>
-                        <p className="text-text-secondary mt-1 text-sm">Actionable insights and performance metrics.</p>
+                        <p className="text-text-secondary mt-1 text-sm">{t('reports.subtitle')}</p>
                     </div>
                     
                     <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl shrink-0">
@@ -136,7 +138,7 @@ const Reports = () => {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center p-20 bg-surface border border-border rounded-2xl">
                         <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-                        <p className="text-text-secondary">Loading reports data...</p>
+                        <p className="text-text-secondary">{t('reports.loadingData')}</p>
                     </div>
                 ) : (
                     <>
@@ -167,8 +169,8 @@ const Reports = () => {
                             <div className="lg:col-span-2 bg-surface border border-border rounded-2xl p-6 shadow-sm">
                                 <div className="flex items-center justify-between mb-6">
                                     <div>
-                                        <h3 className="font-bold text-text-primary">Revenue Overview</h3>
-                                        <p className="text-sm text-text-secondary">Comparing income vs expenses</p>
+                                        <h3 className="font-bold text-text-primary">{t('reports.revenueOverview')}</h3>
+                                        <p className="text-sm text-text-secondary">{t('reports.revenueOverviewSub')}</p>
                                     </div>
                                     <button className="p-2 text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors">
                                         <Calendar className="w-5 h-5" />
@@ -204,8 +206,8 @@ const Reports = () => {
                             {/* Secondary Chart */}
                             <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col">
                                 <div className="mb-6">
-                                    <h3 className="font-bold text-text-primary">User Growth</h3>
-                                    <p className="text-sm text-text-secondary">User acquisition trends</p>
+                                    <h3 className="font-bold text-text-primary">{t('reports.userGrowth')}</h3>
+                                    <p className="text-sm text-text-secondary">{t('reports.userGrowthSub')}</p>
                                 </div>
                                 <div className="flex-1 min-h-[300px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">

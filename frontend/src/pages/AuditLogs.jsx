@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import { 
-    Activity, Search, Filter, ShieldAlert, CheckCircle2, AlertCircle, Eye, User, Download
+    Activity, Search, ShieldAlert, CheckCircle2, AlertCircle, User, Download
 } from 'lucide-react';
 import api from '../api/axios';
 import { cn } from '../lib/utils';
 import { X } from 'lucide-react';
 
 const AuditLogs = () => {
+    const { t } = useTranslation();
+
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -20,7 +23,7 @@ const AuditLogs = () => {
         fetchLogs();
     }, []);
 
-    const fetchLogs = async () => {
+    async function fetchLogs() {
         try {
             setLoading(true);
             const response = await api.get('/audit-logs');
@@ -32,7 +35,7 @@ const AuditLogs = () => {
         }
     };
 
-    const handleExport = async (format) => {
+    async function handleExport(format) {
         try {
             const response = await api.get(`/audit-logs/export?format=${format}`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -44,17 +47,25 @@ const AuditLogs = () => {
             link.parentNode.removeChild(link);
         } catch (error) {
             console.error('Failed to export audit logs:', error);
-            alert('Failed to export');
+            alert(t('auditLogs.exportFailed'));
         }
     };
 
-    const handleAiAnalysis = async () => {
+    const filteredLogs = logs.filter(log => {
+        const matchesSearch =
+            log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log.entityName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log.details?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesAction = actionFilter === 'ALL' || log.action?.toUpperCase().includes(actionFilter);
+        return matchesSearch && matchesAction;
+    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    async function handleAiAnalysis() {
         try {
             setIsAnalyzing(true);
             setIsAiModalOpen(true);
             setAiInsights('');
-            
-            // Limit to 50 logs to save tokens and time
             const logsToAnalyze = filteredLogs.slice(0, 50);
             const response = await api.post('/ai/analyze-logs', logsToAnalyze);
             
@@ -85,18 +96,6 @@ const AuditLogs = () => {
         return 'bg-black/5 dark:bg-white/5 text-text-secondary';
     };
 
-    const filteredLogs = logs.filter(log => {
-        const matchesSearch = 
-            log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.entityName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.details?.toLowerCase().includes(searchTerm.toLowerCase());
-            
-        const matchesAction = actionFilter === 'ALL' || log.action?.toUpperCase().includes(actionFilter);
-        
-        return matchesSearch && matchesAction;
-    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
     const formatDate = (dateStr) => {
         return new Date(dateStr).toLocaleString('en-US', {
             year: 'numeric', month: 'short', day: 'numeric',
@@ -112,9 +111,9 @@ const AuditLogs = () => {
                     <div>
                         <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
                             <Activity className="w-6 h-6 text-primary" />
-                            Audit Logs
+                            {t('auditLogs.title')}
                         </h1>
-                        <p className="text-text-secondary mt-1 text-sm">Track system activities and user actions for security compliance.</p>
+                        <p className="text-text-secondary mt-1 text-sm">{t('auditLogs.subtitle')}</p>
                     </div>
                     
                     <div className="flex items-center gap-3">
@@ -123,11 +122,11 @@ const AuditLogs = () => {
                             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl font-medium transition-all shadow-md shadow-purple-500/20 text-sm active:scale-[0.98]"
                         >
                             <Activity size={16} />
-                            AI Insights
+                            {t('auditLogs.aiInsights')}
                         </button>
                         <div className="relative group">
                             <button className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-black/5 dark:hover:bg-white/5 text-text-primary rounded-xl font-medium transition-colors text-sm shadow-sm">
-                                <Download size={16} /> Export
+                                <Download size={16} /> {t('auditLogs.export')}
                             </button>
                             <div className="absolute right-0 mt-2 w-32 bg-surface border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
                                 <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-t-xl">CSV</button>
@@ -138,7 +137,7 @@ const AuditLogs = () => {
                             onClick={fetchLogs}
                             className="flex items-center justify-center gap-2 px-4 py-2 bg-surface border border-border text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl font-medium transition-colors text-sm shadow-sm"
                         >
-                            Refresh Logs
+                            {t('auditLogs.refreshLogs')}
                         </button>
                     </div>
                 </div>
@@ -149,7 +148,7 @@ const AuditLogs = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                         <input 
                             type="text" 
-                            placeholder="Search by user, action, or details..." 
+                            placeholder={t('auditLogs.searchPlaceholder')} 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
@@ -167,7 +166,7 @@ const AuditLogs = () => {
                                         : "bg-surface border border-border text-text-secondary hover:text-text-primary"
                                 )}
                             >
-                                {filter}
+                                {t(`auditLogs.filter${filter.charAt(0) + filter.slice(1).toLowerCase()}`)}
                             </button>
                         ))}
                     </div>
@@ -179,12 +178,12 @@ const AuditLogs = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-border bg-black/5 dark:bg-white/5">
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">TIMESTAMP</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">USER</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">ACTION</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">ENTITY</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary">DETAILS</th>
-                                    <th className="p-4 text-sm font-semibold text-text-secondary text-right">IP ADDRESS</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">{t('auditLogs.colTimestamp')}</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">{t('auditLogs.colUser')}</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">{t('auditLogs.colAction')}</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">{t('auditLogs.colEntity')}</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">{t('auditLogs.colDetails')}</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary text-right">{t('auditLogs.colIpAddress')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -198,8 +197,8 @@ const AuditLogs = () => {
                                     <tr>
                                         <td colSpan="6" className="p-20 text-center text-text-secondary">
                                             <Activity className="w-12 h-12 opacity-20 mx-auto mb-4" />
-                                            <p className="text-lg font-medium text-text-primary">No logs found</p>
-                                            <p className="text-sm">Try adjusting your filters or search terms.</p>
+                                            <p className="text-lg font-medium text-text-primary">{t('auditLogs.noLogsFound')}</p>
+                                            <p className="text-sm">{t('auditLogs.noLogsHint')}</p>
                                         </td>
                                     </tr>
                                 ) : (
@@ -251,7 +250,7 @@ const AuditLogs = () => {
                         <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-purple-500/10 to-indigo-500/10">
                             <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
                                 <Activity className="w-5 h-5 text-purple-500" />
-                                Gemini AI Insights
+                                {t('auditLogs.aiModalTitle')}
                             </h2>
                             <button onClick={() => setIsAiModalOpen(false)} className="p-1 text-text-secondary hover:text-text-primary rounded-lg transition-colors">
                                 <X size={20} />
@@ -265,8 +264,8 @@ const AuditLogs = () => {
                                         <div className="absolute inset-0 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                                         <Activity className="absolute inset-0 m-auto w-6 h-6 text-purple-500 animate-pulse" />
                                     </div>
-                                    <p className="text-text-primary font-medium mt-4">Gemini is analyzing system logs...</p>
-                                    <p className="text-sm text-text-secondary">Please wait, this usually takes 10-15 seconds.</p>
+                                    <p className="text-text-primary font-medium mt-4">{t('auditLogs.aiAnalyzing')}</p>
+                                    <p className="text-sm text-text-secondary">{t('auditLogs.aiAnalyzingHint')}</p>
                                 </div>
                             ) : (
                                 <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -281,7 +280,7 @@ const AuditLogs = () => {
                                 onClick={() => setIsAiModalOpen(false)}
                                 className="px-4 py-2 bg-surface border border-border text-text-primary rounded-xl font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                             >
-                                Close
+                                {t('common.close')}
                             </button>
                         </div>
                     </div>

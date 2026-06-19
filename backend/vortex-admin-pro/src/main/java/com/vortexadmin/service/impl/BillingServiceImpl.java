@@ -9,7 +9,7 @@ import com.vortexadmin.exception.ApiException;
 import com.vortexadmin.repository.*;
 import com.vortexadmin.service.BillingService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,30 +22,18 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class BillingServiceImpl implements BillingService {
 
     private static final List<String> MANAGER_ROLES = List.of("OWNER", "ADMIN");
 
-    @Autowired
-    private SubscriptionPlanRepository planRepository;
-
-    @Autowired
-    private SubscriptionRepository subscriptionRepository;
-
-    @Autowired
-    private InvoiceRepository invoiceRepository;
-
-    @Autowired
-    private PaymentRepository paymentRepository;
-
-    @Autowired
-    private OrganizationRepository organizationRepository;
-
-    @Autowired
-    private OrganizationMemberRepository memberRepository;
-
-    @Autowired
-    private FileRepository fileRepository;
+    private final SubscriptionPlanRepository planRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final InvoiceRepository invoiceRepository;
+    private final PaymentRepository paymentRepository;
+    private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository memberRepository;
+    private final FileRepository fileRepository;
 
     private Organization requireManagedOrganization(Long organizationId) {
         Organization org = organizationRepository.findById(organizationId)
@@ -77,7 +65,8 @@ public class BillingServiceImpl implements BillingService {
         List<Long> memberUserIds = memberRepository.findByOrganizationId(org.getId()).stream()
                 .map(m -> m.getUser().getId())
                 .collect(Collectors.toList());
-        long storageUsedBytes = memberUserIds.isEmpty() ? 0L : fileRepository.sumFileSizeByUserIds(memberUserIds);
+        Long rawStorage = memberUserIds.isEmpty() ? null : fileRepository.sumFileSizeByUserIds(memberUserIds);
+        long storageUsedBytes = rawStorage != null ? rawStorage : 0L;
 
         return SubscriptionResponse.builder()
                 .id(subscription.getId())

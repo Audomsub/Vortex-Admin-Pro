@@ -16,7 +16,7 @@ import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.TaskService;
 import com.vortexadmin.service.WebhookService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,22 +27,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
 
-    @Autowired
-    private TaskRepository taskRepository;
-    
-    @Autowired
-    private TeamRepository teamRepository;
-    
-    @Autowired
-    private UserRepository userRepository;
-    
-    @Autowired
-    private TaskCommentRepository taskCommentRepository;
-
-    @Autowired
-    private WebhookService webhookService;
+    private final TaskRepository taskRepository;
+    private final TeamRepository teamRepository;
+    private final UserRepository userRepository;
+    private final TaskCommentRepository taskCommentRepository;
+    private final WebhookService webhookService;
 
     private Map<String, Object> taskEventPayload(Task task) {
         Map<String, Object> payload = new HashMap<>();

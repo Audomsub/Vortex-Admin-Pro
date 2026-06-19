@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -34,8 +34,8 @@ const WorkspaceSwitcher = ({ isCollapsed }) => {
                 }`}
             >
                 <div className="w-7 h-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                    {currentOrg?.logoUrl
-                        ? <img src={currentOrg.logoUrl} alt="" className="w-7 h-7 rounded-lg object-cover" />
+                    {currentOrg?.name 
+                        ? <span className="font-bold text-sm uppercase">{currentOrg.name.charAt(0)}</span>
                         : <Building2 className="w-4 h-4" />}
                 </div>
                 {!isCollapsed && (

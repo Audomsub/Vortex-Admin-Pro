@@ -9,19 +9,17 @@ import com.vortexadmin.repository.UserPreferenceRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.PreferenceService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class PreferenceServiceImpl implements PreferenceService {
 
-    @Autowired
-    private UserPreferenceRepository preferenceRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private final UserPreferenceRepository preferenceRepository;
+    private final UserRepository userRepository;
 
     private UserPreference getOrCreate() {
         Long userId = SecurityUtils.getCurrentUserId();

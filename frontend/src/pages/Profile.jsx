@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../hooks/useAuth';
 import { User, Mail, Shield, Key, Save, Camera, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../api/axios';
 import TwoFactorSettings from '../components/TwoFactorSettings';
+import ActiveSessions from '../components/ActiveSessions';
 
 const Profile = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('general');
     const [saving, setSaving] = useState(false);
@@ -22,7 +25,7 @@ const Profile = () => {
     });
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        async function fetchProfile() {
             try {
                 const res = await api.get('/users/me');
                 const profile = res.data.data;
@@ -44,7 +47,7 @@ const Profile = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSaveGeneral = async (e) => {
+    async function handleSaveGeneral(e) {
         e.preventDefault();
         setSaving(true);
         try {
@@ -53,19 +56,19 @@ const Profile = () => {
                 lastName: formData.lastName,
                 email: formData.email
             });
-            alert('Profile updated successfully!');
+            alert(t('profile.alerts.profileUpdated'));
         } catch (error) {
             console.error(error);
-            alert('Failed to update profile');
+            alert(t('profile.alerts.profileUpdateFailed'));
         } finally {
             setSaving(false);
         }
     };
 
-    const handleSaveSecurity = async (e) => {
+    async function handleSaveSecurity(e) {
         e.preventDefault();
         if (formData.newPassword !== formData.confirmPassword) {
-            return alert("New passwords don't match!");
+            return alert(t('profile.alerts.passwordMismatch'));
         }
         setSaving(true);
         try {
@@ -73,11 +76,11 @@ const Profile = () => {
                 oldPassword: formData.currentPassword,
                 newPassword: formData.newPassword
             });
-            alert('Password updated successfully!');
+            alert(t('profile.alerts.passwordUpdated'));
             setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
         } catch (error) {
             console.error(error);
-            alert(error.response?.data?.message || 'Failed to update password');
+            alert(error.response?.data?.message || t('profile.alerts.profileUpdateFailed'));
         } finally {
             setSaving(false);
         }
@@ -121,7 +124,7 @@ const Profile = () => {
                                     : "text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5"
                             )}
                         >
-                            <User size={18} /> General Info
+                            <User size={18} /> {t('profile.tabs.generalInfo')}
                         </button>
                         <button
                             onClick={() => setActiveTab('security')}
@@ -132,7 +135,7 @@ const Profile = () => {
                                     : "text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5"
                             )}
                         >
-                            <Shield size={18} /> Security
+                            <Shield size={18} /> {t('profile.tabs.security')}
                         </button>
                     </div>
 
@@ -140,11 +143,11 @@ const Profile = () => {
                     <div className="flex-1 p-6 md:p-8">
                         {activeTab === 'general' && (
                             <form onSubmit={handleSaveGeneral} className="max-w-xl animate-in fade-in duration-300 space-y-6">
-                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">General Information</h2>
+                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">{t('profile.sections.generalInfo')}</h2>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">First Name</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('profile.fields.firstName')}</label>
                                         <input 
                                             type="text" name="firstName" value={formData.firstName} onChange={handleChange}
                                             className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
@@ -152,7 +155,7 @@ const Profile = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Last Name</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('profile.fields.lastName')}</label>
                                         <input 
                                             type="text" name="lastName" value={formData.lastName} onChange={handleChange}
                                             className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
@@ -162,7 +165,7 @@ const Profile = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-text-primary mb-2">Username</label>
+                                    <label className="block text-sm font-medium text-text-primary mb-2">{t('profile.fields.username')}</label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                                         <input 
@@ -170,11 +173,11 @@ const Profile = () => {
                                             className="w-full pl-10 pr-4 py-2.5 bg-black/5 dark:bg-white/5 border border-border rounded-xl text-sm outline-none text-text-secondary cursor-not-allowed"
                                         />
                                     </div>
-                                    <p className="text-xs text-text-secondary mt-1">Username cannot be changed.</p>
+                                    <p className="text-xs text-text-secondary mt-1">{t('profile.fields.usernameHint')}</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-text-primary mb-2">Email Address</label>
+                                    <label className="block text-sm font-medium text-text-primary mb-2">{t('profile.fields.emailAddress')}</label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                                         <input 
@@ -187,7 +190,7 @@ const Profile = () => {
                                 <div className="pt-6 mt-6 border-t border-border">
                                     <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">
                                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} 
-                                        {saving ? 'Saving...' : 'Save Changes'}
+                                        {saving ? t('profile.buttons.saving') : t('profile.buttons.saveChanges')}
                                     </button>
                                 </div>
                             </form>
@@ -196,11 +199,12 @@ const Profile = () => {
                         {activeTab === 'security' && (
                             <div className="max-w-xl animate-in fade-in duration-300 space-y-6">
                             <TwoFactorSettings />
+                            <ActiveSessions />
                             <form onSubmit={handleSaveSecurity} className="space-y-6">
-                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">Change Password</h2>
+                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">{t('profile.sections.changePassword')}</h2>
                                 
                                 <div>
-                                    <label className="block text-sm font-medium text-text-primary mb-2">Current Password</label>
+                                    <label className="block text-sm font-medium text-text-primary mb-2">{t('profile.fields.currentPassword')}</label>
                                     <div className="relative">
                                         <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                                         <input 
@@ -212,7 +216,7 @@ const Profile = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-text-primary mb-2">New Password</label>
+                                    <label className="block text-sm font-medium text-text-primary mb-2">{t('profile.fields.newPassword')}</label>
                                     <div className="relative">
                                         <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                                         <input 
@@ -224,7 +228,7 @@ const Profile = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-text-primary mb-2">Confirm New Password</label>
+                                    <label className="block text-sm font-medium text-text-primary mb-2">{t('profile.fields.confirmNewPassword')}</label>
                                     <div className="relative">
                                         <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                                         <input 
@@ -238,7 +242,7 @@ const Profile = () => {
                                 <div className="pt-6 mt-6 border-t border-border">
                                     <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">
                                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} 
-                                        {saving ? 'Updating...' : 'Update Password'}
+                                        {saving ? t('profile.buttons.updating') : t('profile.buttons.updatePassword')}
                                     </button>
                                 </div>
                             </form>

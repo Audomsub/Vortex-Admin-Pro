@@ -26,7 +26,7 @@ import com.vortexadmin.service.MailService;
 import com.vortexadmin.service.WebhookService;
 import com.vortexadmin.util.TotpUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -49,43 +49,21 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.http.ResponseEntity;
 
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private UserSessionRepository userSessionRepository;
-
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
-
-    @Autowired
-    private UserTwoFactorRepository userTwoFactorRepository;
-
-    @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
-
-    @Autowired
-    private PasswordHistoryRepository passwordHistoryRepository;
-
-    @Autowired
-    private MailService mailService;
-
-    @Autowired
-    private WebhookService webhookService;
-
-    @Autowired
-    private PasswordEncoder encoder;
-
-    @Autowired
-    private JwtUtils jwtUtils;
+    private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final UserSessionRepository userSessionRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserTwoFactorRepository userTwoFactorRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final PasswordHistoryRepository passwordHistoryRepository;
+    private final MailService mailService;
+    private final WebhookService webhookService;
+    private final PasswordEncoder encoder;
+    private final JwtUtils jwtUtils;
 
     @Value("${vortex.app.frontendUrl}")
     private String frontendUrl;
@@ -313,9 +291,11 @@ public class AuthServiceImpl implements AuthService {
         }
         if (twoFactor.getBackupCodes() != null && !twoFactor.getBackupCodes().isBlank()) {
             List<String> hashes = new java.util.ArrayList<>(List.of(twoFactor.getBackupCodes().split(",")));
-            for (String hash : hashes) {
+            java.util.Iterator<String> it = hashes.iterator();
+            while (it.hasNext()) {
+                String hash = it.next();
                 if (encoder.matches(code, hash)) {
-                    hashes.remove(hash);
+                    it.remove();
                     twoFactor.setBackupCodes(String.join(",", hashes));
                     userTwoFactorRepository.save(twoFactor);
                     return true;

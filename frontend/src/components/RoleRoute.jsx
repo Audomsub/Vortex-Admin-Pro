@@ -1,4 +1,3 @@
-import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -6,7 +5,7 @@ const RoleRoute = ({ children, allowedRoles }) => {
     const { user, loading } = useAuth();
 
     if (loading) {
-        return <div className="h-screen w-screen flex items-center justify-center bg-zinc-950 text-white">Loading...</div>;
+        return <div className="h-screen w-screen flex items-center justify-center bg-background text-text-primary">Loading...</div>;
     }
 
     if (!user) {

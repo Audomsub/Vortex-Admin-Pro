@@ -5,7 +5,7 @@ import com.vortexadmin.dto.response.NotificationResponse;
 import com.vortexadmin.service.NotificationService;
 import com.vortexadmin.service.SseEmitterService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,13 +16,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/notifications")
+@RequiredArgsConstructor
 public class NotificationController {
 
-    @Autowired
-    private NotificationService notificationService;
-
-    @Autowired
-    private SseEmitterService sseEmitterService;
+    private final NotificationService notificationService;
+    private final SseEmitterService sseEmitterService;
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @PreAuthorize("hasAuthority('notification.read')")

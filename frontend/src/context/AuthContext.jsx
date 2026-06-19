@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect } from 'react';
 import api from '../api/axios';
 import { jwtDecode } from 'jwt-decode';
 import i18n from '../i18n';
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
-    const login = async (username, password, twoFactorCode) => {
+    async function login(username, password, twoFactorCode) {
         const response = await api.post('/auth/login', { username, password, twoFactorCode });
         const data = response.data.data;
 
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
         return { twoFactorRequired: false };
     };
 
-    const loginWithGoogle = async (tokenData) => {
+    async function loginWithGoogle(tokenData) {
         const response = await api.post('/auth/google', { idToken: tokenData });
         const data = response.data.data;
 
@@ -89,12 +89,12 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
     };
 
-    const register = async (username, email, password, companyName) => {
+    async function register(username, email, password, companyName) {
         await api.post('/auth/register', { username, email, password, companyName });
         await login(username, password);
     };
 
-    const logout = async () => {
+    async function logout() {
         try {
             const refreshToken = localStorage.getItem('refreshToken');
             await api.post('/auth/logout', { refreshToken });

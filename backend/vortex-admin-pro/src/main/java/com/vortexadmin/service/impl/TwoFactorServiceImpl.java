@@ -10,7 +10,7 @@ import com.vortexadmin.repository.UserTwoFactorRepository;
 import com.vortexadmin.service.TwoFactorService;
 import com.vortexadmin.util.SecurityUtils;
 import com.vortexadmin.util.TotpUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,20 +23,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class TwoFactorServiceImpl implements TwoFactorService {
 
     private static final String ISSUER = "Vortex Admin Pro";
     private static final int BACKUP_CODE_COUNT = 8;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    @Autowired
-    private UserTwoFactorRepository twoFactorRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UserTwoFactorRepository twoFactorRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     private User getCurrentUser() {
         return userRepository.findById(SecurityUtils.getCurrentUserId())

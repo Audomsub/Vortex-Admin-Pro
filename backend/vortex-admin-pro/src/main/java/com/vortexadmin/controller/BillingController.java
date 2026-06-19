@@ -7,7 +7,7 @@ import com.vortexadmin.dto.response.PlanResponse;
 import com.vortexadmin.dto.response.SubscriptionResponse;
 import com.vortexadmin.service.BillingService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,10 +15,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/billing")
+@RequiredArgsConstructor
 public class BillingController {
 
-    @Autowired
-    private BillingService billingService;
+    private final BillingService billingService;
 
     @GetMapping("/plans")
     public ResponseEntity<ApiResponse<List<PlanResponse>>> getPlans() {

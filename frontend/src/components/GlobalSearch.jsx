@@ -1,4 +1,3 @@
-import React from 'react';
 import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileText, Users, CheckSquare } from 'lucide-react';

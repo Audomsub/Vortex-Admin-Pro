@@ -5,7 +5,7 @@ import com.vortexadmin.dto.response.ApiResponse;
 import com.vortexadmin.dto.response.SettingResponse;
 import com.vortexadmin.service.SystemSettingService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -14,10 +14,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/settings")
+@RequiredArgsConstructor
 public class SystemSettingController {
 
-    @Autowired
-    private SystemSettingService systemSettingService;
+    private final SystemSettingService systemSettingService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('settings.view')")

@@ -19,7 +19,7 @@ public class AiServiceImpl implements AiService {
     private String geminiApiKey;
 
     @Override
-    public String analyzeAuditLogs(List<Map<String, Object>> logs) {
+    public String analyzeAuditLogs(List<com.vortexadmin.dto.response.AuditLogResponse> logs) {
         if (geminiApiKey == null || geminiApiKey.isEmpty() || geminiApiKey.contains("YOUR_API_KEY")) {
             return "❌ Gemini API Key is missing. Please set 'vortex.ai.gemini.key' in application.yaml to use AI features.";
         }
@@ -56,16 +56,16 @@ public class AiServiceImpl implements AiService {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
             RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.getBody().get("candidates");
-                if (candidates != null && !candidates.isEmpty()) {
-                    Map<String, Object> firstCandidate = candidates.get(0);
-                    Map<String, Object> resContent = (Map<String, Object>) firstCandidate.get("content");
-                    List<Map<String, Object>> parts = (List<Map<String, Object>>) resContent.get("parts");
-                    if (parts != null && !parts.isEmpty()) {
-                        return (String) parts.get(0).get("text");
+                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.getBody());
+                com.fasterxml.jackson.databind.JsonNode candidates = root.path("candidates");
+                if (candidates.isArray() && !candidates.isEmpty()) {
+                    com.fasterxml.jackson.databind.JsonNode firstCandidate = candidates.get(0);
+                    com.fasterxml.jackson.databind.JsonNode parts = firstCandidate.path("content").path("parts");
+                    if (parts.isArray() && !parts.isEmpty()) {
+                        return parts.get(0).path("text").asText();
                     }
                 }
             }

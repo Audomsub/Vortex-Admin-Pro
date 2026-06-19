@@ -3,7 +3,7 @@ package com.vortexadmin.controller;
 import com.vortexadmin.dto.response.ApiResponse;
 import com.vortexadmin.dto.response.DashboardDataResponse;
 import com.vortexadmin.service.DashboardService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/dashboard")
+@RequiredArgsConstructor
 public class DashboardController {
 
-    @Autowired
-    private DashboardService dashboardService;
+    private final DashboardService dashboardService;
 
     @GetMapping("/stats")
     @PreAuthorize("hasAuthority('dashboard.view')")

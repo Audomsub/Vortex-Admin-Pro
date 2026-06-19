@@ -6,8 +6,9 @@ import com.vortexadmin.entity.User;
 import com.vortexadmin.repository.AuditLogRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.AuditLogService;
+import com.vortexadmin.service.SseEmitterService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,13 +16,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AuditLogServiceImpl implements AuditLogService {
 
-    @Autowired
-    private AuditLogRepository auditLogRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private final AuditLogRepository auditLogRepository;
+    private final UserRepository userRepository;
+    private final SseEmitterService sseEmitterService;
 
     private AuditLogResponse mapToResponse(AuditLog log) {
         return AuditLogResponse.builder()
@@ -59,8 +59,11 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .entityType(entityName)
                 .entityId(entityId)
                 .details(details)
+                .ipAddress(ipAddress)
                 .user(user)
                 .build();
         auditLogRepository.save(log);
+
+        sseEmitterService.broadcast("dashboard_update", "reload");
     }
 }

@@ -6,16 +6,16 @@ import com.vortexadmin.dto.response.TwoFactorSetupResponse;
 import com.vortexadmin.dto.response.TwoFactorStatusResponse;
 import com.vortexadmin.service.TwoFactorService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/2fa")
+@RequiredArgsConstructor
 public class TwoFactorController {
 
-    @Autowired
-    private TwoFactorService twoFactorService;
+    private final TwoFactorService twoFactorService;
 
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<TwoFactorStatusResponse>> getStatus() {

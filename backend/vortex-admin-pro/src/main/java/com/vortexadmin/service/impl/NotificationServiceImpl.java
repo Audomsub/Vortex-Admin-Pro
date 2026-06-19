@@ -9,7 +9,7 @@ import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.NotificationService;
 import com.vortexadmin.service.SseEmitterService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,16 +18,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
-    @Autowired
-    private NotificationRepository notificationRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private SseEmitterService sseEmitterService;
+    private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+    private final SseEmitterService sseEmitterService;
 
     private NotificationResponse mapToResponse(Notification notification) {
         return NotificationResponse.builder()
@@ -50,7 +46,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public long getUnreadCount() {
-        User user = userRepository.findById(SecurityUtils.getCurrentUserId()).get();
+        User user = userRepository.findById(SecurityUtils.getCurrentUserId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         return notificationRepository.countByUserAndIsReadFalse(user);
     }
 

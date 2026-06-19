@@ -33,7 +33,7 @@ api.interceptors.response.use(
                 localStorage.setItem('token', token);
                 originalRequest.headers.Authorization = `Bearer ${token}`;
                 return api(originalRequest);
-            } catch (err) {
+            } catch {
                 localStorage.removeItem('token');
                 localStorage.removeItem('refreshToken');
                 window.location.href = '/login';

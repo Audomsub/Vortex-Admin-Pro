@@ -6,7 +6,7 @@ import com.vortexadmin.entity.User;
 import com.vortexadmin.repository.InvoiceRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.ReportStatsService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,13 +17,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ReportStatsServiceImpl implements ReportStatsService {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private InvoiceRepository invoiceRepository;
+    private final UserRepository userRepository;
+    private final InvoiceRepository invoiceRepository;
 
     @Override
     public ReportStatsResponse getReportStats(String timeframe) {

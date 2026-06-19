@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { 
-    Search, Filter, Plus, MoreVertical, Edit2, Trash2, 
-    Eye, Ban, CheckCircle2, ChevronDown, Download, Upload, Users as UsersIcon, Shield
+    Search, Filter, Plus, Edit2, Trash2, 
+    Eye, Ban, CheckCircle2, ChevronDown, Download, Upload, Shield
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import UserModal from '../components/modals/UserModal';
 import ImportModal from '../components/modals/ImportModal';
 
 const Users = () => {
+    const { t } = useTranslation();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -24,7 +26,7 @@ const Users = () => {
         fetchUsers();
     }, []);
 
-    const fetchUsers = async () => {
+    async function fetchUsers() {
         try {
             setLoading(true);
             const response = await api.get('/users');
@@ -42,8 +44,8 @@ const Users = () => {
         else setSelectedUsers([]);
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this user?')) return;
+    async function handleDelete(id) {
+        if (!window.confirm(t('users.deleteConfirm'))) return;
         try {
             await api.delete(`/users/${id}`);
             fetchUsers();
@@ -54,8 +56,8 @@ const Users = () => {
         }
     };
 
-    const handleBulkDelete = async () => {
-        if (!window.confirm(`Are you sure you want to delete ${selectedUsers.length} users?`)) return;
+    async function handleBulkDelete() {
+        if (!window.confirm(t('users.bulkDeleteConfirm', { count: selectedUsers.length }))) return;
         try {
             await Promise.all(selectedUsers.map(id => api.delete(`/users/${id}`)));
             fetchUsers();
@@ -66,7 +68,7 @@ const Users = () => {
         }
     };
 
-    const handleExport = async (format) => {
+    async function handleExport(format) {
         try {
             const response = await api.get(`/users/export?format=${format}`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -116,30 +118,27 @@ const Users = () => {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-text-primary tracking-tight">User Management</h1>
-                        <p className="text-text-secondary mt-1 text-sm">Manage your team members and their account permissions here.</p>
+                        <h1 className="text-2xl font-bold text-text-primary tracking-tight">{t('users.title')}</h1>
+                        <p className="text-text-secondary mt-1 text-sm">{t('users.description')}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="relative group">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-black/5 dark:hover:bg-white/5 text-text-primary rounded-xl font-medium transition-colors text-sm shadow-sm">
-                                <Download size={16} /> Export
-                            </button>
-                            <div className="absolute right-0 mt-2 w-32 bg-surface border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                                <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-t-xl">CSV</button>
-                                <button onClick={() => handleExport('excel')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-b-xl">Excel</button>
-                            </div>
-                        </div>
+                        <button 
+                            onClick={() => handleExport('excel')}
+                            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-black/5 dark:hover:bg-white/5 text-text-primary rounded-xl font-medium transition-colors text-sm shadow-sm"
+                        >
+                            <Download size={16} /> Export to Excel
+                        </button>
                         <button 
                             onClick={() => setIsImportModalOpen(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-black/5 dark:hover:bg-white/5 text-text-primary rounded-xl font-medium transition-colors text-sm shadow-sm"
                         >
-                            <Upload size={16} /> Import
+                            <Upload size={16} /> {t('users.import')}
                         </button>
                         <button 
                             onClick={openAddModal}
                             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20"
                         >
-                            <Plus size={16} /> Add User
+                            <Plus size={16} /> {t('users.addUser')}
                         </button>
                     </div>
                 </div>
@@ -150,7 +149,7 @@ const Users = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                         <input 
                             type="text" 
-                            placeholder="Search by name or email..." 
+                            placeholder={t('users.searchPlaceholder')}
                             className="w-full pl-10 pr-4 py-2 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -160,7 +159,7 @@ const Users = () => {
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full md:w-auto">
                             <select className="w-full md:w-auto appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2 pr-10 outline-none focus:border-primary transition-colors cursor-pointer">
-                                <option value="">All Roles</option>
+                                <option value="">{t('users.allRoles')}</option>
                                 <option value="admin">Super Admin</option>
                                 <option value="manager">Manager</option>
                                 <option value="user">User</option>
@@ -169,7 +168,7 @@ const Users = () => {
                         </div>
                         <div className="relative w-full md:w-auto">
                             <select className="w-full md:w-auto appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2 pr-10 outline-none focus:border-primary transition-colors cursor-pointer">
-                                <option value="">All Status</option>
+                                <option value="">{t('users.allStatus')}</option>
                                 <option value="active">Active</option>
                                 <option value="suspended">Suspended</option>
                                 <option value="pending">Pending</option>
@@ -186,17 +185,17 @@ const Users = () => {
                 {selectedUsers.length > 0 && (
                     <div className="bg-primary/10 border border-primary/20 rounded-2xl p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
                         <span className="text-sm font-medium text-primary ml-2">
-                            {selectedUsers.length} users selected
+                            {t('users.usersSelected', { count: selectedUsers.length })}
                         </span>
                         <div className="flex items-center gap-2">
                             <button className="text-sm px-3 py-1.5 bg-white dark:bg-zinc-800 text-text-primary rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors shadow-sm">
-                                Change Role
+                                {t('users.changeRole')}
                             </button>
                             <button 
                                 onClick={handleBulkDelete}
                                 className="text-sm px-3 py-1.5 bg-danger text-white rounded-lg hover:bg-red-600 transition-colors shadow-sm shadow-danger/20"
                             >
-                                Delete Selected
+                                {t('users.deleteSelected')}
                             </button>
                         </div>
                     </div>
@@ -216,17 +215,17 @@ const Users = () => {
                                             onChange={toggleSelectAll}
                                         />
                                     </th>
-                                    <th className="px-6 py-4 font-medium text-text-secondary">User Info</th>
-                                    <th className="px-6 py-4 font-medium text-text-secondary">Role</th>
-                                    <th className="px-6 py-4 font-medium text-text-secondary">Status</th>
-                                    <th className="px-6 py-4 font-medium text-text-secondary">Last Login</th>
-                                    <th className="px-6 py-4 font-medium text-text-secondary text-right">Actions</th>
+                                    <th className="px-6 py-4 font-medium text-text-secondary">{t('users.userInfo')}</th>
+                                    <th className="px-6 py-4 font-medium text-text-secondary">{t('users.role')}</th>
+                                    <th className="px-6 py-4 font-medium text-text-secondary">{t('users.status')}</th>
+                                    <th className="px-6 py-4 font-medium text-text-secondary">{t('users.lastLogin')}</th>
+                                    <th className="px-6 py-4 font-medium text-text-secondary text-right">{t('users.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-8 text-center text-text-secondary">Loading users...</td>
+                                        <td colSpan="6" className="px-6 py-8 text-center text-text-secondary">{t('users.loading')}</td>
                                     </tr>
                                 ) : currentUsers.map((user) => (
                                     <tr key={user.id} className={`hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${selectedUsers.includes(user.id) ? 'bg-primary/5' : ''}`}>
@@ -267,7 +266,7 @@ const Users = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-text-secondary">
-                                            Recently
+                                            {t('users.recently')}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -295,7 +294,7 @@ const Users = () => {
                         {!loading && users.length > 0 && (
                             <div className="p-4 border-t border-border flex items-center justify-between text-sm text-text-secondary bg-background rounded-b-2xl">
                                 <div>
-                                    Showing {indexOfFirstUser + 1} to {Math.min(indexOfLastUser, users.length)} of {users.length} users
+                                    {t('users.showing', { start: indexOfFirstUser + 1, end: Math.min(indexOfLastUser, users.length), total: users.length })}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button 
@@ -303,7 +302,7 @@ const Users = () => {
                                         onClick={() => setCurrentPage(p => p - 1)}
                                         className="px-3 py-1.5 rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50 font-medium"
                                     >
-                                        Previous
+                                        {t('users.previous')}
                                     </button>
                                     <span className="font-medium text-text-primary px-2">{currentPage} / {totalPages}</span>
                                     <button 
@@ -311,7 +310,7 @@ const Users = () => {
                                         onClick={() => setCurrentPage(p => p + 1)}
                                         className="px-3 py-1.5 rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50 font-medium"
                                     >
-                                        Next
+                                        {t('users.next')}
                                     </button>
                                 </div>
                             </div>

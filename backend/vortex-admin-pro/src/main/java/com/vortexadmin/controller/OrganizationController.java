@@ -8,7 +8,7 @@ import com.vortexadmin.dto.response.OrganizationMemberResponse;
 import com.vortexadmin.dto.response.OrganizationResponse;
 import com.vortexadmin.service.OrganizationService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,10 +17,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/organizations")
+@RequiredArgsConstructor
 public class OrganizationController {
 
-    @Autowired
-    private OrganizationService organizationService;
+    private final OrganizationService organizationService;
 
     @PostMapping
     @PreAuthorize("hasAuthority('organization.create')")

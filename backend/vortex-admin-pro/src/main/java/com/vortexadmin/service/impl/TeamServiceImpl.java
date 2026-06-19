@@ -6,7 +6,7 @@ import com.vortexadmin.entity.Team;
 import com.vortexadmin.exception.ApiException;
 import com.vortexadmin.repository.TeamRepository;
 import com.vortexadmin.service.TeamService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,10 +15,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class TeamServiceImpl implements TeamService {
 
-    @Autowired
-    private TeamRepository teamRepository;
+    private final TeamRepository teamRepository;
 
     private TeamResponse mapToResponse(Team team) {
         return TeamResponse.builder()

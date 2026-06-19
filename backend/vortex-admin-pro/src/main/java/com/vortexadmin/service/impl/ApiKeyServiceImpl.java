@@ -10,7 +10,7 @@ import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.ApiKeyService;
 import com.vortexadmin.util.ApiKeyUtils;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +20,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ApiKeyServiceImpl implements ApiKeyService {
 
-    @Autowired
-    private ApiKeyRepository apiKeyRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private final ApiKeyRepository apiKeyRepository;
+    private final UserRepository userRepository;
 
     private User currentUser() {
         return userRepository.findById(SecurityUtils.getCurrentUserId())

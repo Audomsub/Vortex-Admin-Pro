@@ -6,7 +6,7 @@ import com.vortexadmin.dto.response.WebhookDeliveryResponse;
 import com.vortexadmin.dto.response.WebhookEndpointResponse;
 import com.vortexadmin.service.WebhookService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -15,10 +15,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/webhooks")
+@RequiredArgsConstructor
 public class WebhookController {
 
-    @Autowired
-    private WebhookService webhookService;
+    private final WebhookService webhookService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('settings.manage')")

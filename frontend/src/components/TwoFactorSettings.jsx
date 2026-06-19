@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ShieldCheck, ShieldOff, Copy, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +14,7 @@ const TwoFactorSettings = () => {
     const [error, setError] = useState('');
     const [copied, setCopied] = useState(false);
 
-    const fetchStatus = async () => {
+    async function fetchStatus() {
         try {
             const res = await twoFactorService.getStatus();
             setStatus(res.data.data);
@@ -27,7 +27,7 @@ const TwoFactorSettings = () => {
         fetchStatus();
     }, []);
 
-    const handleSetup = async () => {
+    async function handleSetup() {
         setError('');
         try {
             const res = await twoFactorService.setup();
@@ -37,7 +37,7 @@ const TwoFactorSettings = () => {
         }
     };
 
-    const handleVerify = async (e) => {
+    async function handleVerify(e) {
         e.preventDefault();
         setError('');
         try {
@@ -51,7 +51,7 @@ const TwoFactorSettings = () => {
         }
     };
 
-    const handleDisable = async (e) => {
+    async function handleDisable(e) {
         e.preventDefault();
         setError('');
         try {

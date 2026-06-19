@@ -1,14 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Bell, Menu, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import LanguageSwitcher from '../LanguageSwitcher';
+import { createSseClient } from '../../utils/sseClient';
 
 const Navbar = ({ onMenuClick, onSearchClick }) => {
     const { user, logout } = useAuth();
     const { t } = useTranslation();
     const [isDark, setIsDark] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        // Fetch initial unread count
+        if (user) {
+            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/notifications/unread-count`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.data) setUnreadCount(data.data);
+            })
+            .catch(err => console.error("Failed to fetch unread count", err));
+
+            // Setup SSE for real-time notifications
+            const token = localStorage.getItem('token');
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+            const cleanup = createSseClient(`${apiUrl}/notifications/stream`, token, {
+                notification: (data) => {
+                    try {
+                        const parsed = JSON.parse(data);
+                        setUnreadCount(parsed.unreadCount);
+                    } catch (err) {
+                        console.error("Failed to parse SSE message", err);
+                    }
+                },
+            });
+
+            return cleanup;
+        }
+    }, [user]);
 
     useEffect(() => {
         // Check system preference or localStorage
@@ -37,7 +69,7 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
     return (
         <header className="h-16 border-b border-border glass sticky top-0 z-10 flex items-center justify-between px-4 lg:px-8">
             <div className="flex items-center gap-4">
-                <button onClick={onMenuClick} className="lg:hidden p-2 text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg">
+                <button onClick={onMenuClick} className="md:hidden p-2 text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg">
                     <Menu className="w-5 h-5" />
                 </button>
 
@@ -52,6 +84,14 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
                         ⌘K
                     </kbd>
                 </button>
+
+                {/* Mobile Search Icon */}
+                <button 
+                    onClick={onSearchClick}
+                    className="md:hidden p-2 text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg"
+                >
+                    <Search className="w-5 h-5" />
+                </button>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
@@ -64,10 +104,12 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
 
                 <LanguageSwitcher />
 
-                <button className="w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors relative">
+                <Link to="/notifications" className="w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors relative">
                     <Bell className="w-5 h-5" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-surface"></span>
-                </button>
+                    {unreadCount > 0 && (
+                        <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-surface animate-pulse"></span>
+                    )}
+                </Link>
 
                 <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
 

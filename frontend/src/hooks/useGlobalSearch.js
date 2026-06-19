@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 
 export function useGlobalSearch() {
     const [isOpen, setIsOpen] = useState(false);
@@ -28,20 +28,11 @@ export function useGlobalSearch() {
 
         setLoading(true);
         try {
-            // Include token normally via interceptor, but we assume axios instance exists or we use window.location
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`http://localhost:8080/api/search?q=${searchQuery}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setResults(res.data.data);
+            const res = await api.get('/search', { params: { q: searchQuery } });
+            setResults(res.data.data || { users: [], tasks: [], pages: [] });
         } catch (error) {
             console.error('Search failed', error);
-            // Fallback mock data if API fails or isn't ready
-            setResults({
-                users: [{ id: 1, title: 'John Doe', description: 'Admin' }],
-                tasks: [],
-                pages: [{ id: 'nav-1', title: 'Dashboard', url: '/' }]
-            });
+            setResults({ users: [], tasks: [], pages: [] });
         } finally {
             setLoading(false);
         }

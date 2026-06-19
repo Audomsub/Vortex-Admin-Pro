@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/layout/Layout';
 import {
     CreditCard, Check, Users, HardDrive, Building2, Receipt, XCircle
@@ -20,6 +20,7 @@ const Billing = () => {
     const [billingCycle, setBillingCycle] = useState('MONTHLY');
     const [loading, setLoading] = useState(true);
     const [working, setWorking] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, planName: null });
 
     useEffect(() => {
         fetchOrganizations();
@@ -59,12 +60,18 @@ const Billing = () => {
         loadBilling();
     }, [loadBilling]);
 
-    const handleUpgrade = async (planName) => {
+    const handleUpgradeClick = (planName) => {
+        setConfirmModal({ isOpen: true, planName });
+    };
+
+    async function confirmUpgrade() {
+        if (!confirmModal.planName) return;
         setWorking(true);
         try {
-            await billingService.upgrade(orgId, planName, billingCycle);
+            await billingService.upgrade(orgId, confirmModal.planName, billingCycle);
             await loadBilling();
             fetchOrganizations();
+            setConfirmModal({ isOpen: false, planName: null });
         } catch (error) {
             alert(error.response?.data?.message || t('common.error'));
         } finally {
@@ -72,7 +79,7 @@ const Billing = () => {
         }
     };
 
-    const handleCancel = async () => {
+    async function handleCancel() {
         if (!window.confirm(t('billing.cancelSubscription') + '?')) return;
         setWorking(true);
         try {
@@ -246,7 +253,7 @@ const Billing = () => {
                                             </li>
                                         </ul>
                                         <button
-                                            onClick={() => handleUpgrade(plan.name)}
+                                            onClick={() => handleUpgradeClick(plan.name)}
                                             disabled={isCurrent || working}
                                             className={cn(
                                                 "w-full py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95",
@@ -307,6 +314,40 @@ const Billing = () => {
                     </>
                 )}
             </div>
+
+            {/* Confirmation Modal */}
+            {confirmModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-surface border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                        <h3 className="text-xl font-bold text-text-primary mb-2">
+                            {t('billing.confirmUpgradeTitle')}
+                        </h3>
+                        <p className="text-text-secondary mb-6">
+                            {t('billing.confirmUpgradeDesc', { plan: confirmModal.planName })}
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setConfirmModal({ isOpen: false, planName: null })}
+                                disabled={working}
+                                className="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+                            >
+                                {t('common.cancel')}
+                            </button>
+                            <button
+                                onClick={confirmUpgrade}
+                                disabled={working}
+                                className="px-4 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                            >
+                                {working ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    t('billing.confirmUpgradeBtn')
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Layout>
     );
 };

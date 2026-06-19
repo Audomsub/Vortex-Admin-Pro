@@ -8,7 +8,7 @@ import com.vortexadmin.exception.ApiException;
 import com.vortexadmin.repository.PermissionRepository;
 import com.vortexadmin.repository.RoleRepository;
 import com.vortexadmin.service.RoleService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,20 +19,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class RoleServiceImpl implements RoleService {
 
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private PermissionRepository permissionRepository;
+    private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
 
     private RoleResponse mapToResponse(Role role) {
         return RoleResponse.builder()
                 .id(role.getId())
                 .name(role.getName())
                 .description(role.getDescription())
-                .permissions(role.getPermissions().stream().map(Permission::getCode).collect(Collectors.toList()))
+                .permissions(role.getPermissions() != null
+                        ? role.getPermissions().stream().map(Permission::getCode).collect(Collectors.toList())
+                        : java.util.List.of())
                 .build();
     }
 

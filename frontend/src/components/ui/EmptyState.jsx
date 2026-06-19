@@ -1,4 +1,3 @@
-import React from 'react';
 import { Inbox } from 'lucide-react';
 
 const EmptyState = ({ icon: Icon = Inbox, title, description, action }) => (

@@ -7,7 +7,7 @@ import com.vortexadmin.exception.ApiException;
 import com.vortexadmin.repository.SystemSettingRepository;
 import com.vortexadmin.service.SystemSettingService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +17,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class SystemSettingServiceImpl implements SystemSettingService {
 
-    @Autowired
-    private SystemSettingRepository systemSettingRepository;
+    private final SystemSettingRepository systemSettingRepository;
 
     private SettingResponse mapToResponse(SystemSetting setting) {
         return SettingResponse.builder()

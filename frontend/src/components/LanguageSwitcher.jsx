@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { preferenceService } from '../services/preferenceService';
@@ -6,6 +6,7 @@ import { preferenceService } from '../services/preferenceService';
 const LANGUAGES = [
     { code: 'en', label: 'English', flag: '🇬🇧' },
     { code: 'th', label: 'ไทย', flag: '🇹🇭' },
+    { code: 'zh', label: '中文', flag: '🇨🇳' }
 ];
 
 const LanguageSwitcher = () => {
@@ -21,7 +22,7 @@ const LanguageSwitcher = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const changeLanguage = async (code) => {
+    async function changeLanguage(code) {
         i18n.changeLanguage(code);
         localStorage.setItem('language', code);
         setOpen(false);

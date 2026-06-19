@@ -14,9 +14,9 @@ spring:
             client-secret: dummy-client-secret
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/vortex-admin
-    username: postgres
-    password: 1234
+    url: jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres
+    username: postgres.boskcvexjyixxyhxczpe
+    password: Diwooo1661@
     driver-class-name: org.postgresql.Driver
 
   jpa:

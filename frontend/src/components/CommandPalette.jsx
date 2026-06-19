@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -118,7 +118,7 @@ const CommandPalette = ({ open, onClose }) => {
                         const showGroup = command.group !== lastGroup;
                         lastGroup = command.group;
                         return (
-                            <React.Fragment key={command.group + command.label}>
+                            <Fragment key={command.group + command.label}>
                                 {showGroup && (
                                     <div className="px-3 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary/70">
                                         {command.group}
@@ -142,7 +142,7 @@ const CommandPalette = ({ open, onClose }) => {
                                         <CornerDownLeft className="w-3.5 h-3.5 text-text-secondary" />
                                     )}
                                 </button>
-                            </React.Fragment>
+                            </Fragment>
                         );
                     })}
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import CommandPalette from '../CommandPalette';
@@ -11,6 +11,29 @@ const Layout = ({ children }) => {
 
     const openPalette = useCallback(() => setIsPaletteOpen(true), []);
     const closePalette = useCallback(() => setIsPaletteOpen(false), []);
+
+    // Handle responsive sidebar states
+    useEffect(() => {
+        const handleResize = () => {
+            const width = window.innerWidth;
+            if (width < 768) {
+                // Mobile
+                setIsSidebarCollapsed(false);
+            } else if (width >= 768 && width < 1280) {
+                // Tablet
+                setIsSidebarCollapsed(true);
+                setIsMobileMenuOpen(false);
+            } else {
+                // Desktop
+                setIsSidebarCollapsed(false);
+                setIsMobileMenuOpen(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial check
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Global Cmd/Ctrl+K shortcut
     useEffect(() => {
@@ -29,14 +52,14 @@ const Layout = ({ children }) => {
             {/* Mobile Sidebar Overlay */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-20 lg:hidden backdrop-blur-sm"
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm animate-in fade-in"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
             {/* Sidebar Container */}
             <div className={cn(
-                "fixed inset-y-0 left-0 z-30 transform lg:static lg:translate-x-0 transition-transform duration-300",
+                "fixed inset-y-0 left-0 z-50 transform md:static md:translate-x-0 transition-transform duration-300",
                 isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
             )}>
                 <Sidebar
@@ -51,7 +74,7 @@ const Layout = ({ children }) => {
                     onMenuClick={() => setIsMobileMenuOpen(true)}
                     onSearchClick={openPalette}
                 />
-                <main className="flex-1 overflow-y-auto p-4 lg:p-8 scrollbar-thin">
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 scrollbar-thin">
                     <div className="max-w-7xl mx-auto animate-slide-up">
                         {children}
                     </div>

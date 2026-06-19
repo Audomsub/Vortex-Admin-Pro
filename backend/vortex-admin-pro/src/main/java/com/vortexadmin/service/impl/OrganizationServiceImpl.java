@@ -16,7 +16,7 @@ import com.vortexadmin.repository.OrganizationRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.OrganizationService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,21 +27,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class OrganizationServiceImpl implements OrganizationService {
 
     private static final List<String> MANAGER_ROLES = List.of("OWNER", "ADMIN");
 
-    @Autowired
-    private OrganizationRepository organizationRepository;
-
-    @Autowired
-    private OrganizationMemberRepository memberRepository;
-
-    @Autowired
-    private OrganizationInvitationRepository invitationRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository memberRepository;
+    private final OrganizationInvitationRepository invitationRepository;
+    private final UserRepository userRepository;
 
     private User getCurrentUser() {
         return userRepository.findById(SecurityUtils.getCurrentUserId())

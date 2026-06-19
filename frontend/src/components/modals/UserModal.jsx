@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import api from '../../api/axios';
@@ -17,6 +17,21 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    async function fetchRoles() {
+        try {
+            const response = await api.get('/roles');
+            setRoles(response.data.data);
+            if (user && user.roleName) {
+                const matchedRole = response.data.data.find(r => r.name === user.roleName);
+                if (matchedRole) {
+                    setFormData(prev => ({ ...prev, roleId: matchedRole.id }));
+                }
+            }
+        } catch (err) {
+            console.error('Failed to fetch roles', err);
+        }
+    }
+
     useEffect(() => {
         if (isOpen) {
             fetchRoles();
@@ -26,8 +41,8 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                     email: user.email || '',
                     firstName: user.firstName || '',
                     lastName: user.lastName || '',
-                    password: '', // Leave blank for edit
-                    roleId: '', // We'll need to match this if possible, backend might need to return roleId in user profile
+                    password: '',
+                    roleId: '',
                     status: user.status || 'Active'
                 });
             } else {
@@ -43,30 +58,14 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
             }
             setError('');
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, user]);
-
-    const fetchRoles = async () => {
-        try {
-            const response = await api.get('/roles');
-            setRoles(response.data.data);
-            
-            // If editing and we have a roleName, try to pre-select it
-            if (user && user.roleName) {
-                const matchedRole = response.data.data.find(r => r.name === user.roleName);
-                if (matchedRole) {
-                    setFormData(prev => ({ ...prev, roleId: matchedRole.id }));
-                }
-            }
-        } catch (err) {
-            console.error('Failed to fetch roles', err);
-        }
-    };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e) => {
+    async function handleSubmit(e) {
         e.preventDefault();
         setLoading(true);
         setError('');

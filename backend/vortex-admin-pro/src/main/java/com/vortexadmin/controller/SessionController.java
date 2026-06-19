@@ -3,7 +3,7 @@ package com.vortexadmin.controller;
 import com.vortexadmin.dto.response.ApiResponse;
 import com.vortexadmin.dto.response.SessionResponse;
 import com.vortexadmin.service.SessionService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,10 +11,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/sessions")
+@RequiredArgsConstructor
 public class SessionController {
 
-    @Autowired
-    private SessionService sessionService;
+    private final SessionService sessionService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<SessionResponse>>> getMySessions() {

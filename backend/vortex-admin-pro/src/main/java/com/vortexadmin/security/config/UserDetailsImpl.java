@@ -31,12 +31,16 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     public static UserDetailsImpl build(User user) {
-        List<GrantedAuthority> authorities = user.getRole().getPermissions().stream()
-                .map(permission -> new SimpleGrantedAuthority(permission.getCode()))
-                .collect(Collectors.toList());
+        List<GrantedAuthority> authorities = new java.util.ArrayList<>();
 
-        // Add Role as an authority too
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName().toUpperCase()));
+        if (user.getRole() != null) {
+            if (user.getRole().getPermissions() != null) {
+                user.getRole().getPermissions().stream()
+                        .map(permission -> new SimpleGrantedAuthority(permission.getCode()))
+                        .forEach(authorities::add);
+            }
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName().toUpperCase()));
+        }
 
         return new UserDetailsImpl(
                 user.getId(),

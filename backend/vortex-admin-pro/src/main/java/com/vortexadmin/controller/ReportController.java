@@ -5,7 +5,7 @@ import com.vortexadmin.dto.response.ExportFileResponse;
 import com.vortexadmin.dto.response.ReportStatsResponse;
 import com.vortexadmin.service.ReportExportService;
 import com.vortexadmin.service.ReportStatsService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +14,11 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/reports")
+@RequiredArgsConstructor
 public class ReportController {
 
-    @Autowired
-    private ReportExportService reportExportService;
-
-    @Autowired
-    private ReportStatsService reportStatsService;
+    private final ReportExportService reportExportService;
+    private final ReportStatsService reportStatsService;
 
     @GetMapping("/stats")
     @PreAuthorize("hasAuthority('report.view')")

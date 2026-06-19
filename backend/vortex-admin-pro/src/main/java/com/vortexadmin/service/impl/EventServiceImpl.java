@@ -9,7 +9,7 @@ import com.vortexadmin.repository.EventRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.EventService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,14 +18,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class EventServiceImpl implements EventService {
 
-    @Autowired
-    private EventRepository eventRepository;
-
-    
-    @Autowired
-    private UserRepository userRepository;
+    private final EventRepository eventRepository;
+    private final UserRepository userRepository;
 
     private EventResponse mapToResponse(Event event) {
         return EventResponse.builder()
@@ -53,7 +50,8 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventResponse createEvent(EventRequest request) {
-                User creator = userRepository.findById(SecurityUtils.getCurrentUserId()).get();
+                User creator = userRepository.findById(SecurityUtils.getCurrentUserId())
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "End date cannot be before start date");

@@ -7,7 +7,7 @@ import com.vortexadmin.dto.response.TaskCommentResponse;
 import com.vortexadmin.dto.response.TaskResponse;
 import com.vortexadmin.service.TaskService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,10 +16,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
+@RequiredArgsConstructor
 public class TaskController {
 
-    @Autowired
-    private TaskService taskService;
+    private final TaskService taskService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('task.read')")
@@ -63,17 +63,5 @@ public class TaskController {
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.ok(ApiResponse.success("Task deleted successfully", null));
-    }
-
-    // --- Comments ---
-
-    @GetMapping("/{taskId}/comments")
-    public ResponseEntity<ApiResponse<List<TaskCommentResponse>>> getComments(@PathVariable Long taskId) {
-        return ResponseEntity.ok(ApiResponse.success("Comments fetched", taskService.getCommentsByTask(taskId)));
-    }
-
-    @PostMapping("/{taskId}/comments")
-    public ResponseEntity<ApiResponse<TaskCommentResponse>> addComment(@PathVariable Long taskId, @Valid @RequestBody TaskCommentRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Comment added", taskService.addComment(taskId, request)));
     }
 }

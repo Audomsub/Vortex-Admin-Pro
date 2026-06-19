@@ -6,7 +6,7 @@ import com.vortexadmin.dto.response.InvitationResponse;
 import com.vortexadmin.dto.response.OrganizationResponse;
 import com.vortexadmin.service.OrganizationService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,10 +14,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/invitations")
+@RequiredArgsConstructor
 public class InvitationController {
 
-    @Autowired
-    private OrganizationService organizationService;
+    private final OrganizationService organizationService;
 
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<List<InvitationResponse>>> getMyPendingInvitations() {

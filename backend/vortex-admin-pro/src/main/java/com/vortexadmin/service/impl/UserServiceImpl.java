@@ -12,27 +12,24 @@ import com.vortexadmin.repository.RoleRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.UserService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     private UserProfileResponse mapToResponse(User user) {
         return UserProfileResponse.builder()
@@ -162,5 +159,45 @@ public class UserServiceImpl implements UserService {
         // Soft Delete
         user.setDeletedAt(LocalDateTime.now());
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public int importUsersFromCsv(MultipartFile file) {
+        int importedCount = 0;
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(file.getInputStream()))) {
+            String line;
+            boolean isHeader = true;
+            while ((line = reader.readLine()) != null) {
+                if (isHeader) {
+                    isHeader = false;
+                    continue; // skip header
+                }
+                String[] data = line.split(",");
+                if (data.length >= 3) { // Expecting: Username, Email, FirstName, LastName
+                    String username = data[0].trim();
+                    String email = data[1].trim();
+                    String firstName = data[2].trim();
+                    String lastName = data.length > 3 ? data[3].trim() : "";
+
+                    if (!userRepository.existsByUsername(username) && !userRepository.existsByEmail(email)) {
+                        User user = User.builder()
+                                .username(username)
+                                .email(email)
+                                .password(passwordEncoder.encode("password123")) // default password
+                                .firstName(firstName)
+                                .lastName(lastName)
+                                .status("Active")
+                                .failedLoginAttempts(0)
+                                .build();
+                        userRepository.save(user);
+                        importedCount++;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Failed to parse CSV file: " + e.getMessage());
+        }
+        return importedCount;
     }
 }

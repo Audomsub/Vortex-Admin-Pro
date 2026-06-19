@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import { 
     Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, 
-    Clock, MapPin, AlignLeft, Trash2, Edit2, X
+    MapPin, Trash2, X
 } from 'lucide-react';
 import api from '../api/axios';
 import { cn } from '../lib/utils';
 
 const Calendar = () => {
+    const { t } = useTranslation();
+
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -23,7 +26,7 @@ const Calendar = () => {
         fetchEvents();
     }, []);
 
-    const fetchEvents = async () => {
+    async function fetchEvents() {
         try {
             setLoading(true);
             const response = await api.get('/events');
@@ -69,7 +72,7 @@ const Calendar = () => {
         setEditingEvent(null);
     };
 
-    const handleSubmit = async (e) => {
+    async function handleSubmit(e) {
         e.preventDefault();
         try {
             const payload = {
@@ -87,19 +90,19 @@ const Calendar = () => {
             handleCloseModal();
         } catch (error) {
             console.error('Failed to save event:', error);
-            alert(error.response?.data?.message || 'Error saving event');
+            alert(error.response?.data?.message || t('calendar.errorSavingEvent'));
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this event?')) {
+    async function handleDelete(id) {
+        if (window.confirm(t('calendar.deleteConfirm'))) {
             try {
                 await api.delete(`/events/${id}`);
                 fetchEvents();
                 handleCloseModal();
             } catch (error) {
                 console.error('Failed to delete event:', error);
-                alert(error.response?.data?.message || 'Error deleting event');
+                alert(error.response?.data?.message || t('calendar.errorDeletingEvent'));
             }
         }
     };
@@ -168,8 +171,8 @@ const Calendar = () => {
         return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const monthNames = t('calendar.monthNames', { returnObjects: true });
+    const weekDays = t('calendar.weekDays', { returnObjects: true });
 
     return (
         <Layout>
@@ -179,16 +182,16 @@ const Calendar = () => {
                     <div>
                         <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
                             <CalendarIcon className="w-6 h-6 text-primary" />
-                            Calendar
+                            {t('calendar.title')}
                         </h1>
-                        <p className="text-text-secondary mt-1 text-sm">Schedule and manage team events.</p>
+                        <p className="text-text-secondary mt-1 text-sm">{t('calendar.subtitle')}</p>
                     </div>
                     <button 
                         onClick={() => handleOpenModal()}
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all shadow-lg shadow-primary/20 shrink-0"
                     >
                         <Plus className="w-4 h-4" />
-                        Add Event
+                        {t('calendar.addEvent')}
                     </button>
                 </div>
 
@@ -196,14 +199,14 @@ const Calendar = () => {
                 <div className="bg-surface border border-border rounded-t-2xl p-4 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-4">
                         <h2 className="text-xl font-bold text-text-primary w-48">
-                            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                            {Array.isArray(monthNames) ? monthNames[currentDate.getMonth()] : ''} {currentDate.getFullYear()}
                         </h2>
                         <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-lg p-1">
                             <button onClick={prevMonth} className="p-1.5 rounded-md hover:bg-surface text-text-secondary hover:text-text-primary transition-colors">
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
                             <button onClick={today} className="px-3 py-1.5 rounded-md hover:bg-surface text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">
-                                Today
+                                {t('calendar.today')}
                             </button>
                             <button onClick={nextMonth} className="p-1.5 rounded-md hover:bg-surface text-text-secondary hover:text-text-primary transition-colors">
                                 <ChevronRight className="w-5 h-5" />
@@ -216,7 +219,7 @@ const Calendar = () => {
                 <div className="flex-1 min-h-0 bg-surface border-x border-b border-border rounded-b-2xl overflow-hidden flex flex-col">
                     {/* Weekday Headers */}
                     <div className="grid grid-cols-7 border-b border-border bg-black/5 dark:bg-white/5 shrink-0">
-                        {weekDays.map(day => (
+                        {Array.isArray(weekDays) && weekDays.map(day => (
                             <div key={day} className="py-3 text-center text-xs font-semibold text-text-secondary uppercase tracking-wider border-r border-border last:border-r-0">
                                 {day}
                             </div>
@@ -283,7 +286,7 @@ const Calendar = () => {
                     <div className="relative bg-surface rounded-3xl w-full max-w-md p-6 shadow-2xl border border-border animate-in fade-in zoom-in duration-200">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-bold text-text-primary">
-                                {editingEvent ? 'Edit Event' : 'New Event'}
+                                {editingEvent ? t('calendar.editEvent') : t('calendar.newEvent')}
                             </h2>
                             <button onClick={handleCloseModal} className="p-2 text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
@@ -292,20 +295,20 @@ const Calendar = () => {
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">Event Title</label>
+                                <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('calendar.eventTitle')}</label>
                                 <input 
                                     type="text" 
                                     required
                                     value={formData.title}
                                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                                     className="w-full px-4 py-3 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all"
-                                    placeholder="Meeting, Appointment..."
+                                    placeholder={t('calendar.eventTitlePlaceholder')}
                                 />
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">Start Time</label>
+                                    <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('calendar.startTime')}</label>
                                     <input 
                                         type="datetime-local" 
                                         required
@@ -315,7 +318,7 @@ const Calendar = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">End Time</label>
+                                    <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('calendar.endTime')}</label>
                                     <input 
                                         type="datetime-local" 
                                         required
@@ -327,7 +330,7 @@ const Calendar = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">Location</label>
+                                <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('calendar.location')}</label>
                                 <div className="relative">
                                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                                     <input 
@@ -335,19 +338,19 @@ const Calendar = () => {
                                         value={formData.location}
                                         onChange={(e) => setFormData({...formData, location: e.target.value})}
                                         className="w-full pl-10 pr-4 py-3 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all"
-                                        placeholder="Zoom Link, Office Room..."
+                                        placeholder={t('calendar.locationPlaceholder')}
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">Description</label>
+                                <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('calendar.description')}</label>
                                 <textarea 
                                     rows="3"
                                     value={formData.description}
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                                     className="w-full px-4 py-3 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all resize-none"
-                                    placeholder="Event details..."
+                                    placeholder={t('calendar.descriptionPlaceholder')}
                                 ></textarea>
                             </div>
 
@@ -357,7 +360,7 @@ const Calendar = () => {
                                         type="button"
                                         onClick={() => handleDelete(editingEvent.id)}
                                         className="p-3 text-danger hover:bg-danger/10 rounded-xl transition-colors"
-                                        title="Delete Event"
+                                        title={t('calendar.deleteEvent')}
                                     >
                                         <Trash2 className="w-5 h-5" />
                                     </button>
@@ -369,13 +372,13 @@ const Calendar = () => {
                                         onClick={handleCloseModal}
                                         className="px-6 py-3 text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl font-medium transition-colors"
                                     >
-                                        Cancel
+                                        {t('common.cancel')}
                                     </button>
                                     <button 
                                         type="submit"
                                         className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium shadow-lg shadow-primary/20 transition-all active:scale-95"
                                     >
-                                        {editingEvent ? 'Save Changes' : 'Create Event'}
+                                        {editingEvent ? t('calendar.saveChanges') : t('calendar.createEvent')}
                                     </button>
                                 </div>
                             </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { Search, Filter, MessageSquare, Clock, CheckCircle2, AlertCircle, Tag, User, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -37,7 +37,7 @@ const Tickets = () => {
         fetchTickets();
     }, []);
 
-    const fetchTickets = async () => {
+    async function fetchTickets() {
         try {
             setLoading(true);
             const response = await api.get('/tickets');
@@ -49,7 +49,7 @@ const Tickets = () => {
         }
     };
 
-    const fetchMessages = async (ticketId) => {
+    async function fetchMessages(ticketId) {
         try {
             const response = await api.get(`/tickets/${ticketId}/messages`);
             setMessages(response.data.data || []);
@@ -63,7 +63,7 @@ const Tickets = () => {
         fetchMessages(ticket.id);
     };
 
-    const handleCreateTicket = async () => {
+    async function handleCreateTicket() {
         if (!newTicket.subject) return;
         try {
             const payload = { ...newTicket, status: 'Open' };
@@ -76,7 +76,7 @@ const Tickets = () => {
         }
     };
 
-    const handleStatusChange = async (newStatus) => {
+    async function handleStatusChange(newStatus) {
         try {
             await api.put(`/tickets/${activeTicket.id}/status`, { status: newStatus });
             setActiveTicket({ ...activeTicket, status: newStatus });
@@ -86,7 +86,7 @@ const Tickets = () => {
         }
     };
 
-    const handleSendReply = async () => {
+    async function handleSendReply() {
         if (!replyText.trim()) return;
         try {
             const payload = { senderName: 'Admin', message: replyText, isStaff: true };

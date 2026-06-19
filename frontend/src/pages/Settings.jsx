@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import { 
     Settings2, ShieldAlert, Mail, Image, Globe2, Save, Loader2
@@ -7,15 +8,18 @@ import { cn } from '../lib/utils';
 import api from '../api/axios';
 import { useTheme } from '../hooks/useTheme';
 
-const tabs = [
-    { id: 'general', label: 'General', icon: Settings2 },
-    { id: 'security', label: 'Security', icon: ShieldAlert },
-    { id: 'smtp', label: 'SMTP Configuration', icon: Mail },
-    { id: 'branding', label: 'Branding', icon: Image },
-    { id: 'localization', label: 'Localization', icon: Globe2 },
+const getTabs = (t) => [
+    { id: 'general', label: t('settings.tabs.general'), icon: Settings2 },
+    { id: 'security', label: t('settings.tabs.security'), icon: ShieldAlert },
+    { id: 'smtp', label: t('settings.tabs.smtp'), icon: Mail },
+    { id: 'branding', label: t('settings.tabs.branding'), icon: Image },
+    { id: 'localization', label: t('settings.tabs.localization'), icon: Globe2 },
 ];
 
 const Settings = () => {
+    const { t } = useTranslation();
+    const tabs = getTabs(t);
+
     const [activeTab, setActiveTab] = useState('general');
     const [settings, setSettings] = useState({});
     const [loading, setLoading] = useState(true);
@@ -28,11 +32,7 @@ const Settings = () => {
         name: ''
     });
 
-    useEffect(() => {
-        fetchSettings();
-    }, []);
-
-    const fetchSettings = async () => {
+    async function fetchSettings() {
         try {
             setLoading(true);
             const response = await api.get('/settings');
@@ -60,9 +60,15 @@ const Settings = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }
 
-    const handleSave = async (e) => {
+    useEffect(() => {
+        fetchSettings();
+    }, []);
+
+
+
+    async function handleSave(e) {
         e.preventDefault();
         setSaving(true);
         try {
@@ -74,17 +80,17 @@ const Settings = () => {
                     logoUrl: orgSettings.logoUrl
                 });
                 setBranding({ ...branding, ...orgSettings });
-                alert('Branding saved successfully!');
+                alert(t('settings.alerts.brandingSaved'));
             } else {
                 const promises = Object.entries(settings).map(([key, value]) => {
                     return api.post('/settings', { key, value: String(value) });
                 });
                 await Promise.all(promises);
-                alert('Settings saved successfully!');
+                alert(t('settings.alerts.settingsSaved'));
             }
         } catch (error) {
             console.error('Failed to save settings:', error);
-            alert('Failed to save settings: ' + (error.response?.data?.message || 'Unknown error'));
+            alert(t('settings.alerts.saveFailed') + ': ' + (error.response?.data?.message || 'Unknown error'));
         } finally {
             setSaving(false);
         }
@@ -96,8 +102,8 @@ const Settings = () => {
                 
                 {/* Header */}
                 <div>
-                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">System Settings</h1>
-                    <p className="text-text-secondary mt-1 text-sm">Configure global application settings and platform preferences.</p>
+                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">{t('settings.title')}</h1>
+                    <p className="text-text-secondary mt-1 text-sm">{t('settings.subtitle')}</p>
                 </div>
 
                 <div className="bg-surface border border-border rounded-2xl shadow-sm flex flex-col md:flex-row overflow-hidden min-h-[600px]">
@@ -126,7 +132,7 @@ const Settings = () => {
                         
                         {activeTab === 'general' && (
                             <div className="max-w-2xl animate-in fade-in duration-300">
-                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">General Information</h2>
+                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">{t('settings.sections.generalInfo')}</h2>
                                 
                                 {loading ? (
                                     <div className="flex items-center justify-center p-12 text-text-secondary">
@@ -135,7 +141,7 @@ const Settings = () => {
                                 ) : (
                                 <form className="space-y-6" onSubmit={handleSave}>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Platform Name</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.platformName')}</label>
                                         <input 
                                             type="text" 
                                             defaultValue={settings['site_name'] || ''}
@@ -145,7 +151,7 @@ const Settings = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Support Email</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.supportEmail')}</label>
                                         <input 
                                             type="email" 
                                             defaultValue={settings['support_email'] || ''}
@@ -155,7 +161,7 @@ const Settings = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Default Timezone</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.defaultTimezone')}</label>
                                         <select 
                                             value={settings['default_timezone'] || 'Asia/Bangkok (GMT+7)'}
                                             onChange={(e) => setSettings({...settings, default_timezone: e.target.value})}
@@ -168,8 +174,8 @@ const Settings = () => {
 
                                     <div className="flex items-center justify-between p-4 bg-background border border-border rounded-xl">
                                         <div>
-                                            <h4 className="text-sm font-medium text-text-primary">Maintenance Mode</h4>
-                                            <p className="text-xs text-text-secondary mt-1">Prevent users from logging in while updating the system.</p>
+                                            <h4 className="text-sm font-medium text-text-primary">{t('settings.fields.maintenanceMode')}</h4>
+                                            <p className="text-xs text-text-secondary mt-1">{t('settings.fields.maintenanceModeDesc')}</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input 
@@ -185,7 +191,7 @@ const Settings = () => {
                                     <div className="pt-6 mt-6 border-t border-border">
                                         <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">
                                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} 
-                                            {saving ? 'Saving...' : 'Save Settings'}
+                                            {saving ? t('settings.buttons.saving') : t('settings.buttons.saveSettings')}
                                         </button>
                                     </div>
                                 </form>
@@ -195,12 +201,12 @@ const Settings = () => {
 
                         {activeTab === 'security' && (
                             <div className="max-w-2xl animate-in fade-in duration-300">
-                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">Security Preferences</h2>
+                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">{t('settings.sections.security')}</h2>
                                 <form className="space-y-6" onSubmit={handleSave}>
                                     <div className="flex items-center justify-between p-4 bg-background border border-border rounded-xl">
                                         <div>
-                                            <h4 className="text-sm font-medium text-text-primary">Two-Factor Authentication (2FA)</h4>
-                                            <p className="text-xs text-text-secondary mt-1">Require all admins to use 2FA for login.</p>
+                                            <h4 className="text-sm font-medium text-text-primary">{t('settings.fields.twoFactor')}</h4>
+                                            <p className="text-xs text-text-secondary mt-1">{t('settings.fields.twoFactorDesc')}</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input 
@@ -213,7 +219,7 @@ const Settings = () => {
                                         </label>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Session Timeout (minutes)</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.sessionTimeout')}</label>
                                         <input 
                                             type="number" 
                                             value={settings['session_timeout'] || 60}
@@ -222,7 +228,7 @@ const Settings = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Password Expiration (days)</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.passwordExpiration')}</label>
                                         <input 
                                             type="number" 
                                             value={settings['password_expiration'] || 90}
@@ -233,7 +239,7 @@ const Settings = () => {
                                     <div className="pt-6 mt-6 border-t border-border">
                                         <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">
                                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} 
-                                            {saving ? 'Saving...' : 'Save Settings'}
+                                            {saving ? t('settings.buttons.saving') : t('settings.buttons.saveSettings')}
                                         </button>
                                     </div>
                                 </form>
@@ -242,10 +248,10 @@ const Settings = () => {
 
                         {activeTab === 'smtp' && (
                             <div className="max-w-2xl animate-in fade-in duration-300">
-                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">SMTP Configuration</h2>
+                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">{t('settings.sections.smtp')}</h2>
                                 <form className="space-y-6" onSubmit={handleSave}>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">SMTP Host</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.smtpHost')}</label>
                                         <input 
                                             type="text" 
                                             value={settings['smtp_host'] || ''}
@@ -256,7 +262,7 @@ const Settings = () => {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-text-primary mb-2">Port</label>
+                                            <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.smtpPort')}</label>
                                             <input 
                                                 type="number" 
                                                 value={settings['smtp_port'] || ''}
@@ -266,7 +272,7 @@ const Settings = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-text-primary mb-2">Encryption</label>
+                                            <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.smtpEncryption')}</label>
                                             <select 
                                                 value={settings['smtp_encryption'] || 'TLS'}
                                                 onChange={(e) => setSettings({...settings, smtp_encryption: e.target.value})}
@@ -278,7 +284,7 @@ const Settings = () => {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">SMTP Username</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.smtpUsername')}</label>
                                         <input 
                                             type="text" 
                                             value={settings['smtp_user'] || ''}
@@ -288,19 +294,19 @@ const Settings = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">SMTP Password</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.smtpPassword')}</label>
                                         <input 
                                             type="password" 
                                             value={settings['smtp_pass'] || ''}
                                             onChange={(e) => setSettings({...settings, smtp_pass: e.target.value})}
-                                            placeholder="********"
+                                            placeholder="••••••••"
                                             className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
                                         />
                                     </div>
                                     <div className="pt-6 mt-6 border-t border-border">
                                         <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">
                                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} 
-                                            {saving ? 'Saving...' : 'Save Settings'}
+                                            {saving ? t('settings.buttons.saving') : t('settings.buttons.saveSettings')}
                                         </button>
                                     </div>
                                 </form>
@@ -309,10 +315,10 @@ const Settings = () => {
 
                         {activeTab === 'branding' && (
                             <div className="max-w-2xl animate-in fade-in duration-300">
-                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">Branding & Appearance</h2>
+                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">{t('settings.sections.branding')}</h2>
                                 <form className="space-y-6" onSubmit={handleSave}>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Organization Name</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.orgName')}</label>
                                         <input 
                                             type="text" 
                                             value={orgSettings.name}
@@ -321,7 +327,7 @@ const Settings = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Company Logo URL</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.logoUrl')}</label>
                                         <div className="flex items-center gap-4">
                                             {orgSettings.logoUrl ? (
                                                 <img src={orgSettings.logoUrl} alt="Logo" className="w-16 h-16 object-contain rounded-xl bg-white border border-border p-1" />
@@ -341,7 +347,7 @@ const Settings = () => {
                                     </div>
                                     <div className="grid grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-sm font-medium text-text-primary mb-2">Primary Color</label>
+                                            <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.primaryColor')}</label>
                                             <div className="flex items-center gap-3">
                                                 <input 
                                                     type="color" 
@@ -353,7 +359,7 @@ const Settings = () => {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-text-primary mb-2">Secondary Color</label>
+                                            <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.secondaryColor')}</label>
                                             <div className="flex items-center gap-3">
                                                 <input 
                                                     type="color" 
@@ -368,7 +374,7 @@ const Settings = () => {
                                     <div className="pt-6 mt-6 border-t border-border">
                                         <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">
                                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} 
-                                            {saving ? 'Saving...' : 'Save Branding'}
+                                            {saving ? t('settings.buttons.saving') : t('settings.buttons.saveBranding')}
                                         </button>
                                     </div>
                                 </form>
@@ -377,10 +383,10 @@ const Settings = () => {
 
                         {activeTab === 'localization' && (
                             <div className="max-w-2xl animate-in fade-in duration-300">
-                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">Localization</h2>
+                                <h2 className="text-xl font-semibold text-text-primary mb-6 border-b border-border pb-4">{t('settings.sections.localization')}</h2>
                                 <form className="space-y-6" onSubmit={handleSave}>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Default Language</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.defaultLanguage')}</label>
                                         <select 
                                             value={settings['default_language'] || 'en-US'}
                                             onChange={(e) => setSettings({...settings, default_language: e.target.value})}
@@ -391,7 +397,7 @@ const Settings = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Date Format</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.dateFormat')}</label>
                                         <select 
                                             value={settings['date_format'] || 'MM/DD/YYYY'}
                                             onChange={(e) => setSettings({...settings, date_format: e.target.value})}
@@ -402,7 +408,7 @@ const Settings = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-text-primary mb-2">Currency Format</label>
+                                        <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.currencyFormat')}</label>
                                         <select 
                                             value={settings['currency_format'] || 'USD'}
                                             onChange={(e) => setSettings({...settings, currency_format: e.target.value})}
@@ -415,7 +421,7 @@ const Settings = () => {
                                     <div className="pt-6 mt-6 border-t border-border">
                                         <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">
                                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} 
-                                            {saving ? 'Saving...' : 'Save Settings'}
+                                            {saving ? t('settings.buttons.saving') : t('settings.buttons.saveSettings')}
                                         </button>
                                     </div>
                                 </form>

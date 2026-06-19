@@ -18,7 +18,7 @@ import com.vortexadmin.repository.TeamRepository;
 import com.vortexadmin.repository.UserRepository;
 
 import java.math.BigDecimal;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -31,34 +31,18 @@ import java.util.Optional;
 import java.util.Set;
 
 @Component
+@RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private PermissionRepository permissionRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private SystemSettingRepository systemSettingRepository;
-
-    @Autowired
-    private TeamRepository teamRepository;
-
-    @Autowired
-    private SubscriptionPlanRepository subscriptionPlanRepository;
-
-    @Autowired
-    private OrganizationRepository organizationRepository;
-
-    @Autowired
-    private OrganizationMemberRepository organizationMemberRepository;
+    private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final SystemSettingRepository systemSettingRepository;
+    private final TeamRepository teamRepository;
+    private final SubscriptionPlanRepository subscriptionPlanRepository;
+    private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository organizationMemberRepository;
 
     @Override
     @Transactional
@@ -138,12 +122,8 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("======================================================");
         } else {
             User admin = adminOpt.get();
-            admin.setPassword(passwordEncoder.encode("password123"));
             admin.setRole(superAdminRole);
             userRepository.save(admin);
-            System.out.println("======================================================");
-            System.out.println("Default Super Admin password reset to: password123");
-            System.out.println("======================================================");
         }
     }
 

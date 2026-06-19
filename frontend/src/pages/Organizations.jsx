@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/layout/Layout';
 import {
     Building2, Plus, Trash2, Mail, Users, Check, X, Crown, Settings2
@@ -41,7 +41,7 @@ const Organizations = () => {
         loadAll();
     }, [loadAll]);
 
-    const openDetail = async (org) => {
+    async function openDetail(org) {
         setSelectedOrg(org);
         try {
             const membersRes = await organizationService.getMembers(org.id);
@@ -57,7 +57,7 @@ const Organizations = () => {
         }
     };
 
-    const handleCreate = async (e) => {
+    async function handleCreate(e) {
         e.preventDefault();
         try {
             await organizationService.create(createForm);
@@ -69,7 +69,7 @@ const Organizations = () => {
         }
     };
 
-    const handleDelete = async (org) => {
+    async function handleDelete(org) {
         if (window.confirm(t('org.deleteConfirm'))) {
             try {
                 await organizationService.remove(org.id);
@@ -81,7 +81,7 @@ const Organizations = () => {
         }
     };
 
-    const handleInvite = async (e) => {
+    async function handleInvite(e) {
         e.preventDefault();
         try {
             await organizationService.invite(selectedOrg.id, inviteForm);
@@ -93,7 +93,7 @@ const Organizations = () => {
         }
     };
 
-    const handleRemoveMember = async (userId) => {
+    async function handleRemoveMember(userId) {
         try {
             await organizationService.removeMember(selectedOrg.id, userId);
             openDetail(selectedOrg);
@@ -102,7 +102,7 @@ const Organizations = () => {
         }
     };
 
-    const handleRevokeInvitation = async (invitationId) => {
+    async function handleRevokeInvitation(invitationId) {
         try {
             await organizationService.revokeInvitation(selectedOrg.id, invitationId);
             openDetail(selectedOrg);
@@ -111,7 +111,7 @@ const Organizations = () => {
         }
     };
 
-    const handleAcceptInvitation = async (token) => {
+    async function handleAcceptInvitation(token) {
         try {
             await organizationService.acceptInvitation(token);
             loadAll();

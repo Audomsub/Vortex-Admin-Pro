@@ -8,13 +8,13 @@ import com.vortexadmin.entity.UserSession;
 import com.vortexadmin.repository.*;
 import com.vortexadmin.service.DashboardService;
 import com.vortexadmin.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
-import java.io.File;
+import com.vortexadmin.exception.ApiException;
 import java.lang.management.ManagementFactory;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -25,36 +25,22 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private TaskRepository taskRepository;
-
-    @Autowired
-    private NotificationRepository notificationRepository;
-
-    @Autowired
-    private TeamRepository teamRepository;
-
-    @Autowired
-    private EventRepository eventRepository;
-
-    @Autowired
-    private AuditLogRepository auditLogRepository;
-
-    @Autowired
-    private UserSessionRepository userSessionRepository;
-
-    @Autowired
-    private DataSource dataSource;
+    private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
+    private final NotificationRepository notificationRepository;
+    private final TeamRepository teamRepository;
+    private final EventRepository eventRepository;
+    private final AuditLogRepository auditLogRepository;
+    private final UserSessionRepository userSessionRepository;
+    private final DataSource dataSource;
 
     @Override
-    @Cacheable(value = "dashboardStats", key = "T(com.vortexadmin.util.SecurityUtils).getCurrentUserId()")
     public DashboardDataResponse getDashboardStats() {
-        User currentUser = userRepository.findById(SecurityUtils.getCurrentUserId()).orElseThrow();
+        User currentUser = userRepository.findById(SecurityUtils.getCurrentUserId())
+                .orElseThrow(() -> new ApiException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found"));
 
         YearMonth currentMonth = YearMonth.now();
         YearMonth previousMonth = currentMonth.minusMonths(1);
@@ -143,7 +129,7 @@ public class DashboardServiceImpl implements DashboardService {
         for (Task t : recentTasks) {
             if (t.getCreatedAt() != null) {
                 LocalDate created = t.getCreatedAt().toLocalDate();
-                if (created.isAfter(now.minusDays(7))) {
+                if (!created.isBefore(now.minusDays(7))) {
                     String dayName = created.format(formatter);
                     if (taskCountsByDay.containsKey(dayName)) {
                         taskCountsByDay.get(dayName)[0]++;
@@ -220,18 +206,22 @@ public class DashboardServiceImpl implements DashboardService {
 
         long memoryUsagePct = maxMemory > 0 ? (usedMemory * 100) / maxMemory : 0;
 
-        File root = new File("/");
+        java.io.File root = Paths.get("").toAbsolutePath().toFile();
         long totalSpace = root.getTotalSpace();
         long freeSpace = root.getFreeSpace();
         long usedSpace = totalSpace - freeSpace;
         long storageUsagePct = totalSpace > 0 ? (usedSpace * 100) / totalSpace : 0;
 
         long cpuUsagePct = 0;
-        com.sun.management.OperatingSystemMXBean osBean =
-                (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-        double cpuLoad = osBean.getCpuLoad();
-        if (cpuLoad >= 0) {
-            cpuUsagePct = Math.round(cpuLoad * 100);
+        try {
+            com.sun.management.OperatingSystemMXBean osBean =
+                    (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            double cpuLoad = osBean.getCpuLoad();
+            if (cpuLoad >= 0) {
+                cpuUsagePct = Math.round(cpuLoad * 100);
+            }
+        } catch (ClassCastException ignored) {
+            // Fallback: leave cpuUsagePct at 0 if JVM does not expose this bean
         }
 
         String databaseStatus;

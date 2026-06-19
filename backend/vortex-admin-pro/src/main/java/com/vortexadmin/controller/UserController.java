@@ -8,9 +8,8 @@ import com.vortexadmin.dto.response.ApiResponse;
 import com.vortexadmin.dto.response.UserProfileResponse;
 import com.vortexadmin.service.UserService;
 import com.vortexadmin.service.ExportService;
-import com.vortexadmin.service.ImportService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,16 +26,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private ExportService exportService;
-
-    @Autowired
-    private ImportService importService;
+    private final UserService userService;
+    private final ExportService exportService;
 
     // --- Profile Operations ---
     
@@ -96,15 +90,27 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("User deleted successfully", null));
     }
 
+
+
     @GetMapping("/export")
     @PreAuthorize("hasAuthority('user.read')")
-    public ResponseEntity<byte[]> exportUsers(@RequestParam(defaultValue = "csv") String format) throws Exception {
-        // Dummy data fetch since we don't have direct Map conversion implemented
-        List<Map<String, Object>> data = new ArrayList<>();
-        Map<String, Object> u1 = new HashMap<>(); u1.put("id", 1); u1.put("username", "admin"); u1.put("email", "admin@vortex.com");
-        data.add(u1);
+    public ResponseEntity<byte[]> exportUsers(@RequestParam(defaultValue = "excel") String format) throws Exception {
+        List<UserProfileResponse> users = userService.getAllUsersInMyCompany();
         
-        List<String> headers = Arrays.asList("id", "username", "email");
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (UserProfileResponse user : users) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", user.getId());
+            map.put("username", user.getUsername());
+            map.put("email", user.getEmail());
+            map.put("first name", user.getFirstName());
+            map.put("last name", user.getLastName());
+            map.put("role", user.getRoleName());
+            map.put("status", user.getStatus());
+            data.add(map);
+        }
+        
+        List<String> headers = Arrays.asList("ID", "Username", "Email", "First Name", "Last Name", "Role", "Status");
         
         byte[] bytes;
         String contentType;
@@ -129,7 +135,7 @@ public class UserController {
     @PostMapping("/import")
     @PreAuthorize("hasAuthority('user.create')")
     public ResponseEntity<ApiResponse<Map<String, Integer>>> importUsers(@RequestParam("file") MultipartFile file) throws Exception {
-        int count = importService.importUsersFromCsv(file);
+        int count = userService.importUsersFromCsv(file);
         Map<String, Integer> result = new HashMap<>();
         result.put("importedCount", count);
         return ResponseEntity.ok(ApiResponse.success("Users imported successfully", result));

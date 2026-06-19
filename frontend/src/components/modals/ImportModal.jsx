@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, UploadCloud, File, CheckCircle2 } from 'lucide-react';
 import api from '../../api/axios';
@@ -17,7 +17,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
-    const handleImport = async () => {
+    async function handleImport() {
         if (!file) return;
         setUploading(true);
         const formData = new FormData();

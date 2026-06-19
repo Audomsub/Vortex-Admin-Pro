@@ -9,9 +9,9 @@ import com.vortexadmin.entity.WebhookEndpoint;
 import com.vortexadmin.exception.ApiException;
 import com.vortexadmin.repository.WebhookDeliveryRepository;
 import com.vortexadmin.repository.WebhookEndpointRepository;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,15 +34,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class WebhookService {
 
     private static final Logger logger = LoggerFactory.getLogger(WebhookService.class);
 
-    @Autowired
-    private WebhookEndpointRepository endpointRepository;
-
-    @Autowired
-    private WebhookDeliveryRepository deliveryRepository;
+    private final WebhookEndpointRepository endpointRepository;
+    private final WebhookDeliveryRepository deliveryRepository;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();

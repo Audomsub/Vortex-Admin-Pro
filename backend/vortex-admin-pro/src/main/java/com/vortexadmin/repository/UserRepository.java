@@ -25,6 +25,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtLessThanEqual(String status, LocalDateTime end);
     long countByDeletedAtIsNullAndCreatedAtBetween(LocalDateTime start, LocalDateTime end);
     long countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtBetween(String status, LocalDateTime start, LocalDateTime end);
+    Optional<User> findByUsernameAndDeletedAtIsNull(String username);
     List<User> findTop4ByDeletedAtIsNullOrderByCreatedAtDesc();
 
     @Query("SELECT COALESCE(r.name, 'Unknown'), COUNT(u) FROM User u LEFT JOIN u.role r WHERE u.deletedAt IS NULL GROUP BY r.name")

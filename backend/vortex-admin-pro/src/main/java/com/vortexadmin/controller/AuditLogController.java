@@ -4,7 +4,7 @@ import com.vortexadmin.dto.response.ApiResponse;
 import com.vortexadmin.dto.response.AuditLogResponse;
 import com.vortexadmin.service.AuditLogService;
 import com.vortexadmin.service.ExportService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,18 +17,16 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/audit-logs")
+@RequiredArgsConstructor
 public class AuditLogController {
 
-    @Autowired
-    private AuditLogService auditLogService;
-
-    @Autowired
-    private ExportService exportService;
+    private final AuditLogService auditLogService;
+    private final ExportService exportService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('audit.read')")
@@ -39,16 +37,26 @@ public class AuditLogController {
     @GetMapping("/export")
     @PreAuthorize("hasAuthority('audit.read')")
     public ResponseEntity<byte[]> exportLogs(@RequestParam(defaultValue = "csv") String format) throws Exception {
-        List<Map<String, Object>> data = new ArrayList<>();
-        Map<String, Object> l1 = new HashMap<>(); l1.put("action", "LOGIN"); l1.put("username", "admin"); l1.put("details", "User logged in");
-        data.add(l1);
-        
-        List<String> headers = Arrays.asList("action", "username", "details");
-        
+        List<AuditLogResponse> logs = auditLogService.getCompanyAuditLogs();
+
+        List<String> headers = Arrays.asList("action", "entityname", "entityid", "username", "ipaddress", "details", "createdat");
+
+        List<Map<String, Object>> data = logs.stream().map(log -> {
+            Map<String, Object> row = new HashMap<>();
+            row.put("action", log.getAction());
+            row.put("entityname", log.getEntityName());
+            row.put("entityid", log.getEntityId());
+            row.put("username", log.getUsername());
+            row.put("ipaddress", log.getIpAddress());
+            row.put("details", log.getDetails());
+            row.put("createdat", log.getCreatedAt() != null ? log.getCreatedAt().toString() : "");
+            return row;
+        }).collect(Collectors.toList());
+
         byte[] bytes;
         String contentType;
         String filename;
-        
+
         if ("excel".equalsIgnoreCase(format)) {
             bytes = exportService.exportToExcel(data, headers);
             contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -58,7 +66,7 @@ public class AuditLogController {
             contentType = "text/csv";
             filename = "audit_logs.csv";
         }
-        
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType(contentType))

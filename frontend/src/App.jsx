@@ -15,6 +15,7 @@ import Files from './pages/Files';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import Welcome from './pages/Welcome';
 import ApiKeys from './pages/ApiKeys';
 import Billing from './pages/Billing';
 import AuditLogs from './pages/AuditLogs';
@@ -25,8 +26,17 @@ import RoleRoute from './components/RoleRoute';
 import OAuthCallback from './pages/OAuthCallback';
 import Webhooks from './pages/Webhooks';
 import Tickets from './pages/Tickets';
+import SystemHealth from './pages/SystemHealth';
+import EmailBuilder from './pages/EmailBuilder';
 import GlobalSearch from './components/GlobalSearch';
 import { ThemeProvider } from './hooks/useTheme';
+import { ToastContainer } from './components/ui/Toast';
+import { GlobalDialog } from './components/ui/GlobalDialog';
+import './utils/dialog';
+
+window.alert = window.vortexAlert;
+window.confirm = window.vortexConfirm;
+
 
 const PrivateRoute = ({ children }) => {
     const { user, loading } = useAuth();
@@ -52,7 +62,8 @@ const AppRoutes = () => {
             <Route path="/forgot-password" element={user ? <Navigate to="/" /> : <ForgotPassword />} />
             <Route path="/reset-password" element={user ? <Navigate to="/" /> : <ResetPassword />} />
             <Route path="/oauth2/callback" element={<OAuthCallback />} />
-            <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
+            <Route path="/" element={<PrivateRoute><Welcome /></PrivateRoute>} />
+            <Route path="/dashboard" element={<PrivateRoute><Home /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/organizations" element={<PrivateRoute><Organizations /></PrivateRoute>} />
             <Route path="/users" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}><Users /></RoleRoute>} />
@@ -70,6 +81,8 @@ const AppRoutes = () => {
             <Route path="/docs" element={<PrivateRoute><Docs /></PrivateRoute>} />
             <Route path="/settings" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Settings /></RoleRoute>} />
             <Route path="/settings/webhooks" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Webhooks /></RoleRoute>} />
+            <Route path="/system-health" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><SystemHealth /></RoleRoute>} />
+            <Route path="/email-builder" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}><EmailBuilder /></RoleRoute>} />
             {/* Fallback for unbuilt pages */}
             <Route path="*" element={<PrivateRoute><Home /></PrivateRoute>} />
         </Routes>
@@ -82,6 +95,8 @@ const App = () => {
             <ThemeProvider>
                 <Router>
                     <GlobalSearch />
+                    <ToastContainer />
+                    <GlobalDialog />
                     <AppRoutes />
                 </Router>
             </ThemeProvider>

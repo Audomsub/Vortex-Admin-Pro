@@ -13,6 +13,7 @@ import com.vortexadmin.repository.TaskCommentRepository;
 import com.vortexadmin.repository.TaskRepository;
 import com.vortexadmin.repository.TeamRepository;
 import com.vortexadmin.repository.UserRepository;
+import com.vortexadmin.service.NotificationService;
 import com.vortexadmin.service.TaskService;
 import com.vortexadmin.service.WebhookService;
 import com.vortexadmin.util.SecurityUtils;
@@ -35,6 +36,7 @@ public class TaskServiceImpl implements TaskService {
     private final UserRepository userRepository;
     private final TaskCommentRepository taskCommentRepository;
     private final WebhookService webhookService;
+    private final NotificationService notificationService;
 
     private Map<String, Object> taskEventPayload(Task task) {
         Map<String, Object> payload = new HashMap<>();
@@ -131,6 +133,19 @@ public class TaskServiceImpl implements TaskService {
 
         Task saved = taskRepository.save(task);
         webhookService.triggerEvent("task.created", taskEventPayload(saved));
+        
+        if (assignee != null) {
+            try {
+                notificationService.createNotification(
+                    assignee.getId(),
+                    "New Task Assigned",
+                    "You have been assigned the task: " + saved.getTitle()
+                );
+            } catch (Exception e) {
+                // ignore notification failure to prevent blocking task flow
+            }
+        }
+        
         return mapToResponse(saved);
     }
 
@@ -141,6 +156,7 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Task not found"));
 
         String previousStatus = task.getStatus();
+        User previousAssignee = task.getAssignedTo();
 
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
@@ -148,10 +164,11 @@ public class TaskServiceImpl implements TaskService {
         if (request.getPriority() != null) task.setPriority(request.getPriority());
         task.setDueDate(request.getDueDate());
 
+        User newAssignee = null;
         if (request.getAssignedTo() != null) {
-            User assignee = userRepository.findById(request.getAssignedTo())
+            newAssignee = userRepository.findById(request.getAssignedTo())
                     .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assignee not found"));
-            task.setAssignedTo(assignee);
+            task.setAssignedTo(newAssignee);
         } else {
             task.setAssignedTo(null);
         }
@@ -169,6 +186,26 @@ public class TaskServiceImpl implements TaskService {
         webhookService.triggerEvent("task.updated", taskEventPayload(task));
         if ("DONE".equalsIgnoreCase(task.getStatus()) && !"DONE".equalsIgnoreCase(previousStatus)) {
             webhookService.triggerEvent("task.completed", taskEventPayload(task));
+        }
+
+        if (newAssignee != null) {
+            try {
+                if (previousAssignee == null || !previousAssignee.getId().equals(newAssignee.getId())) {
+                    notificationService.createNotification(
+                        newAssignee.getId(),
+                        "New Task Assigned",
+                        "You have been assigned the task: " + task.getTitle()
+                    );
+                } else {
+                    notificationService.createNotification(
+                        newAssignee.getId(),
+                        "Task Updated",
+                        "The task '" + task.getTitle() + "' assigned to you has been updated."
+                    );
+                }
+            } catch (Exception e) {
+                // ignore notification failure
+            }
         }
     }
 

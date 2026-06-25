@@ -62,6 +62,11 @@ public class SseEmitterService {
         });
     }
 
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 20000)
+    public void sendHeartbeat() {
+        broadcast("ping", "heartbeat");
+    }
+
     private void removeEmitter(Long userId, SseEmitter emitter) {
         List<SseEmitter> emitters = emittersByUser.get(userId);
         if (emitters != null) {

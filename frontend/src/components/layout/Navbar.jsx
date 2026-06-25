@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import LanguageSwitcher from '../LanguageSwitcher';
 import { createSseClient } from '../../utils/sseClient';
+import { toast } from '../ui/Toast';
 
 const Navbar = ({ onMenuClick, onSearchClick }) => {
     const { user, logout } = useAuth();
@@ -32,6 +33,18 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
                     try {
                         const parsed = JSON.parse(data);
                         setUnreadCount(parsed.unreadCount);
+                        if (parsed.notification) {
+                            const isTask = parsed.notification.title?.toLowerCase().includes('task');
+                            toast.show(
+                                parsed.notification.title || "Notification Received",
+                                parsed.notification.message || "",
+                                "info",
+                                {
+                                    label: isTask ? "Go to Tasks" : "View Notification",
+                                    path: isTask ? "/tasks" : "/notifications"
+                                }
+                            );
+                        }
                     } catch (err) {
                         console.error("Failed to parse SSE message", err);
                     }
@@ -113,10 +126,12 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
 
                 <div className="h-6 w-px bg-border mx-1 hidden sm:block"></div>
 
-                <div className="relative group cursor-pointer">
+                <div className="relative group cursor-pointer header-profile-menu">
                     <div className="flex items-center gap-3 pl-2">
                         <div className="flex flex-col items-end hidden sm:flex">
-                            <span className="text-sm font-semibold text-text-primary leading-tight">{user?.username || 'User'}</span>
+                            <span className="text-sm font-semibold text-text-primary leading-tight">
+                                {user?.firstName ? `${user.firstName} ${user.lastName}`.trim() : (user?.username || 'User')}
+                            </span>
                             <span className="text-xs text-text-secondary">
                                 {user?.roles && user.roles.length > 0 
                                     ? user.roles[0].replace(/_/g, ' ').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase()) 

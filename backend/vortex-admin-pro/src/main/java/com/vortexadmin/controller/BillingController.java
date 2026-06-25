@@ -2,6 +2,7 @@ package com.vortexadmin.controller;
 
 import com.vortexadmin.dto.request.UpgradePlanRequest;
 import com.vortexadmin.dto.response.ApiResponse;
+import com.vortexadmin.dto.response.DiscountEligibilityResponse;
 import com.vortexadmin.dto.response.InvoiceResponse;
 import com.vortexadmin.dto.response.PlanResponse;
 import com.vortexadmin.dto.response.SubscriptionResponse;
@@ -43,5 +44,10 @@ public class BillingController {
     @PostMapping("/cancel")
     public ResponseEntity<ApiResponse<SubscriptionResponse>> cancelSubscription(@RequestParam Long organizationId) {
         return ResponseEntity.ok(ApiResponse.success("Subscription cancelled successfully", billingService.cancelSubscription(organizationId)));
+    }
+
+    @GetMapping("/discounts")
+    public ResponseEntity<ApiResponse<DiscountEligibilityResponse>> getDiscounts(@RequestParam Long organizationId) {
+        return ResponseEntity.ok(ApiResponse.success("Discount eligibility fetched successfully", billingService.getDiscountEligibility(organizationId)));
     }
 }

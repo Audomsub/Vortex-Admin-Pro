@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import { 
-    Settings2, ShieldAlert, Mail, Image, Globe2, Save, Loader2
+    Settings2, ShieldAlert, Mail, Image, Globe2, Save, Loader2, ChevronDown
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../api/axios';
@@ -162,14 +162,17 @@ const Settings = () => {
 
                                     <div>
                                         <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.defaultTimezone')}</label>
-                                        <select 
-                                            value={settings['default_timezone'] || 'Asia/Bangkok (GMT+7)'}
-                                            onChange={(e) => setSettings({...settings, default_timezone: e.target.value})}
-                                            className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
-                                            <option value="Asia/Bangkok (GMT+7)">Asia/Bangkok (GMT+7)</option>
-                                            <option value="UTC (GMT+0)">UTC (GMT+0)</option>
-                                            <option value="America/New_York (GMT-5)">America/New_York (GMT-5)</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                value={settings['default_timezone'] || 'Asia/Bangkok (GMT+7)'}
+                                                onChange={(e) => setSettings({...settings, default_timezone: e.target.value})}
+                                                className="w-full px-4 py-2.5 pr-10 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
+                                                <option value="Asia/Bangkok (GMT+7)">Asia/Bangkok (GMT+7)</option>
+                                                <option value="UTC (GMT+0)">UTC (GMT+0)</option>
+                                                <option value="America/New_York (GMT-5)">America/New_York (GMT-5)</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                        </div>
                                     </div>
 
                                     <div className="flex items-center justify-between p-4 bg-background border border-border rounded-xl">
@@ -273,14 +276,17 @@ const Settings = () => {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.smtpEncryption')}</label>
-                                            <select 
-                                                value={settings['smtp_encryption'] || 'TLS'}
-                                                onChange={(e) => setSettings({...settings, smtp_encryption: e.target.value})}
-                                                className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
-                                                <option value="TLS">TLS</option>
-                                                <option value="SSL">SSL</option>
-                                                <option value="None">None</option>
-                                            </select>
+                                            <div className="relative">
+                                                <select
+                                                    value={settings['smtp_encryption'] || 'TLS'}
+                                                    onChange={(e) => setSettings({...settings, smtp_encryption: e.target.value})}
+                                                    className="w-full px-4 py-2.5 pr-10 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
+                                                    <option value="TLS">TLS</option>
+                                                    <option value="SSL">SSL</option>
+                                                    <option value="None">None</option>
+                                                </select>
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                            </div>
                                         </div>
                                     </div>
                                     <div>
@@ -387,36 +393,45 @@ const Settings = () => {
                                 <form className="space-y-6" onSubmit={handleSave}>
                                     <div>
                                         <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.defaultLanguage')}</label>
-                                        <select 
-                                            value={settings['default_language'] || 'en-US'}
-                                            onChange={(e) => setSettings({...settings, default_language: e.target.value})}
-                                            className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
-                                            <option value="en-US">English (US)</option>
-                                            <option value="th-TH">Thai (TH)</option>
-                                            <option value="ja-JP">Japanese (JP)</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                value={settings['default_language'] || 'en-US'}
+                                                onChange={(e) => setSettings({...settings, default_language: e.target.value})}
+                                                className="w-full px-4 py-2.5 pr-10 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
+                                                <option value="en-US">English (US)</option>
+                                                <option value="th-TH">Thai (TH)</option>
+                                                <option value="ja-JP">Japanese (JP)</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.dateFormat')}</label>
-                                        <select 
-                                            value={settings['date_format'] || 'MM/DD/YYYY'}
-                                            onChange={(e) => setSettings({...settings, date_format: e.target.value})}
-                                            className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
-                                            <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2023)</option>
-                                            <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2023)</option>
-                                            <option value="YYYY-MM-DD">YYYY-MM-DD (2023-12-31)</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                value={settings['date_format'] || 'MM/DD/YYYY'}
+                                                onChange={(e) => setSettings({...settings, date_format: e.target.value})}
+                                                className="w-full px-4 py-2.5 pr-10 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
+                                                <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2023)</option>
+                                                <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2023)</option>
+                                                <option value="YYYY-MM-DD">YYYY-MM-DD (2023-12-31)</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.currencyFormat')}</label>
-                                        <select 
-                                            value={settings['currency_format'] || 'USD'}
-                                            onChange={(e) => setSettings({...settings, currency_format: e.target.value})}
-                                            className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
-                                            <option value="USD">USD ($)</option>
-                                            <option value="THB">THB (฿)</option>
-                                            <option value="EUR">EUR (€)</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                value={settings['currency_format'] || 'USD'}
+                                                onChange={(e) => setSettings({...settings, currency_format: e.target.value})}
+                                                className="w-full px-4 py-2.5 pr-10 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary cursor-pointer appearance-none">
+                                                <option value="USD">USD ($)</option>
+                                                <option value="THB">THB (฿)</option>
+                                                <option value="EUR">EUR (€)</option>
+                                            </select>
+                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                        </div>
                                     </div>
                                     <div className="pt-6 mt-6 border-t border-border">
                                         <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">

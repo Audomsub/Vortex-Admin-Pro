@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import { 
     Folder, File as FileIcon, UploadCloud, Trash2, Edit2, 
     Download, Image as ImageIcon, FileText, Search,
@@ -140,7 +141,7 @@ const Files = () => {
     };
 
     async function handleDelete(id) {
-        if (window.confirm(t('fileManager.deleteConfirm'))) {
+        if (await window.confirm(t('fileManager.deleteConfirm'))) {
             try {
                 await api.delete(`/files/${id}`);
                 fetchFiles();
@@ -318,6 +319,7 @@ const Files = () => {
 
                 {/* Preview Modal */}
                 {previewFile && (
+                    <ModalPortal>
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                         <div className="relative bg-surface border border-border rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
                             <div className="flex items-center justify-between p-4 border-b border-border bg-surface/50">
@@ -350,6 +352,7 @@ const Files = () => {
                             </div>
                         </div>
                     </div>
+                    </ModalPortal>
                 )}
             </div>
         </Layout>

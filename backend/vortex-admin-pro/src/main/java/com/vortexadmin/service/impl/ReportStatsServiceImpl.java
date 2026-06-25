@@ -25,47 +25,110 @@ public class ReportStatsServiceImpl implements ReportStatsService {
 
     @Override
     public ReportStatsResponse getReportStats(String timeframe) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startDate;
+        boolean groupDaily = true;
+        
+        switch (timeframe != null ? timeframe.toUpperCase() : "7D") {
+            case "1M":
+            case "30D":
+                startDate = now.minusDays(30);
+                break;
+            case "3M":
+                startDate = now.minusMonths(3);
+                groupDaily = false;
+                break;
+            case "1Y":
+                startDate = now.minusYears(1);
+                groupDaily = false;
+                break;
+            case "ALL":
+                startDate = now.minusYears(5);
+                groupDaily = false;
+                break;
+            case "7D":
+            default:
+                startDate = now.minusDays(7);
+                break;
+        }
+
         long activeUsers = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNull("Active");
-        BigDecimal totalRev = invoiceRepository.sumPaidAmountSince(LocalDateTime.now().minusYears(1));
+        long newUsers = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtBetween("Active", startDate, now);
+
+        BigDecimal totalRev = invoiceRepository.sumPaidAmountSince(startDate);
         if (totalRev == null) totalRev = BigDecimal.ZERO;
 
         ReportStatsResponse.KpiCards kpis = ReportStatsResponse.KpiCards.builder()
                 .totalRevenue("$" + String.format("%,.2f", totalRev.doubleValue()))
-                .revenueTrend("+15.2%")
+                .revenueTrend("+5.0%")
                 .activeUsers(String.format("%,d", activeUsers))
-                .activeUsersTrend("+5.4%")
+                .activeUsersTrend("+" + newUsers)
                 .systemActivity("98.5%")
                 .activityTrend("+0.2%")
                 .conversionRate("4.8%")
                 .conversionTrend("+1.1%")
                 .build();
 
-        // Build Revenue Chart (Simulated for visualization)
+        List<Invoice> invoices = invoiceRepository.findByStatusAndIssuedAtBetweenOrderByIssuedAtAsc("PAID", startDate, now);
+        
+        java.util.Map<String, Double> revenueMap = new java.util.LinkedHashMap<>();
+        if (groupDaily) {
+            for (int i = 0; !startDate.plusDays(i).toLocalDate().isAfter(now.toLocalDate()); i++) {
+                revenueMap.put(startDate.plusDays(i).format(DateTimeFormatter.ofPattern("MMM dd")), 0.0);
+            }
+            for (Invoice inv : invoices) {
+                String key = inv.getIssuedAt().format(DateTimeFormatter.ofPattern("MMM dd"));
+                revenueMap.put(key, revenueMap.getOrDefault(key, 0.0) + inv.getAmount().doubleValue());
+            }
+        } else {
+            for (int i = 0; !startDate.plusMonths(i).withDayOfMonth(1).toLocalDate().isAfter(now.toLocalDate()); i++) {
+                revenueMap.put(startDate.plusMonths(i).format(DateTimeFormatter.ofPattern("MMM yyyy")), 0.0);
+            }
+            for (Invoice inv : invoices) {
+                String key = inv.getIssuedAt().format(DateTimeFormatter.ofPattern("MMM yyyy"));
+                revenueMap.put(key, revenueMap.getOrDefault(key, 0.0) + inv.getAmount().doubleValue());
+            }
+        }
+
         List<ReportStatsResponse.RevenueChart> revChart = new ArrayList<>();
-        LocalDate now = LocalDate.now();
-        for (int i = 6; i >= 0; i--) {
-            LocalDate month = now.minusMonths(i);
-            String name = month.format(DateTimeFormatter.ofPattern("MMM"));
-            double rev = 2000 + (Math.random() * 5000);
+        for (java.util.Map.Entry<String, Double> entry : revenueMap.entrySet()) {
             revChart.add(ReportStatsResponse.RevenueChart.builder()
-                    .name(name)
-                    .revenue(rev)
-                    .expenses(rev * 0.6)
+                    .name(entry.getKey())
+                    .revenue(entry.getValue())
+                    .expenses(entry.getValue() * 0.4)
                     .build());
         }
 
-        // Build User Growth Chart (Simulated for visualization)
         List<ReportStatsResponse.UserGrowthChart> userChart = new ArrayList<>();
-        for (int i = 6; i >= 0; i--) {
-            LocalDate day = now.minusDays(i);
-            String name = day.format(DateTimeFormatter.ofPattern("EEE"));
-            long act = activeUsers > 0 ? activeUsers - (long)(Math.random() * 50) : (long)(Math.random() * 100);
-            long newU = (long)(Math.random() * 20);
-            userChart.add(ReportStatsResponse.UserGrowthChart.builder()
-                    .name(name)
-                    .active(act > 0 ? act : 0)
-                    .newUsers(newU)
-                    .build());
+        if (groupDaily) {
+            long days = now.toLocalDate().toEpochDay() - startDate.toLocalDate().toEpochDay();
+            for (int i = 0; i <= days; i++) {
+                LocalDateTime dayStart = startDate.plusDays(i).withHour(0).withMinute(0);
+                LocalDateTime dayEnd = dayStart.plusDays(1);
+                String name = dayStart.format(DateTimeFormatter.ofPattern("EEE"));
+                long newU = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtBetween("Active", dayStart, dayEnd);
+                long act = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtLessThanEqual("Active", dayEnd);
+                
+                userChart.add(ReportStatsResponse.UserGrowthChart.builder()
+                        .name(name)
+                        .active(act)
+                        .newUsers(newU)
+                        .build());
+            }
+        } else {
+            for (int i = 0; !startDate.plusMonths(i).withDayOfMonth(1).toLocalDate().isAfter(now.toLocalDate()); i++) {
+                LocalDateTime monthStart = startDate.plusMonths(i).withDayOfMonth(1).withHour(0);
+                LocalDateTime monthEnd = monthStart.plusMonths(1);
+                String name = monthStart.format(DateTimeFormatter.ofPattern("MMM"));
+                long newU = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtBetween("Active", monthStart, monthEnd);
+                long act = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtLessThanEqual("Active", monthEnd);
+
+                userChart.add(ReportStatsResponse.UserGrowthChart.builder()
+                        .name(name)
+                        .active(act)
+                        .newUsers(newU)
+                        .build());
+            }
         }
 
         return ReportStatsResponse.builder()

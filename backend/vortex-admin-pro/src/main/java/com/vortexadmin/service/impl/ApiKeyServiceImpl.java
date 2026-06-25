@@ -40,6 +40,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                 .lastUsedAt(key.getLastUsedAt())
                 .expiresAt(key.getExpiresAt())
                 .createdAt(key.getCreatedAt())
+                .scopes(key.getScopes())
                 .build();
     }
 
@@ -59,6 +60,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                         ? LocalDateTime.now().plusDays(request.getExpiresInDays())
                         : null)
                 .user(user)
+                .scopes(request.getScopes() != null ? request.getScopes() : List.of())
                 .build();
         apiKeyRepository.save(apiKey);
 

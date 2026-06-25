@@ -1,6 +1,7 @@
 package com.vortexadmin.service.impl;
 
 import com.vortexadmin.dto.request.UpgradePlanRequest;
+import com.vortexadmin.dto.response.DiscountEligibilityResponse;
 import com.vortexadmin.dto.response.InvoiceResponse;
 import com.vortexadmin.dto.response.PlanResponse;
 import com.vortexadmin.dto.response.SubscriptionResponse;
@@ -182,6 +183,19 @@ public class BillingServiceImpl implements BillingService {
         // Issue invoice + mock payment for paid plans
         BigDecimal amount = "YEARLY".equals(billingCycle) ? newPlan.getYearlyPrice() : newPlan.getMonthlyPrice();
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            boolean loyaltyEligible = isLoyaltyDiscountEligible(org.getId());
+            boolean firstYearEligible = "YEARLY".equals(billingCycle) && isFirstYearDiscountEligible(org.getId());
+
+            BigDecimal discountFactor = BigDecimal.ONE;
+            if (loyaltyEligible && firstYearEligible) {
+                discountFactor = new BigDecimal("0.70"); // 30% discount
+            } else if (firstYearEligible) {
+                discountFactor = new BigDecimal("0.80"); // 20% discount
+            } else if (loyaltyEligible) {
+                discountFactor = new BigDecimal("0.90"); // 10% discount
+            }
+            amount = amount.multiply(discountFactor).setScale(2, java.math.RoundingMode.HALF_UP);
+
             Invoice invoice = Invoice.builder()
                     .subscription(subscription)
                     .amount(amount)
@@ -193,7 +207,7 @@ public class BillingServiceImpl implements BillingService {
             Payment payment = Payment.builder()
                     .invoice(invoice)
                     .amount(amount)
-                    .paymentProvider("MOCK")
+                    .paymentProvider(request.getPaymentProvider() != null ? request.getPaymentProvider() : "MOCK")
                     .status("SUCCESS")
                     .build();
             paymentRepository.save(payment);
@@ -234,5 +248,47 @@ public class BillingServiceImpl implements BillingService {
         organizationRepository.save(org);
 
         return mapToResponse(freeSubscription);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DiscountEligibilityResponse getDiscountEligibility(Long organizationId) {
+        requireManagedOrganization(organizationId);
+        boolean loyaltyEligible = isLoyaltyDiscountEligible(organizationId);
+        boolean firstYearEligible = isFirstYearDiscountEligible(organizationId);
+        return DiscountEligibilityResponse.builder()
+                .loyaltyDiscountEligible(loyaltyEligible)
+                .firstYearDiscountEligible(firstYearEligible)
+                .build();
+    }
+
+    private boolean isLoyaltyDiscountEligible(Long organizationId) {
+        List<Subscription> subscriptions = subscriptionRepository.findByOrganizationId(organizationId);
+        long totalPaidDays = 0;
+        LocalDateTime now = LocalDateTime.now();
+        for (Subscription sub : subscriptions) {
+            String planName = sub.getPlan().getName();
+            if ("PRO".equals(planName) || "BUSINESS".equals(planName) || "ENTERPRISE".equals(planName)) {
+                LocalDateTime start = sub.getStartDate();
+                LocalDateTime end = sub.getEndDate();
+                if (end == null || end.isAfter(now)) {
+                    end = now;
+                }
+                if (end.isAfter(start)) {
+                    totalPaidDays += java.time.temporal.ChronoUnit.DAYS.between(start, end);
+                }
+            }
+        }
+        return totalPaidDays >= 240; // More than 8 months (~240 days)
+    }
+
+    private boolean isFirstYearDiscountEligible(Long organizationId) {
+        List<Subscription> subscriptions = subscriptionRepository.findByOrganizationId(organizationId);
+        for (Subscription sub : subscriptions) {
+            if ("YEARLY".equals(sub.getBillingCycle())) {
+                return false;
+            }
+        }
+        return true;
     }
 }

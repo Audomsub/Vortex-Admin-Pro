@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
@@ -6,7 +7,7 @@ import { useTheme } from '../../hooks/useTheme';
 import {
     LayoutDashboard, Users, Shield, UsersRound, CheckSquare, Calendar,
     Folder, Bell, BarChart2, Server, CreditCard, Settings, Activity, BookOpen,
-    ChevronLeft, ChevronRight, Building2, Zap, Ticket
+    ChevronLeft, ChevronRight, Building2, Zap, Ticket, Home, Cpu, Mail
 } from 'lucide-react';
 import WorkspaceSwitcher from '../WorkspaceSwitcher';
 
@@ -14,6 +15,18 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     const { user } = useAuth();
     const { branding } = useTheme();
     const { t } = useTranslation();
+    const navRef = useRef(null);
+
+    useEffect(() => {
+        const savedScroll = sessionStorage.getItem('sidebarScroll');
+        if (savedScroll && navRef.current) {
+            navRef.current.scrollTop = parseInt(savedScroll, 10);
+        }
+    }, []);
+
+    const handleScroll = (e) => {
+        sessionStorage.setItem('sidebarScroll', e.target.scrollTop);
+    };
 
     // Default roles to empty array if user or roles is missing
     const userRoles = user?.roles || [];
@@ -29,7 +42,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {
             label: t('nav.dashboard'),
             items: [
-                { title: t('nav.dashboard'), icon: LayoutDashboard, path: '/', roles: ALL },
+                { title: t('nav.homePage'), icon: Home, path: '/', roles: ALL },
+                { title: t('nav.dashboard'), icon: LayoutDashboard, path: '/dashboard', roles: ALL },
                 { title: t('nav.reports'), icon: BarChart2, path: '/reports', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] },
                 { title: t('nav.notifications'), icon: Bell, path: '/notifications', roles: ALL },
             ],
@@ -52,6 +66,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 { title: t('nav.users'), icon: Users, path: '/users', roles: ['SUPER_ADMIN', 'ADMIN'] },
                 { title: t('nav.roles'), icon: Shield, path: '/roles', roles: ['SUPER_ADMIN', 'ADMIN'] },
                 { title: t('nav.auditLogs'), icon: Activity, path: '/audit-logs', roles: ['SUPER_ADMIN', 'ADMIN'] },
+                { title: 'System Health', icon: Cpu, path: '/system-health', roles: ['SUPER_ADMIN'] },
+                { title: 'Email Builder', icon: Mail, path: '/email-builder', roles: ['SUPER_ADMIN', 'ADMIN'] },
                 { title: t('nav.apiKeys'), icon: Server, path: '/api-keys', roles: ['SUPER_ADMIN'] },
                 { title: t('nav.settings'), icon: Settings, path: '/settings', roles: ['SUPER_ADMIN'] },
                 { title: t('nav.docs'), icon: BookOpen, path: '/docs', roles: ALL },
@@ -90,7 +106,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             <WorkspaceSwitcher isCollapsed={isCollapsed} />
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <nav 
+                ref={navRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto py-4 px-3 space-y-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
                 {navGroups.map((group) => (
                     <div key={group.label} className="space-y-0.5">
                         {!isCollapsed && (

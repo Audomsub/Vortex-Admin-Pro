@@ -14,6 +14,8 @@ const Users = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -45,7 +47,7 @@ const Users = () => {
     };
 
     async function handleDelete(id) {
-        if (!window.confirm(t('users.deleteConfirm'))) return;
+        if (!await window.confirm(t('users.deleteConfirm'))) return;
         try {
             await api.delete(`/users/${id}`);
             fetchUsers();
@@ -57,7 +59,7 @@ const Users = () => {
     };
 
     async function handleBulkDelete() {
-        if (!window.confirm(t('users.bulkDeleteConfirm', { count: selectedUsers.length }))) return;
+        if (!await window.confirm(t('users.bulkDeleteConfirm', { count: selectedUsers.length }))) return;
         try {
             await Promise.all(selectedUsers.map(id => api.delete(`/users/${id}`)));
             fetchUsers();
@@ -107,10 +109,23 @@ const Users = () => {
         else setSelectedUsers([...selectedUsers, id]);
     };
 
+    const filteredUsers = users.filter(user => {
+        const matchesSearch = 
+            (user.firstName?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (user.username?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (user.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        const matchesRole = roleFilter === '' || user.roleName?.toLowerCase() === roleFilter.toLowerCase();
+        const matchesStatus = statusFilter === '' || user.status?.toLowerCase() === statusFilter.toLowerCase();
+        
+        return matchesSearch && matchesRole && matchesStatus;
+    });
+
     const indexOfLastUser = currentPage * usersPerPage;
     const indexOfFirstUser = indexOfLastUser - usersPerPage;
-    const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-    const totalPages = Math.ceil(users.length / usersPerPage) || 1;
+    const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    const totalPages = Math.ceil(filteredUsers.length / usersPerPage) || 1;
 
     return (
         <Layout>
@@ -152,22 +167,40 @@ const Users = () => {
                             placeholder={t('users.searchPlaceholder')}
                             className="w-full pl-10 pr-4 py-2 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                            }}
                         />
                     </div>
                     
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full md:w-auto">
-                            <select className="w-full md:w-auto appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2 pr-10 outline-none focus:border-primary transition-colors cursor-pointer">
+                            <select 
+                                className="w-full md:w-auto appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2 pr-10 outline-none focus:border-primary transition-colors cursor-pointer"
+                                value={roleFilter}
+                                onChange={(e) => {
+                                    setRoleFilter(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                            >
                                 <option value="">{t('users.allRoles')}</option>
-                                <option value="admin">Super Admin</option>
+                                <option value="super_admin">Super Admin</option>
+                                <option value="admin">Admin</option>
                                 <option value="manager">Manager</option>
                                 <option value="user">User</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
                         </div>
                         <div className="relative w-full md:w-auto">
-                            <select className="w-full md:w-auto appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2 pr-10 outline-none focus:border-primary transition-colors cursor-pointer">
+                            <select 
+                                className="w-full md:w-auto appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2 pr-10 outline-none focus:border-primary transition-colors cursor-pointer"
+                                value={statusFilter}
+                                onChange={(e) => {
+                                    setStatusFilter(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                            >
                                 <option value="">{t('users.allStatus')}</option>
                                 <option value="active">Active</option>
                                 <option value="suspended">Suspended</option>
@@ -211,8 +244,11 @@ const Users = () => {
                                         <input 
                                             type="checkbox" 
                                             className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50 bg-surface cursor-pointer"
-                                            checked={selectedUsers.length === users.length && users.length > 0}
-                                            onChange={toggleSelectAll}
+                                            checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setSelectedUsers(filteredUsers.map(u => u.id));
+                                                else setSelectedUsers([]);
+                                            }}
                                         />
                                     </th>
                                     <th className="px-6 py-4 font-medium text-text-secondary">{t('users.userInfo')}</th>
@@ -243,7 +279,9 @@ const Users = () => {
                                                     {(user.firstName || user.username || '?').charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-text-primary">{user.firstName} {user.lastName}</p>
+                                                    <p className="font-medium text-text-primary">
+                                                        {user.firstName || user.lastName ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : user.username}
+                                                    </p>
                                                     <p className="text-xs text-text-secondary">{user.email || user.username}</p>
                                                 </div>
                                             </div>
@@ -291,10 +329,10 @@ const Users = () => {
                                 ))}
                             </tbody>
                         </table>
-                        {!loading && users.length > 0 && (
+                        {!loading && filteredUsers.length > 0 && (
                             <div className="p-4 border-t border-border flex items-center justify-between text-sm text-text-secondary bg-background rounded-b-2xl">
                                 <div>
-                                    {t('users.showing', { start: indexOfFirstUser + 1, end: Math.min(indexOfLastUser, users.length), total: users.length })}
+                                    {t('users.showing', { start: indexOfFirstUser + 1, end: Math.min(indexOfLastUser, filteredUsers.length), total: filteredUsers.length })}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button 

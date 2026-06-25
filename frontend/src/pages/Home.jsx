@@ -21,8 +21,8 @@ const trendDirection = (trend) => {
     return trend.startsWith('-') ? false : true;
 };
 
-const StatCard = ({ title, value, trend, icon: Icon, positive }) => (
-    <div className="bg-surface p-5 rounded-2xl border border-border shadow-premium flex flex-col justify-between group hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200">
+const StatCard = ({ title, value, trend, icon: Icon, positive, className }) => (
+    <div className={`bg-surface p-5 rounded-2xl border border-border shadow-premium flex flex-col justify-between group hover:border-primary/40 hover-lift ${className || ''}`}>
         <div className="flex justify-between items-start mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-secondary/15 flex items-center justify-center text-primary group-hover:from-primary group-hover:to-secondary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/25 transition-all duration-200">
                 <Icon size={20} />
@@ -157,7 +157,7 @@ const Home = () => {
             <div className="space-y-6">
                 
                 {/* Hero Section */}
-                <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-6 lg:p-8 rounded-3xl border border-border shadow-premium">
+                <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-6 lg:p-8 rounded-3xl border border-border shadow-premium animate-enter stagger-1">
                     <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-primary/[0.07] via-transparent to-secondary/[0.07]"></div>
                     <div className="relative">
                         <h1 className="text-2xl lg:text-3xl font-bold text-text-primary tracking-tight">
@@ -174,18 +174,18 @@ const Home = () => {
 
                 {/* Analytics Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                    <StatCard title={t('home.totalUsers')} value={cards.totalUsers.toLocaleString()} trend={cards.totalUsersTrend} icon={Users} positive={trendDirection(cards.totalUsersTrend)} />
-                    <StatCard title={t('home.activeUsers')} value={cards.activeUsers.toLocaleString()} trend={cards.activeUsersTrend} icon={Activity} positive={trendDirection(cards.activeUsersTrend)} />
-                    <StatCard title={t('home.totalTeams')} value={cards.totalTeams.toLocaleString()} trend={cards.totalTeamsTrend} icon={UsersRound} positive={trendDirection(cards.totalTeamsTrend)} />
-                    <StatCard title={t('home.totalEvents')} value={cards.totalEvents.toLocaleString()} trend={cards.totalEventsTrend} icon={Calendar} positive={trendDirection(cards.totalEventsTrend)} />
-                    <StatCard title={t('home.totalTasks')} value={cards.totalTasks.toLocaleString()} trend={cards.totalTasksTrend} icon={CheckSquare} positive={trendDirection(cards.totalTasksTrend)} />
-                    <StatCard title={t('home.notifications')} value={cards.unreadNotifications.toLocaleString()} trend={cards.unreadNotificationsTrend} icon={Clock} positive={trendDirection(cards.unreadNotificationsTrend)} />
+                    <StatCard title={t('home.totalUsers')} value={cards.totalUsers.toLocaleString()} trend={cards.totalUsersTrend} icon={Users} positive={trendDirection(cards.totalUsersTrend)} className="animate-enter stagger-2" />
+                    <StatCard title={t('home.activeUsers')} value={cards.activeUsers.toLocaleString()} trend={cards.activeUsersTrend} icon={Activity} positive={trendDirection(cards.activeUsersTrend)} className="animate-enter stagger-3" />
+                    <StatCard title={t('home.totalTeams')} value={cards.totalTeams.toLocaleString()} trend={cards.totalTeamsTrend} icon={UsersRound} positive={trendDirection(cards.totalTeamsTrend)} className="animate-enter stagger-4" />
+                    <StatCard title={t('home.totalEvents')} value={cards.totalEvents.toLocaleString()} trend={cards.totalEventsTrend} icon={Calendar} positive={trendDirection(cards.totalEventsTrend)} className="animate-enter stagger-5" />
+                    <StatCard title={t('home.totalTasks')} value={cards.totalTasks.toLocaleString()} trend={cards.totalTasksTrend} icon={CheckSquare} positive={trendDirection(cards.totalTasksTrend)} className="animate-enter stagger-6" />
+                    <StatCard title={t('home.notifications')} value={cards.unreadNotifications.toLocaleString()} trend={cards.unreadNotificationsTrend} icon={Clock} positive={trendDirection(cards.unreadNotificationsTrend)} className="animate-enter stagger-7" />
                 </div>
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* User Growth Chart */}
-                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm hover-lift animate-enter stagger-5">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold text-text-primary">{t('home.userGrowth')}</h2>
                         </div>
@@ -205,14 +205,14 @@ const Home = () => {
                                         contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '12px', color: 'var(--text-primary)' }}
                                         itemStyle={{ color: 'var(--text-primary)' }}
                                     />
-                                    <Area type="monotone" dataKey="users" name="Total Users" stroke="#6366F1" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                                    <Area type="monotone" dataKey="users" name={t('home.totalUsersChart')} stroke="#6366F1" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* Task Activity Chart */}
-                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm hover-lift animate-enter stagger-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold text-text-primary">{t('home.taskActivity')}</h2>
                         </div>
@@ -227,15 +227,15 @@ const Home = () => {
                                         contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '12px', color: 'var(--text-primary)' }}
                                     />
                                     <Legend verticalAlign="top" height={36} iconType="circle" />
-                                    <Bar dataKey="created" name="Tasks Created" fill="#8B5CF6" radius={[6, 6, 0, 0]} />
-                                    <Bar dataKey="completed" name="Tasks Completed" fill="#10B981" radius={[6, 6, 0, 0]} />
+                                    <Bar dataKey="created" name={t('home.tasksCreated')} fill="#8B5CF6" radius={[6, 6, 0, 0]} />
+                                    <Bar dataKey="completed" name={t('home.tasksCompleted')} fill="#10B981" radius={[6, 6, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* Login Activity Chart */}
-                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm hover-lift animate-enter stagger-7">
                         <h2 className="text-lg font-semibold text-text-primary mb-6">{t('home.loginActivity')}</h2>
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
@@ -245,16 +245,16 @@ const Home = () => {
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
                                     <Tooltip contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '12px', color: 'var(--text-primary)' }} />
                                     <Legend verticalAlign="top" height={36} iconType="circle" />
-                                    <Line type="monotone" dataKey="active" name="Active Sessions" stroke="#10B981" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
-                                    <Line type="monotone" dataKey="users" name="Total Logins" stroke="#22D3EE" strokeWidth={3} dot={{r: 4}} />
+                                    <Line type="monotone" dataKey="active" name={t('home.activeSessions')} stroke="#10B981" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
+                                    <Line type="monotone" dataKey="users" name={t('home.totalLogins')} stroke="#22D3EE" strokeWidth={3} dot={{r: 4}} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* Distribution Pie Chart & System Health */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm flex flex-col">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-enter stagger-8">
+                        <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm flex flex-col hover-lift">
                             <h2 className="text-lg font-semibold text-text-primary mb-2">{t('home.userDistribution')}</h2>
                             <div className="flex-1 min-h-[200px]">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -280,7 +280,7 @@ const Home = () => {
                             </div>
                         </div>
 
-                        <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+                        <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm hover-lift">
                             <h2 className="text-lg font-semibold text-text-primary mb-4">{t('home.systemHealth')}</h2>
                             <div className="space-y-4">
                                 <HealthBar label="CPU Usage" value={stats.systemHealth.cpuUsage} color="bg-primary" />
@@ -293,9 +293,9 @@ const Home = () => {
                 </div>
 
                 {/* Widgets Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-enter stagger-8">
                     {/* Recent Activities */}
-                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm hover-lift">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold text-text-primary">{t('home.recentActivities')}</h2>
                         </div>
@@ -307,7 +307,7 @@ const Home = () => {
                                     desc={act.desc} 
                                     time={act.time} 
                                     type={act.type} 
-                                />
+                                    />
                             )) : (
                                 <p className="text-text-secondary text-sm">{t('home.noRecentActivities')}</p>
                             )}
@@ -315,7 +315,7 @@ const Home = () => {
                     </div>
 
                     {/* Latest Users */}
-                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm hover-lift">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold text-text-primary">{t('home.latestUsers')}</h2>
                         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import { 
     Shield, Key, Users, Plus, Check, Save, Info, X, Loader2
 } from 'lucide-react';
@@ -263,6 +264,7 @@ const Roles = () => {
             </div>
 
             {isCreateModalOpen && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-24 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="px-6 py-4 border-b border-border flex justify-between items-center">
@@ -312,6 +314,7 @@ const Roles = () => {
                         </form>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

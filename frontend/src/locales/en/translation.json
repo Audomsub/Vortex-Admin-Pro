@@ -1,5 +1,28 @@
 {
+  "welcome": {
+    "phrases": [
+      "Unify Your Enterprise Operations in One Central Hub.",
+      "Real-time Analytics to Drive Strategic Decisions.",
+      "Enterprise-Grade Security & Role-Based Access Control.",
+      "Streamline Cross-Functional Workflows Effortlessly."
+    ],
+    "description": "Empower your organization with Vortex Admin Pro. Leverage AI-driven insights, comprehensive activity monitoring, and seamless workflow automation to scale your enterprise operations securely.",
+    "placeholder": "Ask Vortex AI to analyze metrics...",
+    "btnAnalyze": "Generate Insights",
+    "btnAnalyzing": "Analyzing...",
+    "chat1": "How can Vortex streamline our workflow?",
+    "chat2": "With intelligent automation and real-time insights.",
+    "chat3": "Is it secure enough for enterprise data?",
+    "chat4": "Yes, featuring end-to-end encryption and granular RBAC.",
+    "insights": [
+      "Based on recent data, user engagement is up 15%. Consider reviewing the new reporting dashboard for details.",
+      "I detected 3 inactive teams. You might want to reassign their tasks to optimize productivity.",
+      "System health is optimal. No critical alerts found in the audit logs over the past 24 hours.",
+      "Your workspace efficiency score is 92/100. Great job! Check the Analytics tab for a breakdown."
+    ]
+  },
   "nav": {
+    "homePage": "Home Page",
     "dashboard": "Dashboard",
     "users": "User Management",
     "roles": "Roles & Permissions",
@@ -132,7 +155,11 @@
     "revenueOverview": "Revenue Overview",
     "revenueOverviewSub": "Comparing income vs expenses",
     "userGrowth": "User Growth",
-    "userGrowthSub": "User acquisition trends"
+    "userGrowthSub": "Trends in new user acquisition",
+    "revenue": "Revenue",
+    "expenses": "Expenses",
+    "activeUsersChart": "Active Users",
+    "newUsersChart": "New Users"
   },
   "home": {
     "welcomeBack": "Welcome back",
@@ -151,9 +178,14 @@
     "userDistribution": "User Distribution",
     "systemHealth": "System Health",
     "recentActivities": "Recent Activities",
-    "noRecentActivities": "No recent activities.",
+    "noRecentActivities": "No recent activities found.",
     "latestUsers": "Latest Users",
-    "noUsersFound": "No users found."
+    "noUsersFound": "No users found.",
+    "totalUsersChart": "Total Users",
+    "tasksCreated": "Tasks Created",
+    "tasksCompleted": "Tasks Completed",
+    "activeSessions": "Active Sessions",
+    "totalLogins": "Total Logins"
   },
   "fileManager": {
     "description": "Store, manage, and share your project files securely.",

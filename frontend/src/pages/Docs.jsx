@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
+import { API_ENDPOINTS } from '../data/apiDocs';
 
 const Docs = () => {
     const { t } = useTranslation();
@@ -16,17 +17,17 @@ const Docs = () => {
             category: t('docs.categoryGettingStarted'),
             items: [
                 { id: 'intro', title: t('docs.itemIntro') },
+                { id: 'manual', title: 'User Manual' },
                 { id: 'auth', title: t('docs.itemAuth') },
                 { id: 'errors', title: t('docs.itemErrors') },
             ]
         },
         {
-            category: t('docs.categoryApiEndpoints'),
-            items: [
-                { id: 'users', title: t('docs.itemUsers') },
-                { id: 'teams', title: t('docs.itemTeams') },
-                { id: 'tasks', title: t('docs.itemTasks') },
-            ]
+            category: t('docs.categoryApiEndpoints', 'API Endpoints'),
+            items: API_ENDPOINTS.map(api => ({
+                id: api.id,
+                title: t(`docs.api_${api.id}`, api.title)
+            }))
         }
     ];
 
@@ -53,7 +54,45 @@ const Docs = () => {
         </div>
     );
 
+    const getMethodColor = (method) => {
+        switch (method.toUpperCase()) {
+            case 'GET': return 'bg-success/10 text-success';
+            case 'POST': return 'bg-primary/10 text-primary';
+            case 'PUT': return 'bg-warning/10 text-warning';
+            case 'DELETE': return 'bg-danger/10 text-danger';
+            default: return 'bg-text-secondary/10 text-text-secondary';
+        }
+    };
+
     const renderContent = () => {
+        const apiMatch = API_ENDPOINTS.find(api => api.id === activeSection);
+        if (apiMatch) {
+            return (
+                <div className="space-y-6">
+                    <h1 className="text-3xl font-bold text-text-primary mb-2">{t(`docs.api_${apiMatch.id}`, apiMatch.title)}</h1>
+                    <p className="text-text-secondary">{t(`docs.api_${apiMatch.id}_sub`, apiMatch.subtitle)}</p>
+
+                    <div className="border border-border rounded-2xl overflow-hidden mt-8">
+                        <div className="bg-black/5 dark:bg-white/5 px-6 py-4 border-b border-border flex items-center gap-4">
+                            <span className={cn("px-2 py-1 text-xs font-bold rounded", getMethodColor(apiMatch.method))}>
+                                {apiMatch.method}
+                            </span>
+                            <code className="text-sm font-mono text-text-primary">{apiMatch.path}</code>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-text-secondary mb-4">{t(`docs.api_${apiMatch.id}_desc`, apiMatch.description)}</p>
+                            
+                            <h4 className="font-bold text-sm text-text-primary mb-2 uppercase tracking-wider">{t('docs.responseExample', 'Response Example')}</h4>
+                            <CodeBlock 
+                                language="json" 
+                                code={apiMatch.responseExample} 
+                            />
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         switch (activeSection) {
             case 'intro':
                 return (
@@ -73,6 +112,50 @@ const Docs = () => {
                                 <Server className="w-5 h-5 text-primary" />
                                 <code className="text-sm font-mono text-text-primary">https://api.vortexadmin.com/v1</code>
                             </div>
+                        </div>
+                    </div>
+                );
+            case 'manual':
+                return (
+                    <div className="space-y-6 animate-fade-in">
+                        <h1 className="text-3xl font-bold text-text-primary mb-2">User Manual</h1>
+                        <p className="text-text-secondary">Comprehensive guide for Vortex Admin Pro.</p>
+                        
+                        <div className="space-y-8 mt-8">
+                            <section>
+                                <h3 className="text-2xl font-bold text-text-primary mb-4">Default Credentials</h3>
+                                <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6">
+                                    <ul className="space-y-3 text-text-secondary">
+                                        <li className="flex items-center gap-3"><span className="px-2 py-1 bg-primary/10 text-primary rounded font-bold text-xs">SUPER ADMIN</span> <code>admin</code> / <code>admin</code></li>
+                                        <li className="flex items-center gap-3"><span className="px-2 py-1 bg-primary/10 text-primary rounded font-bold text-xs">MANAGER</span> <code>manager</code> / <code>manager</code></li>
+                                        <li className="flex items-center gap-3"><span className="px-2 py-1 bg-primary/10 text-primary rounded font-bold text-xs">USER</span> <code>user</code> / <code>user</code></li>
+                                    </ul>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h3 className="text-2xl font-bold text-text-primary mb-4">Navigating the System</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="p-5 border border-border rounded-xl bg-surface hover:border-primary/30 transition-colors">
+                                        <h4 className="font-bold text-text-primary mb-2">Users & Teams</h4>
+                                        <p className="text-sm text-text-secondary">Manage your organizational structure, invite new members, and assign teams.</p>
+                                    </div>
+                                    <div className="p-5 border border-border rounded-xl bg-surface hover:border-primary/30 transition-colors">
+                                        <h4 className="font-bold text-text-primary mb-2">System Settings</h4>
+                                        <p className="text-sm text-text-secondary">Super Admins can configure global rules, SMTP servers, and branding.</p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h3 className="text-2xl font-bold text-text-primary mb-4">Security & Privacy</h3>
+                                <div className="bg-warning/10 border border-warning/20 rounded-2xl p-6">
+                                    <h4 className="font-bold text-warning mb-2">Two-Factor Authentication (2FA)</h4>
+                                    <p className="text-sm text-warning/80 leading-relaxed">
+                                        If 2FA is enforced globally in Settings, you must use an authenticator app (like Google Authenticator) to scan the QR code on your first login. Keep your backup codes safe.
+                                    </p>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 );
@@ -102,44 +185,6 @@ const Docs = () => {
                         />
                     </div>
                 );
-            case 'users':
-                return (
-                    <div className="space-y-6">
-                        <h1 className="text-3xl font-bold text-text-primary mb-2">{t('docs.usersApiTitle')}</h1>
-                        <p className="text-text-secondary">{t('docs.usersApiSubtitle')}</p>
-
-                        <div className="border border-border rounded-2xl overflow-hidden mt-8">
-                            <div className="bg-black/5 dark:bg-white/5 px-6 py-4 border-b border-border flex items-center gap-4">
-                                <span className="px-2 py-1 bg-success/10 text-success text-xs font-bold rounded">GET</span>
-                                <code className="text-sm font-mono text-text-primary">/users</code>
-                            </div>
-                            <div className="p-6">
-                                <p className="text-text-secondary mb-4">{t('docs.usersApiDescription')}</p>
-                                
-                                <h4 className="font-bold text-sm text-text-primary mb-2 uppercase tracking-wider">{t('docs.responseExample')}</h4>
-                                <CodeBlock 
-                                    language="json" 
-                                    code={`{
-  "status": "success",
-  "data": [
-    {
-      "id": 1,
-      "email": "user@vortex.com",
-      "firstName": "John",
-      "lastName": "Doe",
-      "status": "ACTIVE"
-    }
-  ],
-  "meta": {
-    "total": 45,
-    "page": 1
-  }
-}`} 
-                                />
-                            </div>
-                        </div>
-                    </div>
-                );
             default:
                 return (
                     <div className="py-20 flex flex-col items-center text-center text-text-secondary">
@@ -153,9 +198,9 @@ const Docs = () => {
 
     return (
         <Layout>
-            <div className="flex flex-col lg:flex-row min-h-[calc(100vh-theme(spacing.16))] h-full">
+            <div className="flex flex-col lg:flex-row min-h-[calc(100vh-theme(spacing.24))] md:min-h-[800px] h-full bg-surface border border-border shadow-premium rounded-3xl overflow-hidden relative z-10">
                 {/* Sidebar Navigation */}
-                <div className="w-full lg:w-64 shrink-0 border-r border-border bg-surface lg:sticky lg:top-0 lg:h-[calc(100vh-theme(spacing.16))] overflow-y-auto p-4 lg:p-6 hide-scrollbar">
+                <div className="w-full lg:w-64 shrink-0 border-r border-border bg-black/5 dark:bg-white/5 lg:h-[calc(100vh-theme(spacing.24))] overflow-y-auto p-4 lg:p-6 hide-scrollbar">
                     <div className="flex items-center gap-2 mb-8 px-2">
                         <Book className="w-5 h-5 text-primary" />
                         <span className="font-bold text-text-primary">{t('docs.sidebarTitle')}</span>
@@ -191,7 +236,7 @@ const Docs = () => {
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 p-4 lg:p-12 overflow-y-auto bg-background">
+                <div className="flex-1 p-4 lg:p-12 overflow-y-auto bg-transparent">
                     <div className="max-w-3xl">
                         {renderContent()}
                     </div>

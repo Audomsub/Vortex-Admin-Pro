@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import { 
     Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, 
     MapPin, Trash2, X
@@ -95,7 +96,7 @@ const Calendar = () => {
     };
 
     async function handleDelete(id) {
-        if (window.confirm(t('calendar.deleteConfirm'))) {
+        if (await window.confirm(t('calendar.deleteConfirm'))) {
             try {
                 await api.delete(`/events/${id}`);
                 fetchEvents();
@@ -281,6 +282,7 @@ const Calendar = () => {
 
             {/* Event Modal */}
             {isModalOpen && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCloseModal}></div>
                     <div className="relative bg-surface rounded-3xl w-full max-w-md p-6 shadow-2xl border border-border animate-in fade-in zoom-in duration-200">
@@ -385,6 +387,7 @@ const Calendar = () => {
                         </form>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

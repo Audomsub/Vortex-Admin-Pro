@@ -1,5 +1,28 @@
 {
+  "welcome": {
+    "phrases": [
+      "将您的企业运营统一到一个中心枢纽中。",
+      "实时分析以推动战略决策。",
+      "企业级安全性和基于角色的访问控制 (RBAC)。",
+      "轻松简化跨职能工作流程。"
+    ],
+    "description": "通过 Vortex Admin Pro 增强您的组织能力。利用 AI 驱动的洞察、全面的活动监控和无缝的工作流程自动化，安全地扩展您的企业运营。",
+    "placeholder": "让 Vortex AI 分析数据指标...",
+    "btnAnalyze": "生成洞察",
+    "btnAnalyzing": "分析中...",
+    "chat1": "Vortex 如何简化我们的工作流程？",
+    "chat2": "借助智能自动化和实时数据洞察。",
+    "chat3": "对于企业数据，它足够安全吗？",
+    "chat4": "是的，它提供端到端加密和细粒度的 RBAC 权限控制。",
+    "insights": [
+      "根据最新数据，用户参与度上升了 15%。建议查看新的报告仪表板以获取详细信息。",
+      "我检测到有 3 个非活跃团队。您可能需要重新分配他们的任务以优化工作效率。",
+      "系统健康状况极佳。过去 24 小时内的审计日志中未发现严重警报。",
+      "您的工作区效率得分为 92/100。做得好！请查看 Analytics 选项卡以获取详细分析。"
+    ]
+  },
   "nav": {
+    "homePage": "主页",
     "dashboard": "仪表板",
     "users": "用户管理",
     "roles": "角色与权限",
@@ -132,7 +155,11 @@
     "revenueOverview": "收入概览",
     "revenueOverviewSub": "收入与支出对比",
     "userGrowth": "用户增长",
-    "userGrowthSub": "用户获取趋势"
+    "userGrowthSub": "新用户获取趋势",
+    "revenue": "收入",
+    "expenses": "支出",
+    "activeUsersChart": "活跃用户",
+    "newUsersChart": "新用户"
   },
   "home": {
     "welcomeBack": "欢迎回来",
@@ -153,7 +180,12 @@
     "recentActivities": "近期动态",
     "noRecentActivities": "近期无动态。",
     "latestUsers": "最新用户",
-    "noUsersFound": "未找到用户。"
+    "noUsersFound": "未找到用户。",
+    "totalUsersChart": "总用户",
+    "tasksCreated": "已创建任务",
+    "tasksCompleted": "已完成任务",
+    "activeSessions": "活跃会话",
+    "totalLogins": "总登录次数"
   },
   "fileManager": {
     "description": "安全地存储、管理和分享您的项目文件。",

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
     Search, LayoutDashboard, Users, Shield, UsersRound, CheckSquare, Calendar,
     Folder, Bell, BarChart2, Server, CreditCard, Settings, Activity, BookOpen,
-    Building2, User, CornerDownLeft, Moon, Sun
+    Building2, User, CornerDownLeft, Moon, Sun, Home
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -23,7 +23,8 @@ const CommandPalette = ({ open, onClose }) => {
     }, []);
 
     const commands = useMemo(() => [
-        { group: 'Navigation', label: t('nav.dashboard'), icon: LayoutDashboard, action: () => navigate('/') },
+        { group: 'Navigation', label: t('nav.homePage', 'Home Page'), icon: Home, action: () => navigate('/') },
+        { group: 'Navigation', label: t('nav.dashboard'), icon: LayoutDashboard, action: () => navigate('/dashboard') },
         { group: 'Navigation', label: t('nav.organizations'), icon: Building2, action: () => navigate('/organizations') },
         { group: 'Navigation', label: t('nav.users'), icon: Users, action: () => navigate('/users') },
         { group: 'Navigation', label: t('nav.roles'), icon: Shield, action: () => navigate('/roles') },

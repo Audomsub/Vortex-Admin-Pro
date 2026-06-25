@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "api_keys")
@@ -41,6 +42,11 @@ public class ApiKey {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "api_key_scopes", joinColumns = @JoinColumn(name = "api_key_id"))
+    @Column(name = "scope")
+    private List<String> scopes;
 
     @PrePersist
     public void prePersist() {

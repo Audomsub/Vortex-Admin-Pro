@@ -19,6 +19,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.springframework.security.core.GrantedAuthority;
 
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
@@ -44,8 +47,18 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                     boolean expired = apiKey.getExpiresAt() != null && apiKey.getExpiresAt().isBefore(LocalDateTime.now());
                     if (!apiKey.isRevoked() && !expired && apiKey.getUser().getDeletedAt() == null) {
                         UserDetailsImpl userDetails = UserDetailsImpl.build(apiKey.getUser());
+                        
+                        List<GrantedAuthority> scopedAuthorities = userDetails.getAuthorities().stream()
+                                .filter(auth -> {
+                                    String authority = auth.getAuthority();
+                                    return apiKey.getScopes() != null && 
+                                           apiKey.getScopes().contains(authority) && 
+                                           (authority.endsWith(".read") || authority.endsWith(".view") || authority.endsWith(".export"));
+                                })
+                                .collect(Collectors.toList());
+
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
+                                userDetails, null, scopedAuthorities);
                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authentication);
 

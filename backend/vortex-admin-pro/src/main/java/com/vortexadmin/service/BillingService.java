@@ -1,6 +1,7 @@
 package com.vortexadmin.service;
 
 import com.vortexadmin.dto.request.UpgradePlanRequest;
+import com.vortexadmin.dto.response.DiscountEligibilityResponse;
 import com.vortexadmin.dto.response.InvoiceResponse;
 import com.vortexadmin.dto.response.PlanResponse;
 import com.vortexadmin.dto.response.SubscriptionResponse;
@@ -18,4 +19,6 @@ public interface BillingService {
     SubscriptionResponse upgradePlan(UpgradePlanRequest request);
 
     SubscriptionResponse cancelSubscription(Long organizationId);
+
+    DiscountEligibilityResponse getDiscountEligibility(Long organizationId);
 }

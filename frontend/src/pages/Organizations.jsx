@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import {
     Building2, Plus, Trash2, Mail, Users, Check, X, Crown, Settings2
 } from 'lucide-react';
@@ -70,7 +71,7 @@ const Organizations = () => {
     };
 
     async function handleDelete(org) {
-        if (window.confirm(t('org.deleteConfirm'))) {
+        if (await window.confirm(t('org.deleteConfirm'))) {
             try {
                 await organizationService.remove(org.id);
                 if (selectedOrg?.id === org.id) setSelectedOrg(null);
@@ -342,6 +343,7 @@ const Organizations = () => {
 
             {/* Create Organization Modal */}
             {isCreateOpen && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)}></div>
                     <div className="relative bg-surface rounded-3xl w-full max-w-md p-6 shadow-2xl border border-border animate-in fade-in zoom-in duration-200">
@@ -396,10 +398,12 @@ const Organizations = () => {
                         </form>
                     </div>
                 </div>
+                </ModalPortal>
             )}
 
             {/* Invite Member Modal */}
             {isInviteOpen && selectedOrg && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsInviteOpen(false)}></div>
                     <div className="relative bg-surface rounded-3xl w-full max-w-md p-6 shadow-2xl border border-border animate-in fade-in zoom-in duration-200">
@@ -445,6 +449,7 @@ const Organizations = () => {
                         </form>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

@@ -214,12 +214,21 @@ public class ReportExportServiceImpl implements ReportExportService {
             PdfWriter.getInstance(document, out);
             document.open();
 
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
+            // Register Thai-supporting font
+            com.lowagie.text.pdf.BaseFont bf;
+            try {
+                bf = com.lowagie.text.pdf.BaseFont.createFont("C:/Windows/Fonts/tahoma.ttf", com.lowagie.text.pdf.BaseFont.IDENTITY_H, com.lowagie.text.pdf.BaseFont.EMBEDDED);
+            } catch (Exception e) {
+                // Fallback if tahoma is not available (e.g. on Linux without the font)
+                bf = com.lowagie.text.pdf.BaseFont.createFont(com.lowagie.text.pdf.BaseFont.HELVETICA, com.lowagie.text.pdf.BaseFont.CP1252, com.lowagie.text.pdf.BaseFont.NOT_EMBEDDED);
+            }
+
+            Font titleFont = new Font(bf, 16, Font.BOLD);
             Paragraph title = new Paragraph(data.title(), titleFont);
             title.setSpacingAfter(4);
             document.add(title);
 
-            Font metaFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+            Font metaFont = new Font(bf, 9, Font.NORMAL);
             Paragraph meta = new Paragraph("Generated at " + LocalDateTime.now().format(DATE_FORMAT)
                     + " — " + data.rows().size() + " records", metaFont);
             meta.setSpacingAfter(12);
@@ -228,7 +237,7 @@ public class ReportExportServiceImpl implements ReportExportService {
             PdfPTable table = new PdfPTable(data.headers().size());
             table.setWidthPercentage(100);
 
-            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+            Font headerFont = new Font(bf, 9, Font.BOLD);
             for (String header : data.headers()) {
                 PdfPCell cell = new PdfPCell(new Phrase(header, headerFont));
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -236,7 +245,7 @@ public class ReportExportServiceImpl implements ReportExportService {
                 table.addCell(cell);
             }
 
-            Font cellFont = FontFactory.getFont(FontFactory.HELVETICA, 8);
+            Font cellFont = new Font(bf, 8, Font.NORMAL);
             for (List<String> row : data.rows()) {
                 for (String value : row) {
                     PdfPCell cell = new PdfPCell(new Phrase(value != null ? value : "", cellFont));

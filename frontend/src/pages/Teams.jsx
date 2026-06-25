@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import { 
     UsersRound, Plus, Edit2, Trash2, 
     Search, Filter
@@ -68,7 +69,7 @@ const Teams = () => {
     };
 
     async function handleDelete(id) {
-        if (window.confirm(t('teams.deleteConfirm'))) {
+        if (await window.confirm(t('teams.deleteConfirm'))) {
             try {
                 await api.delete(`/teams/${id}`);
                 fetchTeams();
@@ -187,6 +188,7 @@ const Teams = () => {
 
             {/* Create/Edit Modal */}
             {isModalOpen && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCloseModal}></div>
                     <div className="relative bg-surface rounded-3xl w-full max-w-md p-6 shadow-2xl border border-border animate-in fade-in zoom-in duration-200">
@@ -233,6 +235,7 @@ const Teams = () => {
                         </form>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

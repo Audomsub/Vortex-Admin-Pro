@@ -3,6 +3,7 @@ package com.vortexadmin.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import java.util.List;
 
 @Data
 public class CreateApiKeyRequest {
@@ -13,4 +14,6 @@ public class CreateApiKeyRequest {
 
     // Optional: number of days until the key expires (null = never)
     private Integer expiresInDays;
+
+    private List<String> scopes;
 }

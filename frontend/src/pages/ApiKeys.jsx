@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import { 
     Key, Plus, Copy, Trash2, Eye, EyeOff, AlertCircle, CheckCircle2, Shield, Loader2
 } from 'lucide-react';
@@ -17,6 +18,26 @@ const ApiKeys = () => {
     const [newKeyName, setNewKeyName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
+    const [selectedScopes, setSelectedScopes] = useState([]);
+
+    const AVAILABLE_SCOPES = [
+        { id: 'profile.view', label: 'My Profile', endpoint: '/api/users/me' },
+        { id: 'audit.read', label: 'Audit Logs', endpoint: '/api/audit-logs' },
+        { id: 'user.read', label: 'Users', endpoint: '/api/users' },
+        { id: 'role.read', label: 'Roles & Permissions', endpoint: '/api/roles' },
+        { id: 'team.read', label: 'Teams', endpoint: '/api/teams' },
+        { id: 'task.read', label: 'Tasks', endpoint: '/api/tasks' },
+        { id: 'report.view', label: 'Reports', endpoint: '/api/reports/stats' },
+        { id: 'settings.view', label: 'System Settings', endpoint: '/api/settings' }
+    ];
+
+    const toggleScope = (scopeId) => {
+        if (selectedScopes.includes(scopeId)) {
+            setSelectedScopes(selectedScopes.filter(id => id !== scopeId));
+        } else {
+            setSelectedScopes([...selectedScopes, scopeId]);
+        }
+    };
 
     async function fetchKeys() {
         try {
@@ -44,11 +65,15 @@ const ApiKeys = () => {
 
         try {
             setIsSubmitting(true);
-            const res = await api.post('/api-keys', { name: newKeyName });
+            const res = await api.post('/api-keys', { 
+                name: newKeyName,
+                scopes: selectedScopes 
+            });
             if (res.data.success) {
                 // Prepend the new key to the list. The response should contain the newly created key with 'fullKey' populated.
                 setKeys([res.data.data, ...keys]);
                 setNewKeyName('');
+                setSelectedScopes([]);
                 setIsCreating(false);
             }
         } catch (err) {
@@ -60,7 +85,7 @@ const ApiKeys = () => {
     };
 
     async function handleDelete(id) {
-        if (window.confirm(t('apiKeys.revokeConfirm'))) {
+        if (await window.confirm(t('apiKeys.revokeConfirm'))) {
             try {
                 await api.delete(`/api-keys/${id}`);
                 // Refresh list or manually update state
@@ -118,6 +143,7 @@ const ApiKeys = () => {
 
                 {/* Create Modal */}
                 {isCreating && (
+                    <ModalPortal>
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                         <div className="bg-surface rounded-2xl w-full max-w-md border border-border shadow-2xl overflow-hidden">
                             <div className="p-6 border-b border-border">
@@ -137,6 +163,27 @@ const ApiKeys = () => {
                                         required
                                         disabled={isSubmitting}
                                     />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-text-primary mb-2">Read-Only Access</label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
+                                        {AVAILABLE_SCOPES.map(scope => (
+                                            <label key={scope.id} className="flex items-start gap-3 p-3 rounded-xl border border-border hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors group">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="mt-0.5 rounded border-border text-primary focus:ring-primary/50"
+                                                    checked={selectedScopes.includes(scope.id)}
+                                                    onChange={() => toggleScope(scope.id)}
+                                                />
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-sm font-medium text-text-primary group-hover:text-primary transition-colors">{scope.label}</span>
+                                                    <span className="text-[10px] font-mono text-text-secondary bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded w-fit">{scope.endpoint}</span>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-text-secondary mt-2">Select the data modules this API key is allowed to view. Keys are strictly read-only.</p>
                                 </div>
                                 <div className="flex bg-blue-500/10 text-blue-500 p-4 rounded-xl gap-3">
                                     <Shield className="w-5 h-5 shrink-0" />
@@ -162,6 +209,7 @@ const ApiKeys = () => {
                             </form>
                         </div>
                     </div>
+                    </ModalPortal>
                 )}
 
                 {/* Keys List */}
@@ -172,6 +220,7 @@ const ApiKeys = () => {
                                 <tr className="border-b border-border bg-black/5 dark:bg-white/5">
                                     <th className="p-4 text-sm font-semibold text-text-secondary">{t('apiKeys.colName')}</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary">{t('apiKeys.colApiKey')}</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">Scopes</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary">{t('apiKeys.colCreated')}</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary">{t('apiKeys.colLastUsed')}</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary text-right">{t('common.actions')}</th>
@@ -235,6 +284,23 @@ const ApiKeys = () => {
                                             {key.fullKey && (
                                                 <p className="text-[10px] text-danger mt-1">{t('apiKeys.copyNowWarning')}</p>
                                             )}
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex flex-wrap gap-1">
+                                                {key.scopes && key.scopes.length > 0 ? (
+                                                    key.scopes.map(s => {
+                                                        const scopeObj = AVAILABLE_SCOPES.find(as => as.id === s);
+                                                        return (
+                                                            <div key={s} className="flex flex-col gap-0.5 border border-primary/20 bg-primary/5 rounded px-2 py-1 mb-1">
+                                                                <span className="text-primary text-[10px] font-bold uppercase leading-none">{s.split('.')[0]}</span>
+                                                                {scopeObj && <span className="text-text-secondary text-[9px] font-mono leading-none">{scopeObj.endpoint}</span>}
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <span className="text-xs text-text-secondary">None</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="p-4 text-sm text-text-secondary">{formatDate(key.createdAt)}</td>
                                         <td className="p-4 text-sm text-text-secondary">{formatDate(key.lastUsedAt)}</td>

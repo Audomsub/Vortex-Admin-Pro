@@ -16,4 +16,6 @@ public class UpgradePlanRequest {
 
     @Pattern(regexp = "MONTHLY|YEARLY", message = "Billing cycle must be MONTHLY or YEARLY")
     private String billingCycle = "MONTHLY";
+
+    private String paymentProvider = "MOCK";
 }

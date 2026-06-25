@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class PreferenceRequest {
 
-    @Pattern(regexp = "en|th", message = "Language must be 'en' or 'th'")
+    @Pattern(regexp = "en|th|zh", message = "Language must be 'en', 'th' or 'zh'")
     private String language;
 
     @Pattern(regexp = "dark|light", message = "Theme must be 'dark' or 'light'")

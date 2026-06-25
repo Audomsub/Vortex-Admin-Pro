@@ -8,7 +8,9 @@ const Register = () => {
         username: '',
         email: '',
         password: '',
-        companyName: ''
+        companyName: '',
+        firstName: '',
+        lastName: ''
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -24,7 +26,7 @@ const Register = () => {
         setError('');
         setLoading(true);
         try {
-            await register(formData.username, formData.email, formData.password, formData.companyName);
+            await register(formData.username, formData.email, formData.password, formData.companyName, formData.firstName, formData.lastName);
             navigate('/');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to register account');
@@ -73,6 +75,37 @@ const Register = () => {
                                     value={formData.username}
                                     onChange={handleChange}
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1.5 ml-1">First Name</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        name="firstName"
+                                        required
+                                        className="block w-full px-4 py-3 bg-background/50 border border-border rounded-2xl text-text-primary placeholder-text-secondary focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                                        placeholder="John"
+                                        value={formData.firstName}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1.5 ml-1">Last Name</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        name="lastName"
+                                        required
+                                        className="block w-full px-4 py-3 bg-background/50 border border-border rounded-2xl text-text-primary placeholder-text-secondary focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                                        placeholder="Doe"
+                                        value={formData.lastName}
+                                        onChange={handleChange}
+                                    />
+                                </div>
                             </div>
                         </div>
 

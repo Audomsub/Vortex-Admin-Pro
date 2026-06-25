@@ -22,6 +22,7 @@ import com.vortexadmin.repository.UserTwoFactorRepository;
 import com.vortexadmin.security.config.UserDetailsImpl;
 import com.vortexadmin.security.jwt.JwtUtils;
 import com.vortexadmin.service.AuthService;
+import com.vortexadmin.service.AuditLogService;
 import com.vortexadmin.service.MailService;
 import com.vortexadmin.service.WebhookService;
 import com.vortexadmin.util.TotpUtil;
@@ -62,6 +63,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordHistoryRepository passwordHistoryRepository;
     private final MailService mailService;
     private final WebhookService webhookService;
+    private final AuditLogService auditLogService;
     private final PasswordEncoder encoder;
     private final JwtUtils jwtUtils;
 
@@ -127,8 +129,11 @@ public class AuthServiceImpl implements AuthService {
                         .build();
                 userSessionRepository.save(session);
                 
+                auditLogService.logAction("LOGIN", "User", user.getId(), "User logged into the system via credentials", ipAddress);
+                
                 // Refresh Token Logic
                 refreshTokenRepository.deleteByUser(user);
+                refreshTokenRepository.flush();
                 
                 RefreshToken refreshToken = RefreshToken.builder()
                         .user(user)
@@ -160,7 +165,7 @@ public class AuthServiceImpl implements AuthService {
                 }
                 userRepository.save(user);
             }
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Bad credentials");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Bad credentials: " + e.toString() + " | Cause: " + (e.getCause() != null ? e.getCause().toString() : ""));
         }
     }
 
@@ -256,8 +261,11 @@ public class AuthServiceImpl implements AuthService {
                     .build();
             userSessionRepository.save(session);
             
+            auditLogService.logAction("LOGIN", "User", user.getId(), "User logged into the system via Google OAuth", ipAddress);
+            
             // Refresh Token Logic
             refreshTokenRepository.deleteByUser(user);
+            refreshTokenRepository.flush();
             
             RefreshToken refreshToken = RefreshToken.builder()
                     .user(user)
@@ -329,6 +337,8 @@ public class AuthServiceImpl implements AuthService {
                 .username(signUpRequest.getUsername())
                 .email(signUpRequest.getEmail())
                 .password(encoder.encode(signUpRequest.getPassword()))
+                .firstName(signUpRequest.getFirstName())
+                .lastName(signUpRequest.getLastName())
                 .role(userRole)
                 .status("Active")
                 .failedLoginAttempts(0)

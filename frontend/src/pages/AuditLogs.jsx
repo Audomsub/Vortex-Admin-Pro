@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import { 
     Activity, Search, ShieldAlert, CheckCircle2, AlertCircle, User, Download
 } from 'lucide-react';
@@ -239,6 +240,7 @@ const AuditLogs = () => {
 
             {/* AI Insights Modal */}
             {isAiModalOpen && (
+                <ModalPortal>
                 <div 
                     className="fixed inset-0 z-50 flex items-start justify-center px-4 pb-4 pt-20 sm:pt-24 bg-black/50 backdrop-blur-sm animate-fade-in overflow-y-auto"
                     onClick={() => !isAnalyzing && setIsAiModalOpen(false)}
@@ -285,6 +287,7 @@ const AuditLogs = () => {
                         </div>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

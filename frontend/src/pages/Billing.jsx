@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import {
-    CreditCard, Check, Users, HardDrive, Building2, Receipt, XCircle
+    CreditCard, Check, Users, HardDrive, Building2, Receipt, XCircle, QrCode, Wallet, AlertTriangle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
@@ -21,6 +22,10 @@ const Billing = () => {
     const [loading, setLoading] = useState(true);
     const [working, setWorking] = useState(false);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, planName: null });
+    const [discounts, setDiscounts] = useState({ loyaltyDiscountEligible: false, firstYearDiscountEligible: false });
+    const [paymentProvider, setPaymentProvider] = useState('STRIPE');
+    const [cancelModalOpen, setCancelModalOpen] = useState(false);
+    const [errorModal, setErrorModal] = useState({ isOpen: false, message: '' });
 
     useEffect(() => {
         fetchOrganizations();
@@ -41,16 +46,19 @@ const Billing = () => {
         }
         setLoading(true);
         try {
-            const [subRes, invRes] = await Promise.all([
+            const [subRes, invRes, discountRes] = await Promise.all([
                 billingService.getSubscription(orgId),
                 billingService.getInvoices(orgId),
+                billingService.getDiscounts(orgId),
             ]);
             setSubscription(subRes.data.data);
             setInvoices(invRes.data.data || []);
+            setDiscounts(discountRes.data.data || { loyaltyDiscountEligible: false, firstYearDiscountEligible: false });
         } catch (error) {
             console.error('Failed to load billing:', error);
             setSubscription(null);
             setInvoices([]);
+            setDiscounts({ loyaltyDiscountEligible: false, firstYearDiscountEligible: false });
         } finally {
             setLoading(false);
         }
@@ -62,32 +70,37 @@ const Billing = () => {
 
     const handleUpgradeClick = (planName) => {
         setConfirmModal({ isOpen: true, planName });
+        setPaymentProvider('STRIPE');
     };
 
     async function confirmUpgrade() {
         if (!confirmModal.planName) return;
         setWorking(true);
         try {
-            await billingService.upgrade(orgId, confirmModal.planName, billingCycle);
+            await billingService.upgrade(orgId, confirmModal.planName, billingCycle, paymentProvider);
             await loadBilling();
             fetchOrganizations();
             setConfirmModal({ isOpen: false, planName: null });
         } catch (error) {
-            alert(error.response?.data?.message || t('common.error'));
+            setErrorModal({ isOpen: true, message: error.response?.data?.message || t('common.error') });
         } finally {
             setWorking(false);
         }
     };
 
-    async function handleCancel() {
-        if (!window.confirm(t('billing.cancelSubscription') + '?')) return;
+    const handleCancelClick = () => {
+        setCancelModalOpen(true);
+    };
+
+    async function confirmCancel() {
+        setCancelModalOpen(false);
         setWorking(true);
         try {
             await billingService.cancel(orgId);
             await loadBilling();
             fetchOrganizations();
         } catch (error) {
-            alert(error.response?.data?.message || t('common.error'));
+            setErrorModal({ isOpen: true, message: error.response?.data?.message || t('common.error') });
         } finally {
             setWorking(false);
         }
@@ -99,6 +112,25 @@ const Billing = () => {
     };
 
     const currentPlanName = subscription?.plan?.name;
+
+    const selectedPlan = plans.find(p => p.name === confirmModal.planName);
+    let modalPriceText = '';
+    if (selectedPlan) {
+        const basePrice = billingCycle === 'YEARLY' ? selectedPlan.yearlyPrice : selectedPlan.monthlyPrice;
+        const isPaid = ['PRO', 'BUSINESS', 'ENTERPRISE'].includes(selectedPlan.name);
+        let finalPrice = basePrice;
+        if (isPaid) {
+            let discountFactor = 1;
+            let applied = [];
+            if (discounts.loyaltyDiscountEligible) applied.push('LOYALTY');
+            if (discounts.firstYearDiscountEligible && billingCycle === 'YEARLY') applied.push('FIRST_YEAR');
+            if (applied.includes('LOYALTY') && applied.includes('FIRST_YEAR')) discountFactor = 0.70;
+            else if (applied.includes('FIRST_YEAR')) discountFactor = 0.80;
+            else if (applied.includes('LOYALTY')) discountFactor = 0.90;
+            finalPrice = Math.round((basePrice * discountFactor) * 100) / 100;
+        }
+        modalPriceText = `$${finalPrice} ${billingCycle === 'YEARLY' ? t('billing.perYear') : t('billing.perMonth')}`;
+    }
 
     return (
         <Layout>
@@ -155,7 +187,7 @@ const Billing = () => {
                                 </p>
                                 {currentPlanName !== 'FREE' && (
                                     <button
-                                        onClick={handleCancel}
+                                        onClick={handleCancelClick}
                                         disabled={working}
                                         className="mt-4 flex items-center gap-2 px-3 py-2 bg-danger/10 hover:bg-danger/20 text-danger text-sm rounded-xl font-medium transition-all active:scale-95 disabled:opacity-50"
                                     >
@@ -224,18 +256,70 @@ const Billing = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {plans.map((plan) => {
                                 const isCurrent = plan.name === currentPlanName;
-                                const price = billingCycle === 'YEARLY' ? plan.yearlyPrice : plan.monthlyPrice;
+                                const originalPrice = billingCycle === 'YEARLY' ? plan.yearlyPrice : plan.monthlyPrice;
+                                
+                                const isPaidPlan = ['PRO', 'BUSINESS', 'ENTERPRISE'].includes(plan.name);
+                                let discountFactor = 1;
+                                let appliedDiscounts = [];
+
+                                if (isPaidPlan) {
+                                    if (discounts.loyaltyDiscountEligible) {
+                                        appliedDiscounts.push('LOYALTY');
+                                    }
+                                    if (discounts.firstYearDiscountEligible && billingCycle === 'YEARLY') {
+                                        appliedDiscounts.push('FIRST_YEAR');
+                                    }
+
+                                    if (appliedDiscounts.includes('LOYALTY') && appliedDiscounts.includes('FIRST_YEAR')) {
+                                        discountFactor = 0.70; // 30% off
+                                    } else if (appliedDiscounts.includes('FIRST_YEAR')) {
+                                        discountFactor = 0.80; // 20% off
+                                    } else if (appliedDiscounts.includes('LOYALTY')) {
+                                        discountFactor = 0.90; // 10% off
+                                    }
+                                }
+
+                                const finalPrice = isPaidPlan ? Math.round((originalPrice * discountFactor) * 100) / 100 : originalPrice;
+                                const hasDiscount = finalPrice < originalPrice;
+
                                 return (
                                     <div
                                         key={plan.id}
                                         className={cn(
-                                            "bg-surface border rounded-2xl p-6 flex flex-col transition-all",
+                                            "bg-surface border rounded-2xl p-6 flex flex-col transition-all relative overflow-hidden",
                                             isCurrent ? "border-primary ring-2 ring-primary/20" : "border-border hover:shadow-xl hover:shadow-black/5"
                                         )}
                                     >
                                         <h3 className="text-lg font-bold text-text-primary">{plan.name}</h3>
-                                        <div className="mt-2 mb-4">
-                                            <span className="text-3xl font-bold text-text-primary">${price}</span>
+
+                                        {/* Discount Badge */}
+                                        {hasDiscount && (
+                                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                                {appliedDiscounts.includes('LOYALTY') && appliedDiscounts.includes('FIRST_YEAR') ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-sm border border-indigo-400/20">
+                                                        🎉 Combo 30% Off
+                                                    </span>
+                                                ) : appliedDiscounts.includes('FIRST_YEAR') ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm border border-emerald-400/20">
+                                                        ✨ First Year 20% Off
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm border border-blue-400/20">
+                                                        💝 Loyalty 10% Off
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="mt-2 mb-4 flex items-baseline gap-2">
+                                            {hasDiscount ? (
+                                                <>
+                                                    <span className="text-3xl font-extrabold text-text-primary">${finalPrice}</span>
+                                                    <span className="text-sm line-through text-text-secondary font-medium">${originalPrice}</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-3xl font-extrabold text-text-primary">${originalPrice}</span>
+                                            )}
                                             <span className="text-sm text-text-secondary">
                                                 {billingCycle === 'YEARLY' ? t('billing.perYear') : t('billing.perMonth')}
                                             </span>
@@ -317,14 +401,60 @@ const Billing = () => {
 
             {/* Confirmation Modal */}
             {confirmModal.isOpen && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-surface border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl">
                         <h3 className="text-xl font-bold text-text-primary mb-2">
-                            {t('billing.confirmUpgradeTitle')}
+                            {confirmModal.planName === 'FREE' ? 'Confirm Downgrade' : t('billing.confirmUpgradeTitle')}
                         </h3>
-                        <p className="text-text-secondary mb-6">
-                            {t('billing.confirmUpgradeDesc', { plan: confirmModal.planName })}
-                        </p>
+                        <div className="text-text-secondary mb-6">
+                            <p>
+                                {confirmModal.planName === 'FREE'
+                                    ? 'Are you sure you want to change to the FREE plan? Your current subscription benefits will be cancelled.'
+                                    : t('billing.confirmUpgradeDesc', { plan: confirmModal.planName })}
+                            </p>
+                            {confirmModal.planName !== 'FREE' && modalPriceText && (
+                                <p className="mt-2 font-semibold text-text-primary text-lg">
+                                    Price: {modalPriceText}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Select Payment Method */}
+                        {confirmModal.planName !== 'FREE' && (
+                            <div className="mb-6">
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2.5">
+                                    Select Payment Method
+                                </label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {[
+                                        { id: 'STRIPE', name: 'Credit Card', icon: CreditCard },
+                                        { id: 'PROMPTPAY', name: 'PromptPay', icon: QrCode },
+                                        { id: 'PAYPAL', name: 'PayPal', icon: Wallet }
+                                    ].map((prov) => {
+                                        const IconComp = prov.icon;
+                                        const isSel = paymentProvider === prov.id;
+                                        return (
+                                            <button
+                                                key={prov.id}
+                                                type="button"
+                                                onClick={() => setPaymentProvider(prov.id)}
+                                                className={cn(
+                                                    "flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all active:scale-95",
+                                                    isSel
+                                                        ? "border-primary bg-primary/5 text-primary ring-2 ring-primary/20"
+                                                        : "border-border hover:border-text-secondary/50 dark:hover:border-white/20 text-text-secondary hover:text-text-primary bg-transparent"
+                                                )}
+                                            >
+                                                <IconComp className="w-5 h-5 mb-1.5" />
+                                                <span className="text-xs font-medium">{prov.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setConfirmModal({ isOpen: false, planName: null })}
@@ -341,12 +471,83 @@ const Billing = () => {
                                 {working ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-transparent rounded-full animate-spin"></div>
                                 ) : (
-                                    t('billing.confirmUpgradeBtn')
+                                    confirmModal.planName === 'FREE' ? 'Confirm Switch' : t('billing.confirmUpgradeBtn')
                                 )}
                             </button>
                         </div>
                     </div>
                 </div>
+                </ModalPortal>
+            )}
+
+            {/* Cancellation Modal */}
+            {cancelModalOpen && (
+                <ModalPortal>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-surface border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl scale-100 transition-all">
+                        <div className="flex items-center gap-3 mb-4 text-danger">
+                            <div className="p-2 bg-danger/10 rounded-xl">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-xl font-bold text-text-primary">
+                                {t('billing.cancelSubscription')}
+                            </h3>
+                        </div>
+                        <p className="text-text-secondary mb-6 text-sm leading-relaxed">
+                            Are you sure you want to cancel your subscription? Your organization will immediately downgrade to the FREE plan, and you will lose access to premium features.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setCancelModalOpen(false)}
+                                disabled={working}
+                                className="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+                            >
+                                Keep Subscription
+                            </button>
+                            <button
+                                onClick={confirmCancel}
+                                disabled={working}
+                                className="px-4 py-2 rounded-xl text-sm font-medium bg-danger hover:bg-danger/90 text-white shadow-lg shadow-danger/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                            >
+                                {working ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    "Yes, Cancel"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                </ModalPortal>
+            )}
+
+            {/* Error Alert Modal */}
+            {errorModal.isOpen && (
+                <ModalPortal>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-surface border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                        <div className="flex items-center gap-3 mb-4 text-danger">
+                            <div className="p-2 bg-danger/10 rounded-xl">
+                                <XCircle className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-xl font-bold text-text-primary">
+                                Error occurred
+                            </h3>
+                        </div>
+                        <p className="text-text-secondary mb-6 text-sm leading-relaxed font-medium">
+                            {errorModal.message}
+                        </p>
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => setErrorModal({ isOpen: false, message: '' })}
+                                className="px-5 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/20 transition-all active:scale-95"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                </ModalPortal>
             )}
         </Layout>
     );

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from '../components/ui/Toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
@@ -24,6 +25,14 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        
+        // Show connection/server errors
+        if (!error.response) {
+            toast.error("Backend Offline", "Could not connect to the backend server. Please check if the backend is running.");
+        } else if (error.response.status >= 500) {
+            toast.error("Server Error", `Backend encountered an error (${error.response.status}). Please try again later.`);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login') && !originalRequest.url.includes('/auth/refresh')) {
             originalRequest._retry = true;
             try {

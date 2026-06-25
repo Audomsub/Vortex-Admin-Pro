@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Activity, CheckCircle, XCircle, Send, X, Loader2 } from 'lucide-react';
 import api from '../api/axios';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import { useTranslation } from 'react-i18next';
 
 const EVENT_OPTIONS = [
@@ -78,7 +79,7 @@ const Webhooks = () => {
     };
 
     async function handleDelete(id) {
-        if (!window.confirm(t('webhooks.deleteConfirm'))) return;
+        if (!await window.confirm(t('webhooks.deleteConfirm'))) return;
         try {
             setActionLoading(`delete-${id}`);
             await api.delete(`/webhooks/${id}`);
@@ -253,6 +254,7 @@ const Webhooks = () => {
 
             {/* Add Webhook Modal */}
             {isAddModalOpen && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-border">
                         <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-background">
@@ -334,10 +336,12 @@ const Webhooks = () => {
                         </form>
                     </div>
                 </div>
+                </ModalPortal>
             )}
 
             {/* Logs Modal */}
             {isLogsModalOpen && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-surface rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[80vh] border border-border">
                         <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-background shrink-0">
@@ -385,6 +389,7 @@ const Webhooks = () => {
                         </div>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

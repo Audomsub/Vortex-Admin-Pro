@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
+import ModalPortal from '../components/ui/ModalPortal';
 import { Search, Filter, MessageSquare, Clock, CheckCircle2, AlertCircle, Tag, User, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../api/axios';
@@ -296,6 +297,7 @@ const Tickets = () => {
             </div>
             {/* Create Ticket Modal */}
             {isCreating && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl border border-border p-6 animate-in zoom-in-95">
                         <h2 className="text-lg font-bold text-text-primary mb-4">Create Support Ticket</h2>
@@ -337,6 +339,7 @@ const Tickets = () => {
                         </div>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

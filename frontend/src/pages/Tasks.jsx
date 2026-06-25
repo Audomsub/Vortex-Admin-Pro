@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
-import { CheckSquare, Plus, Edit2, Trash2, Search } from 'lucide-react';
+import ModalPortal from '../components/ui/ModalPortal';
+import { CheckSquare, Plus, Edit2, Trash2, Search, ChevronDown } from 'lucide-react';
 import api from '../api/axios';
 import { cn } from '../lib/utils';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -101,7 +102,7 @@ const Tasks = () => {
     };
 
     async function handleDelete(id) {
-        if (window.confirm(t('tasks.deleteConfirm'))) {
+        if (await window.confirm(t('tasks.deleteConfirm'))) {
             try {
                 await api.delete(`/tasks/${id}`);
                 fetchData();
@@ -280,6 +281,7 @@ const Tasks = () => {
 
             {/* Create/Edit Modal */}
             {isModalOpen && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCloseModal}></div>
                     <div className="relative bg-surface rounded-3xl w-full max-w-xl p-6 shadow-2xl border border-border animate-in fade-in zoom-in duration-200">
@@ -302,56 +304,68 @@ const Tasks = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('tasks.statusLabel')}</label>
-                                    <select 
-                                        value={formData.status}
-                                        onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                        className="w-full px-4 py-3 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all appearance-none"
-                                    >
-                                        <option value="TODO">{t('tasks.statusTodo')}</option>
-                                        <option value="IN_PROGRESS">{t('tasks.statusInProgress')}</option>
-                                        <option value="DONE">{t('tasks.statusDone')}</option>
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={formData.status}
+                                            onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                            className="w-full px-4 py-3 pr-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="TODO">{t('tasks.statusTodo')}</option>
+                                            <option value="IN_PROGRESS">{t('tasks.statusInProgress')}</option>
+                                            <option value="DONE">{t('tasks.statusDone')}</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('tasks.priorityLabel')}</label>
-                                    <select 
-                                        value={formData.priority}
-                                        onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                                        className="w-full px-4 py-3 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all appearance-none"
-                                    >
-                                        <option value="LOW">{t('tasks.priorityLow')}</option>
-                                        <option value="MEDIUM">{t('tasks.priorityMedium')}</option>
-                                        <option value="HIGH">{t('tasks.priorityHigh')}</option>
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={formData.priority}
+                                            onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                                            className="w-full px-4 py-3 pr-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="LOW">{t('tasks.priorityLow')}</option>
+                                            <option value="MEDIUM">{t('tasks.priorityMedium')}</option>
+                                            <option value="HIGH">{t('tasks.priorityHigh')}</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('tasks.assignTo')}</label>
-                                    <select 
-                                        value={formData.assignedTo}
-                                        onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
-                                        className="w-full px-4 py-3 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all appearance-none"
-                                    >
-                                        <option value="">{t('tasks.unassigned')}</option>
-                                        {users.map(u => (
-                                            <option key={u.id} value={u.id}>{u.username} ({u.firstName || ''})</option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={formData.assignedTo}
+                                            onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
+                                            className="w-full px-4 py-3 pr-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">{t('tasks.unassigned')}</option>
+                                            {users.map(u => (
+                                                <option key={u.id} value={u.id}>{u.username} ({u.firstName || ''})</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('tasks.teamLabel')}</label>
-                                    <select 
-                                        value={formData.teamId}
-                                        onChange={(e) => setFormData({...formData, teamId: e.target.value})}
-                                        className="w-full px-4 py-3 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all appearance-none"
-                                    >
-                                        <option value="">{t('tasks.noTeam')}</option>
-                                        {teams.map(team => (
-                                            <option key={team.id} value={team.id}>{team.name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={formData.teamId}
+                                            onChange={(e) => setFormData({...formData, teamId: e.target.value})}
+                                            className="w-full px-4 py-3 pr-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 rounded-xl text-text-primary outline-none transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">{t('tasks.noTeam')}</option>
+                                            {teams.map(team => (
+                                                <option key={team.id} value={team.id}>{team.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                                    </div>
                                 </div>
                             </div>
 
@@ -383,6 +397,7 @@ const Tasks = () => {
                         </form>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

@@ -19,6 +19,18 @@ export const AuthProvider = ({ children }) => {
                 const roles = roleAuthority ? [roleAuthority.replace('ROLE_', '')] : ['USER'];
                 const permissions = authorities.filter(auth => !auth.startsWith('ROLE_'));
                 setUser({ username: decoded.sub || 'User', roles, permissions });
+                
+                // Fetch full profile details asynchronously
+                api.get('/users/me').then(res => {
+                    const profile = res.data.data;
+                    setUser(prev => ({
+                        ...prev,
+                        firstName: profile.firstName,
+                        lastName: profile.lastName,
+                        email: profile.email
+                    }));
+                }).catch(err => console.error("Failed to fetch full profile", err));
+
             } catch (error) {
                 console.error("Invalid token", error);
                 localStorage.removeItem('token');
@@ -46,6 +58,17 @@ export const AuthProvider = ({ children }) => {
         const permissions = apiRoles.filter(auth => !auth.startsWith('ROLE_'));
 
         setUser({ username: resUser, roles, permissions });
+        
+        // Fetch full profile details asynchronously
+        api.get('/users/me').then(res => {
+            const profile = res.data.data;
+            setUser(prev => ({
+                ...prev,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                email: profile.email
+            }));
+        }).catch(err => console.error("Failed to fetch full profile", err));
 
         // Apply the user's saved language preference (non-blocking)
         api.get('/preferences')
@@ -74,6 +97,17 @@ export const AuthProvider = ({ children }) => {
         const permissions = apiRoles.filter(auth => !auth.startsWith('ROLE_'));
 
         setUser({ username: resUser, roles, permissions });
+        
+        // Fetch full profile details asynchronously
+        api.get('/users/me').then(res => {
+            const profile = res.data.data;
+            setUser(prev => ({
+                ...prev,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                email: profile.email
+            }));
+        }).catch(err => console.error("Failed to fetch full profile", err));
 
         // Apply the user's saved language preference (non-blocking)
         api.get('/preferences')
@@ -89,8 +123,8 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
     };
 
-    async function register(username, email, password, companyName) {
-        await api.post('/auth/register', { username, email, password, companyName });
+    async function register(username, email, password, companyName, firstName, lastName) {
+        await api.post('/auth/register', { username, email, password, companyName, firstName, lastName });
         await login(username, password);
     };
 
@@ -107,8 +141,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const updateUser = (newData) => {
+        setUser(prev => ({ ...prev, ...newData }));
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, loginWithGoogle, logout, register, loading }}>
+        <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

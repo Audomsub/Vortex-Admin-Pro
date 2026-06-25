@@ -10,7 +10,7 @@ import ActiveSessions from '../components/ActiveSessions';
 
 const Profile = () => {
     const { t } = useTranslation();
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const [activeTab, setActiveTab] = useState('general');
     const [saving, setSaving] = useState(false);
     
@@ -52,6 +52,11 @@ const Profile = () => {
         setSaving(true);
         try {
             await api.put('/users/me', {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email
+            });
+            updateUser({
                 firstName: formData.firstName,
                 lastName: formData.lastName,
                 email: formData.email
@@ -102,9 +107,11 @@ const Profile = () => {
                             <Camera size={14} />
                         </button>
                     </div>
-                    <div className="text-center sm:text-left">
-                        <h1 className="text-2xl font-bold text-text-primary">{user?.username || 'User'}</h1>
-                        <p className="text-text-secondary mb-2">{user?.email || 'user@vortex.com'}</p>
+                    <div className="space-y-1 text-center sm:text-left mt-4 sm:mt-0">
+                        <h1 className="text-2xl font-bold text-text-primary">
+                            {user?.firstName ? `${user.firstName} ${user.lastName}`.trim() : user?.username}
+                        </h1>
+                        <p className="text-text-secondary">{user?.email || 'user@vortex.com'}</p>
                         <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-lg uppercase tracking-wider">
                             {user?.roles?.[0] || 'USER'}
                         </span>

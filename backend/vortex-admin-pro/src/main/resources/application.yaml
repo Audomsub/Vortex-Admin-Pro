@@ -2,6 +2,11 @@ spring:
   application:
     name: vortex-admin-pro
 
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+
   security:
     oauth2:
       client:
@@ -41,6 +46,18 @@ spring:
 
 server:
   port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    mail:
+      enabled: false
 
 vortex:
   app:

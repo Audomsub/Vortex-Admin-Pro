@@ -196,8 +196,8 @@ const Reports = () => {
                                                 contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', borderRadius: '12px' }}
                                                 itemStyle={{ fontWeight: 600 }}
                                             />
-                                            <Area type="monotone" dataKey="revenue" stroke="#4F46E5" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                                            <Area type="monotone" dataKey="expenses" stroke="#EF4444" strokeWidth={3} fillOpacity={1} fill="url(#colorExpenses)" />
+                                            <Area type="monotone" dataKey="revenue" name={t('reports.revenue')} stroke="#4F46E5" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                            <Area type="monotone" dataKey="expenses" name={t('reports.expenses')} stroke="#EF4444" strokeWidth={3} fillOpacity={1} fill="url(#colorExpenses)" />
                                         </AreaChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -220,8 +220,8 @@ const Reports = () => {
                                                 contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', borderRadius: '12px' }}
                                             />
                                             <Legend iconType="circle" wrapperStyle={{ fontSize: 12, paddingTop: 20 }} />
-                                            <Bar dataKey="active" stackId="a" fill="#4F46E5" radius={[0, 0, 4, 4]} />
-                                            <Bar dataKey="newUsers" stackId="a" fill="#10B981" radius={[4, 4, 0, 0]} />
+                                            <Bar dataKey="active" name={t('reports.activeUsersChart')} stackId="a" fill="#4F46E5" radius={[0, 0, 4, 4]} />
+                                            <Bar dataKey="newUsers" name={t('reports.newUsersChart')} stackId="a" fill="#10B981" radius={[4, 4, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>

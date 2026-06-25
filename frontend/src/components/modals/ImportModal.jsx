@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { X, UploadCloud, File, CheckCircle2 } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -44,10 +43,9 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         onClose();
     };
 
-    return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm" onClick={handleClose}></div>
-            <div className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-xl p-6 animate-in fade-in zoom-in-95 duration-200">
+    return (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={handleClose}>
+            <div className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-xl p-6 animate-zoom-in" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold text-text-primary">Import Users</h2>
                     <button onClick={handleClose} className="p-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
@@ -126,8 +124,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                     </div>
                 )}
             </div>
-        </div>,
-        document.body
+        </div>
     );
 };
 

@@ -36,7 +36,7 @@ const ActiveSessions = () => {
     };
 
     async function handleRevokeAll() {
-        if (!window.confirm(t('sessions.signOutAllConfirm'))) return;
+        if (!await window.confirm(t('sessions.signOutAllConfirm'))) return;
         try {
             await api.delete('/sessions');
             fetchSessions();
@@ -46,9 +46,9 @@ const ActiveSessions = () => {
         }
     };
 
-    const getDeviceIcon = (deviceInfo) => {
-        if (!deviceInfo) return <Monitor className="w-5 h-5 text-text-secondary" />;
-        const info = deviceInfo.toLowerCase();
+    const getDeviceIcon = (userAgent) => {
+        if (!userAgent) return <Monitor className="w-5 h-5 text-text-secondary" />;
+        const info = userAgent.toLowerCase();
         if (info.includes('mobile') || info.includes('android') || info.includes('iphone')) return <Smartphone className="w-5 h-5 text-text-secondary" />;
         return <Monitor className="w-5 h-5 text-text-secondary" />;
     };
@@ -86,17 +86,17 @@ const ActiveSessions = () => {
                         <div key={session.id} className="flex items-center justify-between p-4 bg-black/5 dark:bg-white/5 rounded-xl">
                             <div className="flex items-center gap-4">
                                 <div className="p-2 bg-background rounded-lg border border-border">
-                                    {getDeviceIcon(session.deviceInfo)}
+                                    {getDeviceIcon(session.userAgent)}
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-text-primary flex items-center gap-2">
-                                        {session.deviceInfo || t('sessions.unknownDevice')}
+                                        {session.userAgent || t('sessions.unknownDevice')}
                                         {session.isCurrent && (
                                             <span className="px-2 py-0.5 bg-success/10 text-success text-[10px] font-bold uppercase rounded-md">{t('sessions.thisDevice')}</span>
                                         )}
                                     </p>
                                     <p className="text-xs text-text-secondary mt-1">
-                                        {t('sessions.ipLabel')}: {session.ipAddress || 'Unknown'} • {t('sessions.lastActive')}: {formatDistanceToNow(new Date(session.lastActive), { addSuffix: true })}
+                                        {t('sessions.ipLabel')}: {session.ipAddress || 'Unknown'} • {t('sessions.lastActive')}: {session.loginAt ? formatDistanceToNow(new Date(session.loginAt), { addSuffix: true }) : 'Unknown'}
                                     </p>
                                 </div>
                             </div>

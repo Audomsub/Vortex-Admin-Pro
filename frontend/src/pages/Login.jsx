@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { Lock, User, Shield, ChevronRight, KeyRound, ArrowLeft } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
+import UserManualModal from '../components/UserManualModal';
 
 const Login = () => {
     const { t } = useTranslation();
@@ -47,17 +48,18 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">
-            {/* Background elements */}
+        <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4 relative overflow-hidden">
+            {/* Animated Bouncing Colored Balls Background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-indigo-600/10 blur-[120px]" />
-                <div className="absolute top-[60%] -right-[10%] w-[50%] h-[50%] rounded-full bg-purple-600/10 blur-[120px]" />
+                <div className="absolute top-[20%] left-[20%] w-[400px] h-[400px] rounded-full bg-indigo-600/30 blur-[100px] animate-bounce-xy-1 mix-blend-screen" />
+                <div className="absolute bottom-[20%] right-[20%] w-[350px] h-[350px] rounded-full bg-cyan-500/20 blur-[120px] animate-bounce-xy-2 mix-blend-screen" />
+                <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-purple-600/10 blur-[150px] animate-pulse-glow mix-blend-screen" />
             </div>
 
-            <div className="relative w-full max-w-md">
-                <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl">
+            <div className="relative w-full max-w-md animate-slide-up">
+                <div className="bg-surface/60 backdrop-blur-2xl border border-border rounded-3xl p-8 shadow-premium relative z-10">
                     <div className="flex flex-col items-center mb-8">
-                        <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 border border-indigo-500/20">
+                        <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 border border-indigo-500/20 shadow-inner">
                             <Shield className="w-8 h-8 text-indigo-400" />
                         </div>
                         <h1 className="text-3xl font-bold text-text-primary tracking-tight">Welcome Back</h1>
@@ -196,6 +198,8 @@ const Login = () => {
                     &copy; {new Date().getFullYear()} Vortex Admin Pro. All rights reserved.
                 </p>
             </div>
+            
+            <UserManualModal />
         </div>
     );
 };

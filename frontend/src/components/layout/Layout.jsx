@@ -1,13 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import CommandPalette from '../CommandPalette';
+import ShortcutsModal from '../modals/ShortcutsModal';
 import { cn } from '../../lib/utils';
+import TourGuide from '../TourGuide';
+import Breadcrumbs from '../ui/Breadcrumbs';
 
 const Layout = ({ children }) => {
+    const navigate = useNavigate();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+    const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
     const openPalette = useCallback(() => setIsPaletteOpen(true), []);
     const closePalette = useCallback(() => setIsPaletteOpen(false), []);
@@ -35,20 +41,95 @@ const Layout = ({ children }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Global Cmd/Ctrl+K shortcut
+    // Keyboard shortcuts listener
     useEffect(() => {
+        let lastKey = '';
+        let lastKeyTime = 0;
+
         const handleKeyDown = (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+            const key = e.key.toLowerCase();
+            const now = Date.now();
+
+            // Ignore shortcuts when typing in inputs/textareas
+            const isTyping = e.target.tagName === 'INPUT' || 
+                             e.target.tagName === 'TEXTAREA' || 
+                             e.target.isContentEditable;
+            if (isTyping) return;
+
+            // Esc to close all modals
+            if (e.key === 'Escape') {
+                setIsShortcutsOpen(false);
+                setIsPaletteOpen(false);
+                return;
+            }
+
+            // Ctrl/Cmd + K to toggle command palette
+            if ((e.metaKey || e.ctrlKey) && key === 'k') {
                 e.preventDefault();
                 setIsPaletteOpen(open => !open);
+                return;
+            }
+
+            // T - Toggle Theme
+            if (key === 't') {
+                e.preventDefault();
+                const isDark = document.documentElement.classList.contains('dark');
+                if (isDark) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+                window.dispatchEvent(new CustomEvent('vortex-theme-changed'));
+                return;
+            }
+
+            // ? (Shift + /) - Open Shortcuts Modal
+            if (e.key === '?') {
+                e.preventDefault();
+                setIsShortcutsOpen(open => !open);
+                return;
+            }
+
+            // Sequence G then D or U (within 1 second)
+            if (lastKey === 'g' && now - lastKeyTime < 1000) {
+                if (key === 'd') {
+                    e.preventDefault();
+                    navigate('/dashboard');
+                    lastKey = '';
+                    lastKeyTime = 0;
+                    return;
+                }
+                if (key === 'u') {
+                    e.preventDefault();
+                    navigate('/users');
+                    lastKey = '';
+                    lastKeyTime = 0;
+                    return;
+                }
+            }
+
+            // Track G prefix
+            if (key === 'g') {
+                lastKey = 'g';
+                lastKeyTime = now;
             }
         };
+
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    }, [navigate]);
 
     return (
-        <div className="flex h-screen overflow-hidden bg-background app-glow">
+        <div className="flex h-screen overflow-hidden bg-background app-glow relative">
+            {/* Global Subtle Ambient Orbs (Behind everything) */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute -top-[15%] -right-[5%] w-[40rem] h-[40rem] rounded-full bg-primary/5 dark:bg-primary/10 blur-[100px] animate-float-slow" style={{ animationDelay: '0s' }}></div>
+                <div className="absolute bottom-[-10%] -left-[10%] w-[35rem] h-[35rem] rounded-full bg-secondary/5 dark:bg-secondary/10 blur-[120px] animate-float-slow" style={{ animationDelay: '-5s', animationDirection: 'reverse' }}></div>
+                <div className="absolute top-[40%] right-[30%] w-[25rem] h-[25rem] rounded-full bg-accent/5 dark:bg-accent/10 blur-[100px] animate-float-slow" style={{ animationDelay: '-10s' }}></div>
+            </div>
+
             {/* Mobile Sidebar Overlay */}
             {isMobileMenuOpen && (
                 <div
@@ -59,7 +140,7 @@ const Layout = ({ children }) => {
 
             {/* Sidebar Container */}
             <div className={cn(
-                "fixed inset-y-0 left-0 z-50 transform md:static md:translate-x-0 transition-transform duration-300",
+                "fixed inset-y-0 left-0 z-40 transform md:static md:translate-x-0 transition-transform duration-300",
                 isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
             )}>
                 <Sidebar
@@ -74,14 +155,21 @@ const Layout = ({ children }) => {
                     onMenuClick={() => setIsMobileMenuOpen(true)}
                     onSearchClick={openPalette}
                 />
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 scrollbar-thin">
-                    <div className="max-w-7xl mx-auto animate-slide-up">
-                        {children}
-                    </div>
-                </main>
+                <div className="flex-1 relative transform-gpu overflow-hidden">
+                    <main className="absolute inset-0 overflow-y-auto scrollbar-thin">
+                        <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 animate-slide-up">
+                            <Breadcrumbs />
+                            {children}
+                        </div>
+                    </main>
+                    {/* Modal Root for scoped modals */}
+                    <div id="modal-root" className="absolute inset-0 pointer-events-none z-[100] [&>*]:pointer-events-auto"></div>
+                </div>
             </div>
 
             <CommandPalette open={isPaletteOpen} onClose={closePalette} />
+            <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
+            <TourGuide />
         </div>
     );
 };

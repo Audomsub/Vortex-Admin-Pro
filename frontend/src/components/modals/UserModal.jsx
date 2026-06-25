@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import api from '../../api/axios';
+import ModalPortal from '../ui/ModalPortal';
 
 const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => {
     const [formData, setFormData] = useState({
@@ -99,31 +99,57 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
 
     if (!isOpen) return null;
 
-    return createPortal(
+    return (
+        <ModalPortal>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl border border-border overflow-hidden animate-in zoom-in-95">
+            <div className="bg-surface rounded-2xl w-full max-w-md border border-border shadow-2xl animate-in zoom-in-95">
                 <div className="flex items-center justify-between p-4 border-b border-border">
-                    <h2 className="text-lg font-semibold text-text-primary">
-                        {isViewOnly ? 'User Details' : (user ? 'Edit User' : 'Add New User')}
+                    <h2 className="text-lg font-bold text-text-primary">
+                        {isViewOnly ? 'View User' : (user ? 'Edit User' : 'Create New User')}
                     </h2>
-                    <button onClick={onClose} className="p-1 text-text-secondary hover:text-text-primary rounded-lg transition-colors">
-                        <X size={20} />
+                    <button onClick={onClose} className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg text-text-secondary transition-colors">
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-4 space-y-4">
                     {error && (
-                        <div className="p-3 bg-danger/10 text-danger text-sm rounded-xl">
+                        <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl">
                             {error}
                         </div>
                     )}
+
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-text-secondary">Username *</label>
+                        <input 
+                            required
+                            type="text" 
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            disabled={isViewOnly}
+                            className={`w-full px-3 py-2 border border-border rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all ${isViewOnly ? 'bg-black/5 dark:bg-white/5 text-text-secondary cursor-not-allowed' : 'bg-background text-text-primary'}`}
+                        />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-text-secondary">Email Address *</label>
+                        <input 
+                            required
+                            type="email" 
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            disabled={isViewOnly}
+                            className={`w-full px-3 py-2 border border-border rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all ${isViewOnly ? 'bg-black/5 dark:bg-white/5 text-text-secondary cursor-not-allowed' : 'bg-background text-text-primary'}`}
+                        />
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-text-secondary">First Name</label>
                             <input 
-                                required
-                                type="text"
+                                type="text" 
                                 name="firstName"
                                 value={formData.firstName}
                                 onChange={handleChange}
@@ -134,8 +160,7 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-text-secondary">Last Name</label>
                             <input 
-                                required
-                                type="text"
+                                type="text" 
                                 name="lastName"
                                 value={formData.lastName}
                                 onChange={handleChange}
@@ -145,37 +170,12 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-text-secondary">Username</label>
-                        <input 
-                            required
-                            type="text"
-                            name="username"
-                            value={formData.username}
-                            onChange={handleChange}
-                            disabled={!!user || isViewOnly}
-                            className={`w-full px-3 py-2 border border-border rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all ${user || isViewOnly ? 'bg-black/5 dark:bg-white/5 text-text-secondary cursor-not-allowed' : 'bg-background text-text-primary'}`}
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-text-secondary">Email</label>
-                        <input 
-                            required
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            disabled={!!user || isViewOnly}
-                            className={`w-full px-3 py-2 border border-border rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all ${user || isViewOnly ? 'bg-black/5 dark:bg-white/5 text-text-secondary cursor-not-allowed' : 'bg-background text-text-primary'}`}
-                        />
-                    </div>
-
-                    {!user && (
+                    {(!user && !isViewOnly) && (
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-text-secondary">Password</label>
+                            <label className="text-sm font-medium text-text-secondary">Password *</label>
                             <input 
-                                required
-                                type="password"
+                                required={!user}
+                                type="password" 
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
@@ -237,8 +237,8 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                     </div>
                 </form>
             </div>
-        </div>,
-        document.body
+        </div>
+        </ModalPortal>
     );
 };
 

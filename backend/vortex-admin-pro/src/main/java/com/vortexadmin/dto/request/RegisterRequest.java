@@ -18,4 +18,8 @@ public class RegisterRequest {
 
     @NotBlank
     private String companyName; // For SaaS: creates a new tenant
+
+    private String firstName;
+    
+    private String lastName;
 }

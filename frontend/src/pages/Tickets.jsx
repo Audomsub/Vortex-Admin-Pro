@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import Layout from '../components/layout/Layout';
 import ModalPortal from '../components/ui/ModalPortal';
-import { Search, Filter, MessageSquare, Clock, CheckCircle2, AlertCircle, Tag, User, Plus } from 'lucide-react';
+import { Search, Filter, MessageSquare, Clock, CheckCircle2, AlertCircle, Tag, User, Plus, Share2, ArrowLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../api/axios';
 
@@ -23,7 +25,34 @@ const getPriorityColor = (priority) => {
     }
 };
 
+const CANNED_RESPONSES = [
+    {
+        title: 'Greeting (ทักทายลูกค้า)',
+        text: 'สวัสดีครับ/ค่ะ มีอะไรให้ผม/ดิฉันช่วยดูแลในวันนี้ไหมครับ/ค่ะ? 😊'
+    },
+    {
+        title: 'Request Screenshots (ขอภาพประกอบ)',
+        text: 'เพื่อความรวดเร็วในการตรวจสอบ รบกวนขอสกรีนช็อตของหน้าจอที่พบปัญหา หรือขั้นตอนการทำงานล่าสุดด้วยครับ/ค่ะ 📸'
+    },
+    {
+        title: 'Escalate to Tech Team (ส่งต่อเรื่อง)',
+        text: 'ปัญหาดังกล่าวต้องการการตรวจสอบเพิ่มเติมจากทีมเทคนิค ตอนนี้ทางเราได้ส่งต่อเรื่องเรียบร้อยแล้ว จะรีบอัปเดตความคืบหน้าให้ทราบโดยเร็วที่สุดครับ ⚙️'
+    },
+    {
+        title: 'Resolved & Close (แจ้งแก้ไขสำเร็จ)',
+        text: 'ทางเราได้รับการตรวจสอบและแก้ไขปัญหาดังกล่าวให้เรียบร้อยแล้ว รบกวนลองทดสอบใช้งานอีกครั้ง หากพบปัญหาเพิ่มเติม สามารถพิมพ์บอกได้เลยนะครับ/ค่ะ 👍'
+    },
+    {
+        title: 'Apology for Delay (ขออภัยที่ล่าช้า)',
+        text: 'สวัสดีครับ ขออภัยในความล่าช้าอย่างยิ่งครับ ทางเรากำลังเร่งตรวจสอบข้อมูลและจะรีบแจ้งกลับโดยเร็วที่สุดครับ 🙏'
+    }
+];
+
 const Tickets = () => {
+    const { user } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const ticketIdParam = searchParams.get('id');
+
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -32,11 +61,41 @@ const Tickets = () => {
     const [messages, setMessages] = useState([]);
     const [replyText, setReplyText] = useState('');
     const [isCreating, setIsCreating] = useState(false);
-    const [newTicket, setNewTicket] = useState({ subject: '', customerName: 'Guest', priority: 'Medium' });
+    const [copied, setCopied] = useState(false);
+    const [showTemplates, setShowTemplates] = useState(false);
+
+    const currentUserName = user?.firstName && user?.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : (user?.username || 'User');
+
+    const [newTicket, setNewTicket] = useState({ subject: '', customerName: currentUserName, priority: 'Medium' });
 
     useEffect(() => {
         fetchTickets();
     }, []);
+
+    // Select ticket from URL parameter once tickets are loaded
+    useEffect(() => {
+        if (tickets.length > 0 && ticketIdParam) {
+            const foundTicket = tickets.find(t => t.id.toString() === ticketIdParam);
+            if (foundTicket && (!activeTicket || activeTicket.id !== foundTicket.id)) {
+                setActiveTicket(foundTicket);
+            }
+        }
+    }, [tickets, ticketIdParam]);
+
+    // Poll messages every 5 seconds for the active ticket
+    useEffect(() => {
+        if (!activeTicket) return;
+
+        fetchMessages(activeTicket.id);
+
+        const interval = setInterval(() => {
+            fetchMessages(activeTicket.id);
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [activeTicket?.id]);
 
     async function fetchTickets() {
         try {
@@ -61,7 +120,27 @@ const Tickets = () => {
 
     const handleSelectTicket = (ticket) => {
         setActiveTicket(ticket);
-        fetchMessages(ticket.id);
+        setSearchParams({ id: ticket.id });
+    };
+
+    const handleCloseTicket = () => {
+        setActiveTicket(null);
+        setSearchParams({});
+    };
+
+    const handleCopyLink = () => {
+        const url = `${window.location.origin}${window.location.pathname}?id=${activeTicket.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }).catch(err => {
+            console.error('Failed to copy link', err);
+        });
+    };
+
+    const handleInsertTemplate = (text) => {
+        setReplyText(prev => prev ? `${prev}\n${text}` : text);
+        setShowTemplates(false);
     };
 
     async function handleCreateTicket() {
@@ -70,7 +149,7 @@ const Tickets = () => {
             const payload = { ...newTicket, status: 'Open' };
             await api.post('/tickets', payload);
             setIsCreating(false);
-            setNewTicket({ subject: '', customerName: 'Guest', priority: 'Medium' });
+            setNewTicket({ subject: '', customerName: currentUserName, priority: 'Medium' });
             fetchTickets();
         } catch (error) {
             console.error('Error creating ticket', error);
@@ -90,7 +169,10 @@ const Tickets = () => {
     async function handleSendReply() {
         if (!replyText.trim()) return;
         try {
-            const payload = { senderName: 'Admin', message: replyText, isStaff: true };
+            const isStaff = user?.roles?.includes('ADMIN') || 
+                            user?.roles?.includes('SUPER_ADMIN') || 
+                            user?.roles?.includes('MANAGER');
+            const payload = { senderName: currentUserName, message: replyText, isStaff: isStaff };
             const response = await api.post(`/tickets/${activeTicket.id}/messages`, payload);
             setMessages([...messages, response.data.data]);
             setReplyText('');
@@ -220,19 +302,69 @@ const Tickets = () => {
                             <>
                                 <div className="p-6 border-b border-border flex flex-col md:flex-row justify-between gap-4">
                                     <div>
+                                        {/* Mobile Back Button */}
+                                        <button 
+                                            onClick={handleCloseTicket}
+                                            className="lg:hidden flex items-center gap-1.5 text-text-secondary hover:text-text-primary mb-3 text-sm font-medium transition-colors"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" /> Back to list
+                                        </button>
                                         <div className="flex items-center gap-3 mb-2">
                                             <h2 className="text-xl font-bold text-text-primary">{activeTicket.subject}</h2>
                                             <span className={cn("px-2.5 py-1 rounded-md text-xs font-bold border", getStatusColor(activeTicket.status))}>
                                                 {activeTicket.status}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-4 text-sm text-text-secondary">
+                                        <div className="flex items-center gap-4 text-sm text-text-secondary flex-wrap">
                                             <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> {activeTicket.customerName}</span>
                                             <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {formatDate(activeTicket.createdAt)}</span>
                                             <span className="flex items-center gap-1.5"><AlertCircle className={cn("w-4 h-4", getPriorityColor(activeTicket.priority))} /> {activeTicket.priority} Priority</span>
                                         </div>
+                                        
+                                        {/* Active Participants List */}
+                                        {(() => {
+                                            const participants = Array.from(new Set(messages.map(m => m.senderName).filter(Boolean)));
+                                            if (participants.length === 0) return null;
+                                            return (
+                                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/40 flex-wrap">
+                                                    <span className="text-xs text-text-secondary font-medium">Active in chat:</span>
+                                                    <div className="flex -space-x-1.5 items-center">
+                                                        {participants.map((name) => (
+                                                            <div 
+                                                                key={name}
+                                                                title={name}
+                                                                className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-indigo-500 border-2 border-surface flex items-center justify-center text-[10px] text-white font-bold cursor-help shadow-sm transition-transform hover:scale-110"
+                                                            >
+                                                                {name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-xs text-text-secondary font-medium max-w-[250px] truncate">
+                                                        {participants.join(', ')}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
-                                    <div className="flex gap-2 items-start">
+                                    <div className="flex flex-wrap gap-2 items-center md:items-start shrink-0">
+                                        {/* Share / Copy Direct Link Button */}
+                                        <button
+                                            onClick={handleCopyLink}
+                                            className="flex items-center gap-2 px-3 py-2 bg-background border border-border hover:border-primary/50 text-text-secondary hover:text-text-primary rounded-xl text-sm font-medium transition-all active:scale-95"
+                                        >
+                                            {copied ? (
+                                                <>
+                                                    <CheckCircle2 className="w-4 h-4 text-success animate-in zoom-in" />
+                                                    <span className="text-success font-semibold">Link Copied!</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Share2 className="w-4 h-4" />
+                                                    <span>Share Ticket</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        
                                         <select 
                                             value={activeTicket.status}
                                             onChange={(e) => handleStatusChange(e.target.value)}
@@ -249,26 +381,40 @@ const Tickets = () => {
                                     {messages.length === 0 ? (
                                         <div className="text-center text-text-secondary mt-10">No messages yet.</div>
                                     ) : (
-                                        messages.map(msg => (
-                                            <div key={msg.id} className={cn("flex gap-4", msg.isStaff && "flex-row-reverse")}>
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold shrink-0">
-                                                    {msg.senderName?.charAt(0) || 'A'}
-                                                </div>
-                                                <div className={cn(
-                                                    "p-4 rounded-2xl shadow-sm max-w-[80%]",
-                                                    msg.isStaff ? "bg-primary text-white rounded-tr-sm" : "bg-surface border border-border text-text-primary rounded-tl-sm"
-                                                )}>
-                                                    <div className="flex justify-between items-center mb-1 text-xs opacity-70">
-                                                        <span className="font-bold">{msg.senderName}</span>
-                                                        <span className="ml-4">{formatDate(msg.createdAt)}</span>
+                                        messages.map(msg => {
+                                            const isMyMessage = msg.senderName === currentUserName;
+                                            return (
+                                                <div key={msg.id} className={cn("flex gap-4", isMyMessage && "flex-row-reverse")}>
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold shrink-0 shadow-sm">
+                                                        {msg.senderName?.charAt(0).toUpperCase() || 'A'}
                                                     </div>
-                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                                                    <div className={cn(
+                                                        "p-4 rounded-2xl shadow-sm max-w-[80%]",
+                                                        isMyMessage ? "bg-primary text-white rounded-tr-sm" : "bg-surface border border-border text-text-primary rounded-tl-sm"
+                                                    )}>
+                                                        <div className="flex justify-between items-center mb-1 text-xs opacity-75 gap-4">
+                                                            <span className="font-bold flex items-center gap-1.5">
+                                                                {msg.senderName}
+                                                                {msg.isStaff ? (
+                                                                    <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide", isMyMessage ? "bg-white/20 text-white" : "bg-primary/10 text-primary dark:text-primary-hover")}>
+                                                                        Staff
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide", isMyMessage ? "bg-white/20 text-white" : "bg-success/15 text-success")}>
+                                                                        Customer
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                            <span>{formatDate(msg.createdAt)}</span>
+                                                        </div>
+                                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     )}
                                 </div>
-
+ 
                                 <div className="p-6 border-t border-border bg-surface">
                                     <textarea 
                                         value={replyText}
@@ -277,9 +423,38 @@ const Tickets = () => {
                                         className="w-full h-32 p-4 bg-background border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/50 outline-none resize-none mb-4"
                                     />
                                     <div className="flex justify-between items-center">
-                                        <button className="p-2 text-text-secondary hover:text-primary transition-colors rounded-lg flex items-center gap-2 text-sm font-medium">
-                                            <Tag className="w-4 h-4" /> Insert Template
-                                        </button>
+                                        <div className="relative">
+                                            <button 
+                                                onClick={() => setShowTemplates(!showTemplates)}
+                                                className="p-2 text-text-secondary hover:text-primary transition-colors rounded-lg flex items-center gap-2 text-sm font-medium relative active:scale-95 transition-all"
+                                            >
+                                                <Tag className="w-4 h-4" /> Insert Template
+                                            </button>
+                                            
+                                            {showTemplates && (
+                                                <>
+                                                    {/* Backdrop to close click outside */}
+                                                    <div className="fixed inset-0 z-10" onClick={() => setShowTemplates(false)} />
+                                                    
+                                                    {/* Popover */}
+                                                    <div className="absolute bottom-full left-0 mb-2 z-20 w-80 bg-surface border border-border rounded-xl shadow-xl p-3 space-y-2 animate-in slide-in-from-bottom-2 fade-in duration-200 max-h-60 overflow-y-auto">
+                                                        <p className="text-xs font-bold text-text-secondary px-2 pb-1 border-b border-border/50">Canned Responses</p>
+                                                        <div className="flex flex-col gap-1">
+                                                            {CANNED_RESPONSES.map((tmpl, idx) => (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => handleInsertTemplate(tmpl.text)}
+                                                                    className="w-full text-left p-2 hover:bg-primary/10 rounded-lg transition-colors text-xs space-y-0.5 group"
+                                                                >
+                                                                    <div className="font-bold text-text-primary group-hover:text-primary transition-colors">{tmpl.title}</div>
+                                                                    <div className="text-text-secondary truncate">{tmpl.text}</div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                         <button 
                                             onClick={handleSendReply}
                                             disabled={!replyText.trim()}

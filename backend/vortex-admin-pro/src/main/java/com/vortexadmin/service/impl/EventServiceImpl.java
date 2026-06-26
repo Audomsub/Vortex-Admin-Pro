@@ -53,6 +53,9 @@ public class EventServiceImpl implements EventService {
                 User creator = userRepository.findById(SecurityUtils.getCurrentUserId())
                         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
+        if (request.getStartDate() == null || request.getEndDate() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Start date and end date are required");
+        }
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "End date cannot be before start date");
         }
@@ -73,6 +76,9 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public void updateEvent(Long id, EventRequest request) {
         Event event = eventRepository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Event not found"));
+        if (request.getStartDate() == null || request.getEndDate() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Start date and end date are required");
+        }
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "End date cannot be before start date");
         }

@@ -66,6 +66,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuditLogService auditLogService;
     private final PasswordEncoder encoder;
     private final JwtUtils jwtUtils;
+    private final com.vortexadmin.service.PasswordPolicyService passwordPolicyService;
+    private final com.vortexadmin.service.GeoLocationService geoLocationService;
 
     @Value("${vortex.app.frontendUrl}")
     private String frontendUrl;
@@ -120,15 +122,18 @@ public class AuthServiceImpl implements AuthService {
                 // Create UserSession log
                 String ipAddress = request.getRemoteAddr();
                 String userAgent = request.getHeader("User-Agent");
-                
+                String[] geo = geoLocationService.lookupCountry(ipAddress);
+
                 UserSession session = UserSession.builder()
                         .user(user)
                         .ipAddress(ipAddress)
+                        .country(geo[0])
+                        .countryCode(geo[1])
                         .userAgent(userAgent != null ? userAgent : "Unknown")
                         .loginAt(LocalDateTime.now())
                         .build();
                 userSessionRepository.save(session);
-                
+
                 auditLogService.logAction("LOGIN", "User", user.getId(), "User logged into the system via credentials", ipAddress);
                 
                 // Refresh Token Logic
@@ -165,7 +170,7 @@ public class AuthServiceImpl implements AuthService {
                 }
                 userRepository.save(user);
             }
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Bad credentials: " + e.toString() + " | Cause: " + (e.getCause() != null ? e.getCause().toString() : ""));
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
         }
     }
 
@@ -252,15 +257,18 @@ public class AuthServiceImpl implements AuthService {
             // Create UserSession log
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
-            
+            String[] geo = geoLocationService.lookupCountry(ipAddress);
+
             UserSession session = UserSession.builder()
                     .user(user)
                     .ipAddress(ipAddress)
+                    .country(geo[0])
+                    .countryCode(geo[1])
                     .userAgent(userAgent != null ? userAgent : "Unknown")
                     .loginAt(LocalDateTime.now())
                     .build();
             userSessionRepository.save(session);
-            
+
             auditLogService.logAction("LOGIN", "User", user.getId(), "User logged into the system via Google OAuth", ipAddress);
             
             // Refresh Token Logic
@@ -324,6 +332,8 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Error: Email is already in use!");
         }
 
+        passwordPolicyService.validate(signUpRequest.getPassword());
+
         Role userRole = roleRepository.findByName("USER").orElseGet(() -> {
             Role role = Role.builder()
                     .name("USER")
@@ -365,6 +375,10 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = refreshToken.getUser();
+        if (user == null) {
+            refreshTokenRepository.delete(refreshToken);
+            throw new ApiException(HttpStatus.FORBIDDEN, "Refresh token has no associated user");
+        }
         
         // Create new JWT
         Authentication authentication = new UsernamePasswordAuthenticationToken(

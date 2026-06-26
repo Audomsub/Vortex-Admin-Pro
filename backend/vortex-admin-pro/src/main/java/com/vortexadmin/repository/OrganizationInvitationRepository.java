@@ -2,6 +2,9 @@ package com.vortexadmin.repository;
 
 import com.vortexadmin.entity.OrganizationInvitation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,5 +16,8 @@ public interface OrganizationInvitationRepository extends JpaRepository<Organiza
     List<OrganizationInvitation> findByOrganizationId(Long organizationId);
     List<OrganizationInvitation> findByEmailAndStatus(String email, String status);
     boolean existsByOrganizationIdAndEmailAndStatus(Long organizationId, String email, String status);
-    void deleteByOrganizationId(Long organizationId);
+
+    @Modifying
+    @Query(value = "DELETE FROM organization_invitations WHERE organization_id = :organizationId", nativeQuery = true)
+    void deleteByOrganizationId(@Param("organizationId") Long organizationId);
 }

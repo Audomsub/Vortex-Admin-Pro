@@ -41,6 +41,8 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                 .expiresAt(key.getExpiresAt())
                 .createdAt(key.getCreatedAt())
                 .scopes(key.getScopes())
+                .rateLimitPerMinute(key.getRateLimitPerMinute())
+                .rateLimitPerHour(key.getRateLimitPerHour())
                 .build();
     }
 
@@ -61,6 +63,8 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                         : null)
                 .user(user)
                 .scopes(request.getScopes() != null ? request.getScopes() : List.of())
+                .rateLimitPerMinute(request.getRateLimitPerMinute())
+                .rateLimitPerHour(request.getRateLimitPerHour())
                 .build();
         apiKeyRepository.save(apiKey);
 

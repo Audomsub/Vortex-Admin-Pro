@@ -112,7 +112,7 @@ const Home = () => {
         // Setup SSE for real-time dashboard updates
         const token = localStorage.getItem('token');
         if (token) {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+            const apiUrl = import.meta.env.VITE_API_URL;
             const cleanup = createSseClient(`${apiUrl}/notifications/stream`, token, {
                 dashboard_update: () => fetchStats(),
             });

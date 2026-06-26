@@ -2,6 +2,9 @@ package com.vortexadmin.repository;
 
 import com.vortexadmin.entity.OrganizationMember;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,5 +17,8 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
     Optional<OrganizationMember> findByOrganizationIdAndUserId(Long organizationId, Long userId);
     boolean existsByOrganizationIdAndUserId(Long organizationId, Long userId);
     long countByOrganizationId(Long organizationId);
-    void deleteByOrganizationId(Long organizationId);
+
+    @Modifying
+    @Query(value = "DELETE FROM organization_members WHERE organization_id = :organizationId", nativeQuery = true)
+    void deleteByOrganizationId(@Param("organizationId") Long organizationId);
 }

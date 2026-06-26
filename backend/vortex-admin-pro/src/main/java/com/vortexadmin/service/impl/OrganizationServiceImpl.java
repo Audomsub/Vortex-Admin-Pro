@@ -10,12 +10,16 @@ import com.vortexadmin.entity.OrganizationInvitation;
 import com.vortexadmin.entity.OrganizationMember;
 import com.vortexadmin.entity.User;
 import com.vortexadmin.exception.ApiException;
+import com.vortexadmin.repository.InvoiceRepository;
 import com.vortexadmin.repository.OrganizationInvitationRepository;
 import com.vortexadmin.repository.OrganizationMemberRepository;
 import com.vortexadmin.repository.OrganizationRepository;
+import com.vortexadmin.repository.SubscriptionRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.OrganizationService;
 import com.vortexadmin.util.SecurityUtils;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,7 +39,12 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository memberRepository;
     private final OrganizationInvitationRepository invitationRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final InvoiceRepository invoiceRepository;
     private final UserRepository userRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private User getCurrentUser() {
         return userRepository.findById(SecurityUtils.getCurrentUserId())
@@ -207,9 +216,27 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (!org.getOwner().getId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only the organization owner can delete it");
         }
-        invitationRepository.deleteByOrganizationId(id);
-        memberRepository.deleteByOrganizationId(id);
-        organizationRepository.delete(org);
+        // Execute in FK dependency order via native SQL — bypasses Hibernate action queue entirely
+        entityManager.createNativeQuery(
+                "DELETE FROM payments WHERE invoice_id IN (SELECT i.id FROM invoices i JOIN subscriptions s ON i.subscription_id = s.id WHERE s.organization_id = :orgId)")
+                .setParameter("orgId", id).executeUpdate();
+        entityManager.createNativeQuery(
+                "DELETE FROM invoices WHERE subscription_id IN (SELECT id FROM subscriptions WHERE organization_id = :orgId)")
+                .setParameter("orgId", id).executeUpdate();
+        entityManager.createNativeQuery(
+                "DELETE FROM subscriptions WHERE organization_id = :orgId")
+                .setParameter("orgId", id).executeUpdate();
+        entityManager.createNativeQuery(
+                "DELETE FROM organization_invitations WHERE organization_id = :orgId")
+                .setParameter("orgId", id).executeUpdate();
+        entityManager.createNativeQuery(
+                "DELETE FROM organization_members WHERE organization_id = :orgId")
+                .setParameter("orgId", id).executeUpdate();
+        entityManager.flush();
+        entityManager.clear();
+        entityManager.createNativeQuery(
+                "DELETE FROM organizations WHERE id = :orgId")
+                .setParameter("orgId", id).executeUpdate();
     }
 
     @Override

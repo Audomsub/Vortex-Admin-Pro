@@ -2,6 +2,8 @@ package com.vortexadmin.security.config;
 
 import com.vortexadmin.repository.ApiKeyRepository;
 import com.vortexadmin.security.filter.ApiKeyAuthFilter;
+import com.vortexadmin.security.filter.MaintenanceModeFilter;
+import com.vortexadmin.service.ApiRateLimitService;
 import com.vortexadmin.security.filter.JwtAuthFilter;
 import com.vortexadmin.security.jwt.JwtAuthEntryPoint;
 import com.vortexadmin.security.oauth2.CustomOAuth2UserService;
@@ -35,10 +37,12 @@ public class SecurityConfig {
     private final JwtAuthEntryPoint unauthorizedHandler;
     private final ApiKeyRepository apiKeyRepository;
     private final JwtAuthFilter jwtAuthFilter;
+    private final ApiRateLimitService apiRateLimitService;
+    private final MaintenanceModeFilter maintenanceModeFilter;
 
     @Bean
     public ApiKeyAuthFilter apiKeyAuthFilter() {
-        return new ApiKeyAuthFilter(apiKeyRepository);
+        return new ApiKeyAuthFilter(apiKeyRepository, apiRateLimitService);
     }
 
 
@@ -82,6 +86,7 @@ public class SecurityConfig {
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(apiKeyAuthFilter(), JwtAuthFilter.class);
+        http.addFilterAfter(maintenanceModeFilter, JwtAuthFilter.class);
 
         return http.build();
     }

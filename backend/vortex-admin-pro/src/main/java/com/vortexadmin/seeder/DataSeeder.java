@@ -186,9 +186,9 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedMockData() {
         if (userRepository.count() <= 1) { // Only admin exists
-            Role adminRole = roleRepository.findByName("ADMIN").get();
-            Role managerRole = roleRepository.findByName("MANAGER").get();
-            Role userRole = roleRepository.findByName("USER").get();
+            Role adminRole = roleRepository.findByName("ADMIN").orElseThrow(() -> new RuntimeException("Role ADMIN not found — seeding incomplete"));
+            Role managerRole = roleRepository.findByName("MANAGER").orElseThrow(() -> new RuntimeException("Role MANAGER not found — seeding incomplete"));
+            Role userRole = roleRepository.findByName("USER").orElseThrow(() -> new RuntimeException("Role USER not found — seeding incomplete"));
 
             User john = User.builder().username("john_doe").email("john@vortex.com").password(passwordEncoder.encode("password123")).firstName("John").lastName("Doe").status("Active").role(adminRole).failedLoginAttempts(0).build();
             User jane = User.builder().username("jane_smith").email("jane@vortex.com").password(passwordEncoder.encode("password123")).firstName("Jane").lastName("Smith").status("Active").role(managerRole).failedLoginAttempts(0).build();
@@ -202,6 +202,12 @@ public class DataSeeder implements CommandLineRunner {
             systemSettingRepository.save(SystemSetting.builder().settingKey("site_name").settingValue("ASSA Vortex Admin").description("The name of the website").build());
             systemSettingRepository.save(SystemSetting.builder().settingKey("support_email").settingValue("support@vortex.com").description("Contact email").build());
             systemSettingRepository.save(SystemSetting.builder().settingKey("theme").settingValue("dark").description("Default theme").build());
+            systemSettingRepository.save(SystemSetting.builder().settingKey("maintenance_mode").settingValue("false").description("Enable maintenance mode").build());
+            systemSettingRepository.save(SystemSetting.builder().settingKey("pw_min_length").settingValue("8").description("Minimum password length").build());
+            systemSettingRepository.save(SystemSetting.builder().settingKey("pw_require_uppercase").settingValue("false").description("Require uppercase letter in password").build());
+            systemSettingRepository.save(SystemSetting.builder().settingKey("pw_require_lowercase").settingValue("false").description("Require lowercase letter in password").build());
+            systemSettingRepository.save(SystemSetting.builder().settingKey("pw_require_digit").settingValue("false").description("Require digit in password").build());
+            systemSettingRepository.save(SystemSetting.builder().settingKey("pw_require_special").settingValue("false").description("Require special character in password").build());
         }
 
         if (teamRepository.count() == 0) {

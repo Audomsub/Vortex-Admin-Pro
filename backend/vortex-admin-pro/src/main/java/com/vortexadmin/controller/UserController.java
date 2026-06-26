@@ -1,10 +1,12 @@
 package com.vortexadmin.controller;
 
+import com.vortexadmin.dto.request.BulkActionRequest;
 import com.vortexadmin.dto.request.ChangePasswordRequest;
 import com.vortexadmin.dto.request.UserCreateRequest;
 import com.vortexadmin.dto.request.UserUpdateRequest;
 import com.vortexadmin.dto.request.UpdateMyProfileRequest;
 import com.vortexadmin.dto.response.ApiResponse;
+import com.vortexadmin.dto.response.UserActivityResponse;
 import com.vortexadmin.dto.response.UserProfileResponse;
 import com.vortexadmin.service.UserService;
 import com.vortexadmin.service.ExportService;
@@ -139,5 +141,24 @@ public class UserController {
         Map<String, Integer> result = new HashMap<>();
         result.put("importedCount", count);
         return ResponseEntity.ok(ApiResponse.success("Users imported successfully", result));
+    }
+
+    @GetMapping("/{id}/activity")
+    @PreAuthorize("hasAuthority('user.read')")
+    public ResponseEntity<ApiResponse<UserActivityResponse>> getUserActivity(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Activity fetched", userService.getUserActivity(id)));
+    }
+
+    @GetMapping("/geo-stats")
+    @PreAuthorize("hasAuthority('user.read')")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> getGeoStats() {
+        return ResponseEntity.ok(ApiResponse.success("Geo stats fetched", userService.getGeoStats()));
+    }
+
+    @PostMapping("/bulk-action")
+    @PreAuthorize("hasAuthority('user.update')")
+    public ResponseEntity<ApiResponse<Void>> bulkAction(@Valid @RequestBody BulkActionRequest request) {
+        userService.bulkAction(request);
+        return ResponseEntity.ok(ApiResponse.success("Bulk action applied successfully", null));
     }
 }

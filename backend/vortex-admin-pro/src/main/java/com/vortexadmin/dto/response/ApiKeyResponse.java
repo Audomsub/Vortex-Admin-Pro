@@ -17,6 +17,8 @@ public class ApiKeyResponse {
     private LocalDateTime expiresAt;
     private LocalDateTime createdAt;
     private List<String> scopes;
+    private Integer rateLimitPerMinute;
+    private Integer rateLimitPerHour;
 
     // Only populated once, immediately after creation
     private String fullKey;

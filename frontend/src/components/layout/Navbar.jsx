@@ -16,7 +16,7 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
     useEffect(() => {
         // Fetch initial unread count
         if (user) {
-            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/notifications/unread-count`, {
+            fetch(`${import.meta.env.VITE_API_URL}/notifications/unread-count`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             })
             .then(res => res.json())
@@ -27,7 +27,7 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
 
             // Setup SSE for real-time notifications
             const token = localStorage.getItem('token');
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+            const apiUrl = import.meta.env.VITE_API_URL;
             const cleanup = createSseClient(`${apiUrl}/notifications/stream`, token, {
                 notification: (data) => {
                     try {

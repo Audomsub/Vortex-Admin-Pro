@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
@@ -7,13 +7,25 @@ import ShortcutsModal from '../modals/ShortcutsModal';
 import { cn } from '../../lib/utils';
 import TourGuide from '../TourGuide';
 import Breadcrumbs from '../ui/Breadcrumbs';
+import { AuthContext } from '../../context/AuthContext';
+import api from '../../api/axios';
 
 const Layout = ({ children }) => {
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
     const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+    useEffect(() => {
+        api.get('/settings').then(res => {
+            const settings = res.data.data || [];
+            const m = settings.find(s => s.key === 'maintenance_mode');
+            if (m?.value === 'true') setMaintenanceMode(true);
+        }).catch(() => {});
+    }, []);
 
     const openPalette = useCallback(() => setIsPaletteOpen(true), []);
     const closePalette = useCallback(() => setIsPaletteOpen(false), []);
@@ -151,6 +163,12 @@ const Layout = ({ children }) => {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                {maintenanceMode && !user?.roles?.includes('SUPER_ADMIN') && (
+                    <div className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-500/15 border-b border-amber-500/30 text-amber-600 dark:text-amber-400 text-sm font-medium">
+                        <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                        System is currently under maintenance. Some features may be unavailable.
+                    </div>
+                )}
                 <Navbar
                     onMenuClick={() => setIsMobileMenuOpen(true)}
                     onSearchClick={openPalette}

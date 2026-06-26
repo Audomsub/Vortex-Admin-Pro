@@ -2,6 +2,7 @@ package com.vortexadmin.repository;
 
 import com.vortexadmin.entity.Invoice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,4 +21,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     BigDecimal sumPaidAmountSince(@Param("from") LocalDateTime from);
 
     List<Invoice> findByStatusAndIssuedAtBetweenOrderByIssuedAtAsc(String status, LocalDateTime start, LocalDateTime end);
+
+    @Modifying
+    @Query(value = "DELETE FROM invoices WHERE subscription_id IN (SELECT id FROM subscriptions WHERE organization_id = :organizationId)", nativeQuery = true)
+    void deleteByOrganizationId(@Param("organizationId") Long organizationId);
 }

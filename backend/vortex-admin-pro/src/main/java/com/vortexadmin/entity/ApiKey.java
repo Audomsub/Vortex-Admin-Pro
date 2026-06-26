@@ -40,6 +40,12 @@ public class ApiKey {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "rate_limit_per_minute")
+    private Integer rateLimitPerMinute;
+
+    @Column(name = "rate_limit_per_hour")
+    private Integer rateLimitPerHour;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

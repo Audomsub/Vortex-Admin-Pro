@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
-import { 
-    Settings2, ShieldAlert, Mail, Image, Globe2, Save, Loader2, ChevronDown
+import {
+    Settings2, ShieldAlert, Mail, Image, Globe2, Save, Loader2, ChevronDown, Lock
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../api/axios';
@@ -212,19 +212,19 @@ const Settings = () => {
                                             <p className="text-xs text-text-secondary mt-1">{t('settings.fields.twoFactorDesc')}</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
+                                            <input
+                                                type="checkbox"
                                                 checked={settings['require_2fa'] === 'true'}
                                                 onChange={(e) => setSettings({...settings, require_2fa: e.target.checked ? 'true' : 'false'})}
-                                                className="sr-only peer" 
+                                                className="sr-only peer"
                                             />
                                             <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-success shadow-inner"></div>
                                         </label>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.sessionTimeout')}</label>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             value={settings['session_timeout'] || 60}
                                             onChange={(e) => setSettings({...settings, session_timeout: e.target.value})}
                                             className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
@@ -232,16 +232,55 @@ const Settings = () => {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.passwordExpiration')}</label>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             value={settings['password_expiration'] || 90}
                                             onChange={(e) => setSettings({...settings, password_expiration: e.target.value})}
                                             className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
                                         />
                                     </div>
+
+                                    {/* Password Policy */}
+                                    <div className="border border-border rounded-xl overflow-hidden">
+                                        <div className="flex items-center gap-2 px-4 py-3 bg-background border-b border-border">
+                                            <Lock size={16} className="text-primary" />
+                                            <h3 className="text-sm font-semibold text-text-primary">Password Policy</h3>
+                                        </div>
+                                        <div className="p-4 space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-text-primary mb-1">Minimum Length</label>
+                                                <input
+                                                    type="number" min="4" max="64"
+                                                    value={settings['pw_min_length'] || 8}
+                                                    onChange={(e) => setSettings({...settings, pw_min_length: e.target.value})}
+                                                    className="w-32 px-3 py-2 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm outline-none text-text-primary"
+                                                />
+                                            </div>
+                                            {[
+                                                { key: 'pw_require_uppercase', label: 'Require uppercase letter (A–Z)' },
+                                                { key: 'pw_require_lowercase', label: 'Require lowercase letter (a–z)' },
+                                                { key: 'pw_require_digit',     label: 'Require digit (0–9)' },
+                                                { key: 'pw_require_special',   label: 'Require special character (!@#$…)' },
+                                            ].map(({ key, label }) => (
+                                                <div key={key} className="flex items-center justify-between">
+                                                    <span className="text-sm text-text-primary">{label}</span>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={settings[key] === 'true'}
+                                                            onChange={(e) => setSettings({...settings, [key]: e.target.checked ? 'true' : 'false'})}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="w-11 h-6 bg-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <div className="pt-6 mt-6 border-t border-border">
                                         <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20 disabled:opacity-70">
-                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} 
+                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
                                             {saving ? t('settings.buttons.saving') : t('settings.buttons.saveSettings')}
                                         </button>
                                     </div>

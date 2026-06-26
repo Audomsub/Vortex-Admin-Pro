@@ -16,4 +16,7 @@ public class CreateApiKeyRequest {
     private Integer expiresInDays;
 
     private List<String> scopes;
+
+    private Integer rateLimitPerMinute;
+    private Integer rateLimitPerHour;
 }

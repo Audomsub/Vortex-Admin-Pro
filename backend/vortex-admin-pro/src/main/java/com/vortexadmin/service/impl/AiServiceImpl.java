@@ -3,6 +3,7 @@ package com.vortexadmin.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vortexadmin.exception.ApiException;
 import com.vortexadmin.service.AiService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class AiServiceImpl implements AiService {
 
@@ -41,7 +43,7 @@ public class AiServiceImpl implements AiService {
                     "Please provide your analysis and summary entirely in Thai language. " +
                     "Use formatting like bolding and bullet points.\n\nLogs:\n" + logsJson;
 
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + geminiApiKey;
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
             Map<String, Object> requestBody = new HashMap<>();
             Map<String, Object> content = new HashMap<>();
@@ -52,6 +54,7 @@ public class AiServiceImpl implements AiService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("x-goog-api-key", geminiApiKey);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
@@ -73,7 +76,7 @@ public class AiServiceImpl implements AiService {
             return "⚠️ Gemini analyzed the data, but no text was returned.";
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Gemini API call failed", e);
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to analyze logs with Gemini: " + e.getMessage());
         }
     }

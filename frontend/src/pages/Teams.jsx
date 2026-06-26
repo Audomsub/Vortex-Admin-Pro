@@ -80,9 +80,9 @@ const Teams = () => {
         }
     };
 
-    const filteredTeams = teams.filter(t => 
-        t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (t.description && t.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredTeams = teams.filter(team =>
+        team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (team.description && team.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (

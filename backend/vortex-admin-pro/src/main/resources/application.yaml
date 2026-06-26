@@ -65,4 +65,6 @@ vortex:
     mailFrom: ${MAIL_FROM:no-reply@vortexadmin.com}
   ai:
     gemini:
-      key: ""  
+      key: ""
+  report:
+    email: ${REPORT_EMAIL:diwooo1661@gmail.com}

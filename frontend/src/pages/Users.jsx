@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
-import { 
-    Search, Filter, Plus, Edit2, Trash2, 
-    Eye, Ban, CheckCircle2, ChevronDown, Download, Upload, Shield
+import {
+    Search, Filter, Plus, Edit2, Trash2,
+    Eye, Ban, CheckCircle2, ChevronDown, Download, Upload, Shield,
+    Activity, Globe, X, Clock, LogIn
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
@@ -23,6 +24,18 @@ const Users = () => {
     const [isViewOnly, setIsViewOnly] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 50;
+
+    const [activityUser, setActivityUser] = useState(null);
+    const [activityData, setActivityData] = useState(null);
+    const [activityLoading, setActivityLoading] = useState(false);
+
+    const [showGeoMap, setShowGeoMap] = useState(false);
+    const [geoStats, setGeoStats] = useState({});
+    const [geoLoading, setGeoLoading] = useState(false);
+
+    const [bulkRoleModal, setBulkRoleModal] = useState(false);
+    const [roles, setRoles] = useState([]);
+    const [selectedBulkRoleId, setSelectedBulkRoleId] = useState('');
 
     useEffect(() => {
         fetchUsers();
@@ -86,6 +99,63 @@ const Users = () => {
         }
     };
 
+    async function openActivityModal(user) {
+        setActivityUser(user);
+        setActivityLoading(true);
+        try {
+            const res = await api.get(`/users/${user.id}/activity`);
+            setActivityData(res.data.data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setActivityLoading(false);
+        }
+    }
+
+    async function openGeoMap() {
+        setShowGeoMap(true);
+        setGeoLoading(true);
+        try {
+            const res = await api.get('/users/geo-stats');
+            setGeoStats(res.data.data || {});
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setGeoLoading(false);
+        }
+    }
+
+    async function fetchRoles() {
+        try {
+            const res = await api.get('/roles');
+            setRoles(res.data.data || []);
+        } catch (e) { console.error(e); }
+    }
+
+    async function handleBulkChangeRole() {
+        if (!selectedBulkRoleId) return;
+        try {
+            await api.post('/users/bulk-action', { userIds: selectedUsers, action: 'CHANGE_ROLE', roleId: parseInt(selectedBulkRoleId) });
+            fetchUsers();
+            setSelectedUsers([]);
+            setBulkRoleModal(false);
+            setSelectedBulkRoleId('');
+        } catch (e) {
+            alert(e.response?.data?.message || 'Failed to change roles');
+        }
+    }
+
+    async function handleBulkSuspend() {
+        if (!window.confirm(`Suspend ${selectedUsers.length} user(s)?`)) return;
+        try {
+            await api.post('/users/bulk-action', { userIds: selectedUsers, action: 'SUSPEND' });
+            fetchUsers();
+            setSelectedUsers([]);
+        } catch (e) {
+            alert(e.response?.data?.message || 'Failed to suspend users');
+        }
+    }
+
     const openAddModal = () => {
         setEditingUser(null);
         setIsViewOnly(false);
@@ -137,7 +207,13 @@ const Users = () => {
                         <p className="text-text-secondary mt-1 text-sm">{t('users.description')}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
+                            onClick={openGeoMap}
+                            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-black/5 dark:hover:bg-white/5 text-text-primary rounded-xl font-medium transition-colors text-sm shadow-sm"
+                        >
+                            <Globe size={16} /> Geo Map
+                        </button>
+                        <button
                             onClick={() => handleExport('excel')}
                             className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-black/5 dark:hover:bg-white/5 text-text-primary rounded-xl font-medium transition-colors text-sm shadow-sm"
                         >
@@ -221,10 +297,19 @@ const Users = () => {
                             {t('users.usersSelected', { count: selectedUsers.length })}
                         </span>
                         <div className="flex items-center gap-2">
-                            <button className="text-sm px-3 py-1.5 bg-white dark:bg-zinc-800 text-text-primary rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors shadow-sm">
+                            <button
+                                onClick={() => { fetchRoles(); setBulkRoleModal(true); }}
+                                className="text-sm px-3 py-1.5 bg-white dark:bg-zinc-800 text-text-primary rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors shadow-sm"
+                            >
                                 {t('users.changeRole')}
                             </button>
-                            <button 
+                            <button
+                                onClick={handleBulkSuspend}
+                                className="text-sm px-3 py-1.5 bg-warning text-white rounded-lg hover:bg-yellow-600 transition-colors shadow-sm"
+                            >
+                                Suspend
+                            </button>
+                            <button
                                 onClick={handleBulkDelete}
                                 className="text-sm px-3 py-1.5 bg-danger text-white rounded-lg hover:bg-red-600 transition-colors shadow-sm shadow-danger/20"
                             >
@@ -311,6 +396,9 @@ const Users = () => {
                                                 <button onClick={() => openViewModal(user)} className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="View Profile">
                                                     <Eye size={16} />
                                                 </button>
+                                                <button onClick={() => openActivityModal(user)} className="p-1.5 text-text-secondary hover:text-secondary hover:bg-secondary/10 rounded-lg transition-colors" title="Activity Timeline">
+                                                    <Activity size={16} />
+                                                </button>
                                                 <button 
                                                     onClick={() => openEditModal(user)}
                                                     className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit User"
@@ -358,18 +446,165 @@ const Users = () => {
 
             </div>
 
-            <UserModal 
+            <UserModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 user={editingUser}
                 onSuccess={fetchUsers}
                 isViewOnly={isViewOnly}
             />
-            <ImportModal 
+            <ImportModal
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
                 onSuccess={fetchUsers}
             />
+
+            {/* Activity Timeline Modal */}
+            {activityUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-surface rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
+                        <div className="flex items-center justify-between p-5 border-b border-border">
+                            <div className="flex items-center gap-3">
+                                <Activity size={18} className="text-primary" />
+                                <h2 className="text-lg font-bold text-text-primary">
+                                    Activity — {activityUser.firstName || activityUser.username}
+                                </h2>
+                            </div>
+                            <button onClick={() => { setActivityUser(null); setActivityData(null); }} className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors">
+                                <X size={18} className="text-text-secondary" />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto flex-1 p-5 space-y-6">
+                            {activityLoading ? (
+                                <div className="flex justify-center py-12 text-text-secondary">Loading...</div>
+                            ) : activityData ? (
+                                <>
+                                    {/* Login Sessions */}
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
+                                            <LogIn size={14} /> Login Sessions ({activityData.sessions?.length || 0})
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {(activityData.sessions || []).slice(0, 8).map(s => (
+                                                <div key={s.id} className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border text-sm">
+                                                    <span className="text-lg">{s.countryCode === 'LO' ? '🏠' : '🌐'}</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-text-primary truncate">{s.country || 'Unknown'} — {s.ipAddress}</p>
+                                                        <p className="text-xs text-text-secondary truncate">{s.userAgent}</p>
+                                                    </div>
+                                                    <span className="text-xs text-text-secondary whitespace-nowrap">
+                                                        {s.loginAt ? new Date(s.loginAt).toLocaleString() : ''}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {/* Audit Timeline */}
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
+                                            <Clock size={14} /> Audit Events ({activityData.timeline?.length || 0})
+                                        </h3>
+                                        <div className="relative pl-4 border-l-2 border-border space-y-3">
+                                            {(activityData.timeline || []).slice(0, 20).map(item => (
+                                                <div key={item.id} className="relative">
+                                                    <div className="absolute -left-[21px] top-2 w-2.5 h-2.5 rounded-full bg-primary border-2 border-surface" />
+                                                    <div className="p-3 bg-background rounded-xl border border-border text-sm">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="font-medium text-text-primary">{item.action} <span className="text-text-secondary font-normal">{item.entityType}</span></span>
+                                                            <span className="text-xs text-text-secondary whitespace-nowrap">
+                                                                {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
+                                                            </span>
+                                                        </div>
+                                                        {item.details && <p className="text-xs text-text-secondary mt-1 truncate">{item.details}</p>}
+                                                        {item.ipAddress && <p className="text-xs text-text-secondary/60 mt-0.5">IP: {item.ipAddress}</p>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {!activityData.timeline?.length && <p className="text-sm text-text-secondary py-2">No audit events found.</p>}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Geo Login Map Modal */}
+            {showGeoMap && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-surface rounded-2xl border border-border w-full max-w-lg shadow-2xl">
+                        <div className="flex items-center justify-between p-5 border-b border-border">
+                            <div className="flex items-center gap-3">
+                                <Globe size={18} className="text-primary" />
+                                <h2 className="text-lg font-bold text-text-primary">Geo Login Map</h2>
+                            </div>
+                            <button onClick={() => setShowGeoMap(false)} className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors">
+                                <X size={18} className="text-text-secondary" />
+                            </button>
+                        </div>
+                        <div className="p-5">
+                            {geoLoading ? (
+                                <div className="flex justify-center py-12 text-text-secondary">Loading...</div>
+                            ) : Object.keys(geoStats).length === 0 ? (
+                                <p className="text-sm text-text-secondary text-center py-8">No geo data yet. Data is collected on login.</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="text-xs text-text-secondary mb-4">Login sessions by country</p>
+                                    {Object.entries(geoStats).map(([country, count]) => {
+                                        const max = Math.max(...Object.values(geoStats));
+                                        const pct = Math.round((count / max) * 100);
+                                        return (
+                                            <div key={country} className="flex items-center gap-3">
+                                                <span className="text-sm text-text-primary w-36 truncate font-medium">{country}</span>
+                                                <div className="flex-1 bg-border rounded-full h-2 overflow-hidden">
+                                                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                                </div>
+                                                <span className="text-sm text-text-secondary w-8 text-right">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Change Role Modal */}
+            {bulkRoleModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-surface rounded-2xl border border-border w-full max-w-sm shadow-2xl p-6 space-y-4">
+                        <h2 className="text-lg font-bold text-text-primary">Change Role for {selectedUsers.length} user(s)</h2>
+                        <div>
+                            <label className="block text-sm font-medium text-text-primary mb-2">Select New Role</label>
+                            <div className="relative">
+                                <select
+                                    value={selectedBulkRoleId}
+                                    onChange={(e) => setSelectedBulkRoleId(e.target.value)}
+                                    className="w-full appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2.5 pr-10 outline-none focus:border-primary transition-colors"
+                                >
+                                    <option value="">— Select role —</option>
+                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setBulkRoleModal(false)} className="flex-1 px-4 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-text-primary rounded-xl font-medium transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleBulkChangeRole}
+                                disabled={!selectedBulkRoleId}
+                                className="flex-1 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+                            >
+                                Apply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Layout>
     );
 };

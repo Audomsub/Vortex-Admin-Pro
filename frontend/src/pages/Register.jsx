@@ -183,7 +183,7 @@ const Register = () => {
 
                         <div className="mt-6 grid grid-cols-3 gap-3">
                             {(() => {
-                                const base = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '');
+                                const base = import.meta.env.VITE_API_URL.replace('/api', '');
                                 return (
                                     <>
                                         <a href={`${base}/oauth2/authorization/google`} className="flex items-center justify-center py-2.5 bg-background/50 border border-border rounded-xl hover:bg-zinc-800 transition-colors">

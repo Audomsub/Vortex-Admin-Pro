@@ -16,6 +16,8 @@ const ApiKeys = () => {
     
     const [isCreating, setIsCreating] = useState(false);
     const [newKeyName, setNewKeyName] = useState('');
+    const [rateLimitPerMinute, setRateLimitPerMinute] = useState('');
+    const [rateLimitPerHour, setRateLimitPerHour] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
     const [selectedScopes, setSelectedScopes] = useState([]);
@@ -65,15 +67,19 @@ const ApiKeys = () => {
 
         try {
             setIsSubmitting(true);
-            const res = await api.post('/api-keys', { 
+            const res = await api.post('/api-keys', {
                 name: newKeyName,
-                scopes: selectedScopes 
+                scopes: selectedScopes,
+                rateLimitPerMinute: rateLimitPerMinute ? parseInt(rateLimitPerMinute) : null,
+                rateLimitPerHour:   rateLimitPerHour   ? parseInt(rateLimitPerHour)   : null,
             });
             if (res.data.success) {
                 // Prepend the new key to the list. The response should contain the newly created key with 'fullKey' populated.
                 setKeys([res.data.data, ...keys]);
                 setNewKeyName('');
                 setSelectedScopes([]);
+                setRateLimitPerMinute('');
+                setRateLimitPerHour('');
                 setIsCreating(false);
             }
         } catch (err) {
@@ -185,6 +191,31 @@ const ApiKeys = () => {
                                     </div>
                                     <p className="text-xs text-text-secondary mt-2">Select the data modules this API key is allowed to view. Keys are strictly read-only.</p>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-primary mb-2">Rate Limiting <span className="text-text-secondary font-normal">(optional)</span></label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-text-secondary mb-1 block">Requests / minute</label>
+                                            <input
+                                                type="number" min="1"
+                                                value={rateLimitPerMinute}
+                                                onChange={(e) => setRateLimitPerMinute(e.target.value)}
+                                                placeholder="Unlimited"
+                                                className="w-full px-3 py-2 bg-black/5 dark:bg-white/5 border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-text-secondary mb-1 block">Requests / hour</label>
+                                            <input
+                                                type="number" min="1"
+                                                value={rateLimitPerHour}
+                                                onChange={(e) => setRateLimitPerHour(e.target.value)}
+                                                placeholder="Unlimited"
+                                                className="w-full px-3 py-2 bg-black/5 dark:bg-white/5 border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="flex bg-blue-500/10 text-blue-500 p-4 rounded-xl gap-3">
                                     <Shield className="w-5 h-5 shrink-0" />
                                     <p className="text-xs">{t('apiKeys.securityWarning')}</p>
@@ -221,6 +252,7 @@ const ApiKeys = () => {
                                     <th className="p-4 text-sm font-semibold text-text-secondary">{t('apiKeys.colName')}</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary">{t('apiKeys.colApiKey')}</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary">Scopes</th>
+                                    <th className="p-4 text-sm font-semibold text-text-secondary">Rate Limit</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary">{t('apiKeys.colCreated')}</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary">{t('apiKeys.colLastUsed')}</th>
                                     <th className="p-4 text-sm font-semibold text-text-secondary text-right">{t('common.actions')}</th>
@@ -301,6 +333,14 @@ const ApiKeys = () => {
                                                     <span className="text-xs text-text-secondary">None</span>
                                                 )}
                                             </div>
+                                        </td>
+                                        <td className="p-4 text-sm text-text-secondary">
+                                            {key.rateLimitPerMinute || key.rateLimitPerHour ? (
+                                                <div className="flex flex-col gap-0.5">
+                                                    {key.rateLimitPerMinute && <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded">{key.rateLimitPerMinute}/min</span>}
+                                                    {key.rateLimitPerHour   && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">{key.rateLimitPerHour}/hr</span>}
+                                                </div>
+                                            ) : <span className="text-text-secondary/50">Unlimited</span>}
                                         </td>
                                         <td className="p-4 text-sm text-text-secondary">{formatDate(key.createdAt)}</td>
                                         <td className="p-4 text-sm text-text-secondary">{formatDate(key.lastUsedAt)}</td>

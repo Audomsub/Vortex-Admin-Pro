@@ -214,12 +214,21 @@ public class ReportExportServiceImpl implements ReportExportService {
             PdfWriter.getInstance(document, out);
             document.open();
 
-            // Register Thai-supporting font
-            com.lowagie.text.pdf.BaseFont bf;
-            try {
-                bf = com.lowagie.text.pdf.BaseFont.createFont("C:/Windows/Fonts/tahoma.ttf", com.lowagie.text.pdf.BaseFont.IDENTITY_H, com.lowagie.text.pdf.BaseFont.EMBEDDED);
-            } catch (Exception e) {
-                // Fallback if tahoma is not available (e.g. on Linux without the font)
+            // Register Thai-supporting font (try common OS font paths in order)
+            com.lowagie.text.pdf.BaseFont bf = null;
+            String[] thaiFontPaths = {
+                "C:/Windows/Fonts/tahoma.ttf",                                    // Windows
+                "/usr/share/fonts/truetype/msttcorefonts/Tahoma.ttf",            // Linux (ttf-mscorefonts)
+                "/usr/share/fonts/truetype/tlwg/TlwgTypo.ttf",                   // Linux (Thai font pack)
+                "/Library/Fonts/Tahoma.ttf"                                       // macOS
+            };
+            for (String path : thaiFontPaths) {
+                try {
+                    bf = com.lowagie.text.pdf.BaseFont.createFont(path, com.lowagie.text.pdf.BaseFont.IDENTITY_H, com.lowagie.text.pdf.BaseFont.EMBEDDED);
+                    break;
+                } catch (Exception ignored) {}
+            }
+            if (bf == null) {
                 bf = com.lowagie.text.pdf.BaseFont.createFont(com.lowagie.text.pdf.BaseFont.HELVETICA, com.lowagie.text.pdf.BaseFont.CP1252, com.lowagie.text.pdf.BaseFont.NOT_EMBEDDED);
             }
 

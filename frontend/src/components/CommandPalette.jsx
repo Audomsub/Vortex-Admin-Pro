@@ -92,7 +92,7 @@ const CommandPalette = ({ open, onClose }) => {
     return (
         <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] p-4 animate-fade-in">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="relative glass border border-border rounded-2xl w-full max-w-xl shadow-premium overflow-hidden animate-zoom-in">
+            <div className="relative bg-surface dark:bg-zinc-950 border border-border rounded-2xl w-full max-w-xl shadow-premium overflow-hidden animate-zoom-in">
                 {/* Input */}
                 <div className="flex items-center gap-3 px-4 border-b border-border">
                     <Search className="w-5 h-5 text-text-secondary shrink-0" />

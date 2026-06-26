@@ -273,9 +273,19 @@ public class DashboardServiceImpl implements DashboardService {
                     .username(u.getUsername())
                     .email(u.getEmail())
                     .status(u.getStatus())
-                    .avatarText((u.getFirstName() != null ? u.getFirstName().substring(0, 1) : u.getUsername().substring(0, 1)).toUpperCase())
+                    .avatarText(resolveAvatarText(u))
                     .build());
         }
         return latest;
+    }
+
+    private String resolveAvatarText(com.vortexadmin.entity.User u) {
+        if (u.getFirstName() != null && !u.getFirstName().isEmpty()) {
+            return u.getFirstName().substring(0, 1).toUpperCase();
+        }
+        if (u.getUsername() != null && !u.getUsername().isEmpty()) {
+            return u.getUsername().substring(0, 1).toUpperCase();
+        }
+        return "?";
     }
 }

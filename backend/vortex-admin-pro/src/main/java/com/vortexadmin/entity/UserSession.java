@@ -20,6 +20,11 @@ public class UserSession {
 
     private String ipAddress;
 
+    private String country;
+
+    @Column(name = "country_code", length = 3)
+    private String countryCode;
+
     @Column(name = "user_agent", columnDefinition = "TEXT")
     private String userAgent;
 

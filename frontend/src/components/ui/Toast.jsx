@@ -3,38 +3,44 @@ import { useNavigate } from 'react-router-dom';
 import { X, CheckCircle, AlertTriangle, AlertCircle, Info, Bell, ExternalLink } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-// Play sound chime dynamically using Web Audio API (cross-browser, no assets needed)
-const playChime = () => {
+// AudioContext singleton — created only after first user gesture to avoid browser warning
+let _audioCtx = null;
+let _audioReady = false;
+
+const unlockAudio = () => {
+    if (_audioReady) return;
     try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
-        
-        // Two pleasant notes in a chord (C5 followed by E5)
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        _audioCtx = new AC();
+        _audioReady = true;
+    } catch (e) { /* ignore */ }
+};
+
+['click', 'keydown', 'touchstart'].forEach(evt =>
+    window.addEventListener(evt, unlockAudio, { once: true, capture: true })
+);
+
+const playChime = () => {
+    if (!_audioReady || !_audioCtx) return;
+    try {
         const playTone = (freq, time, duration) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            
+            const osc = _audioCtx.createOscillator();
+            const gain = _audioCtx.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, time);
-            
             gain.gain.setValueAtTime(0, time);
             gain.gain.linearRampToValueAtTime(0.12, time + 0.03);
             gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-            
             osc.connect(gain);
-            gain.connect(ctx.destination);
-            
+            gain.connect(_audioCtx.destination);
             osc.start(time);
             osc.stop(time + duration);
         };
-        
-        const now = ctx.currentTime;
-        playTone(523.25, now, 0.25); // C5
+        const now = _audioCtx.currentTime;
+        playTone(523.25, now, 0.25);       // C5
         playTone(659.25, now + 0.08, 0.35); // E5
-    } catch (err) {
-        console.warn('Audio chime blocked or failed to play', err);
-    }
+    } catch (err) { /* ignore */ }
 };
 
 // Singleton helper to dispatch custom event

@@ -30,4 +30,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COALESCE(r.name, 'Unknown'), COUNT(u) FROM User u LEFT JOIN u.role r WHERE u.deletedAt IS NULL GROUP BY r.name")
     List<Object[]> countUsersByRole();
+
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND (" +
+           "LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :q, '%')))")
+    List<User> searchByKeyword(@org.springframework.data.repository.query.Param("q") String q);
 }

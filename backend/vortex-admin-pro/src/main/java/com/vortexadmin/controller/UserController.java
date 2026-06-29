@@ -65,6 +65,12 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Users fetched", userService.getAllUsersInMyCompany()));
     }
 
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> searchUsers(@RequestParam(required = false) String q) {
+        return ResponseEntity.ok(ApiResponse.success("Users fetched", userService.searchUsers(q)));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('user.read')")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getUserById(@PathVariable Long id) {

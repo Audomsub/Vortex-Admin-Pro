@@ -23,11 +23,15 @@ export const AuthProvider = ({ children }) => {
                 // Fetch full profile details asynchronously
                 api.get('/users/me').then(res => {
                     const profile = res.data.data;
+                    if (!profile) return;
                     setUser(prev => ({
                         ...prev,
-                        firstName: profile.firstName,
-                        lastName: profile.lastName,
-                        email: profile.email
+                        firstName: profile.firstName ?? prev?.firstName,
+                        lastName: profile.lastName ?? prev?.lastName,
+                        email: profile.email ?? prev?.email,
+                        avatarUrl: profile.avatarUrl ?? prev?.avatarUrl,
+                        status: profile.status ?? prev?.status,
+                        roleName: profile.roleName ?? prev?.roleName,
                     }));
                 }).catch(err => console.error("Failed to fetch full profile", err));
 

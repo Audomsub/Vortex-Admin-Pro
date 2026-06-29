@@ -2,7 +2,6 @@ package com.vortexadmin.service.impl;
 
 import com.vortexadmin.dto.response.ReportStatsResponse;
 import com.vortexadmin.entity.Invoice;
-import com.vortexadmin.entity.User;
 import com.vortexadmin.repository.InvoiceRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.service.ReportStatsService;
@@ -10,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -28,49 +27,48 @@ public class ReportStatsServiceImpl implements ReportStatsService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDate;
         boolean groupDaily = true;
-        
+
         switch (timeframe != null ? timeframe.toUpperCase() : "7D") {
-            case "1M":
-            case "30D":
-                startDate = now.minusDays(30);
-                break;
-            case "3M":
-                startDate = now.minusMonths(3);
-                groupDaily = false;
-                break;
-            case "1Y":
-                startDate = now.minusYears(1);
-                groupDaily = false;
-                break;
-            case "ALL":
-                startDate = now.minusYears(5);
-                groupDaily = false;
-                break;
-            case "7D":
-            default:
-                startDate = now.minusDays(7);
-                break;
+            case "1M", "30D" -> startDate = now.minusDays(30);
+            case "3M" -> { startDate = now.minusMonths(3); groupDaily = false; }
+            case "1Y" -> { startDate = now.minusYears(1); groupDaily = false; }
+            case "ALL" -> { startDate = now.minusYears(5); groupDaily = false; }
+            default -> startDate = now.minusDays(7);
         }
 
+        long periodLength = java.time.Duration.between(startDate, now).toDays();
+        LocalDateTime prevStart = startDate.minusDays(periodLength);
+
+        // Active users
         long activeUsers = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNull("Active");
         long newUsers = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtBetween("Active", startDate, now);
+        long prevActiveUsers = userRepository.countByDeletedAtIsNullAndCreatedAtLessThanEqual(prevStart);
 
+        String activeUsersTrend = formatTrend(activeUsers, prevActiveUsers > 0 ? prevActiveUsers : activeUsers - newUsers);
+
+        // Revenue
         BigDecimal totalRev = invoiceRepository.sumPaidAmountSince(startDate);
         if (totalRev == null) totalRev = BigDecimal.ZERO;
 
+        BigDecimal prevRev = invoiceRepository.sumPaidAmountBetween(prevStart, startDate);
+        if (prevRev == null) prevRev = BigDecimal.ZERO;
+
+        String revenueTrend = formatRevenueTrend(totalRev, prevRev);
+
         ReportStatsResponse.KpiCards kpis = ReportStatsResponse.KpiCards.builder()
                 .totalRevenue("$" + String.format("%,.2f", totalRev.doubleValue()))
-                .revenueTrend("+5.0%")
+                .revenueTrend(revenueTrend)
                 .activeUsers(String.format("%,d", activeUsers))
-                .activeUsersTrend("+" + newUsers)
-                .systemActivity("98.5%")
-                .activityTrend("+0.2%")
-                .conversionRate("4.8%")
-                .conversionTrend("+1.1%")
+                .activeUsersTrend(activeUsersTrend)
+                .systemActivity("N/A")
+                .activityTrend("N/A")
+                .conversionRate("N/A")
+                .conversionTrend("N/A")
                 .build();
 
+        // Revenue chart
         List<Invoice> invoices = invoiceRepository.findByStatusAndIssuedAtBetweenOrderByIssuedAtAsc("PAID", startDate, now);
-        
+
         java.util.Map<String, Double> revenueMap = new java.util.LinkedHashMap<>();
         if (groupDaily) {
             for (int i = 0; !startDate.plusDays(i).toLocalDate().isAfter(now.toLocalDate()); i++) {
@@ -99,6 +97,7 @@ public class ReportStatsServiceImpl implements ReportStatsService {
                     .build());
         }
 
+        // User growth chart
         List<ReportStatsResponse.UserGrowthChart> userChart = new ArrayList<>();
         if (groupDaily) {
             long days = now.toLocalDate().toEpochDay() - startDate.toLocalDate().toEpochDay();
@@ -108,12 +107,8 @@ public class ReportStatsServiceImpl implements ReportStatsService {
                 String name = dayStart.format(DateTimeFormatter.ofPattern("EEE"));
                 long newU = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtBetween("Active", dayStart, dayEnd);
                 long act = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtLessThanEqual("Active", dayEnd);
-                
                 userChart.add(ReportStatsResponse.UserGrowthChart.builder()
-                        .name(name)
-                        .active(act)
-                        .newUsers(newU)
-                        .build());
+                        .name(name).active(act).newUsers(newU).build());
             }
         } else {
             for (int i = 0; !startDate.plusMonths(i).withDayOfMonth(1).toLocalDate().isAfter(now.toLocalDate()); i++) {
@@ -122,12 +117,8 @@ public class ReportStatsServiceImpl implements ReportStatsService {
                 String name = monthStart.format(DateTimeFormatter.ofPattern("MMM"));
                 long newU = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtBetween("Active", monthStart, monthEnd);
                 long act = userRepository.countByStatusIgnoreCaseAndDeletedAtIsNullAndCreatedAtLessThanEqual("Active", monthEnd);
-
                 userChart.add(ReportStatsResponse.UserGrowthChart.builder()
-                        .name(name)
-                        .active(act)
-                        .newUsers(newU)
-                        .build());
+                        .name(name).active(act).newUsers(newU).build());
             }
         }
 
@@ -136,5 +127,21 @@ public class ReportStatsServiceImpl implements ReportStatsService {
                 .revenueChart(revChart)
                 .userGrowthChart(userChart)
                 .build();
+    }
+
+    private String formatRevenueTrend(BigDecimal current, BigDecimal previous) {
+        if (previous.compareTo(BigDecimal.ZERO) == 0) {
+            return current.compareTo(BigDecimal.ZERO) > 0 ? "+100%" : "0%";
+        }
+        BigDecimal change = current.subtract(previous)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(previous, 1, RoundingMode.HALF_UP);
+        return (change.compareTo(BigDecimal.ZERO) >= 0 ? "+" : "") + change + "%";
+    }
+
+    private String formatTrend(long current, long previous) {
+        if (previous == 0) return current > 0 ? "+100%" : "0%";
+        double change = ((double)(current - previous) / previous) * 100;
+        return String.format("%s%.1f%%", change >= 0 ? "+" : "", change);
     }
 }

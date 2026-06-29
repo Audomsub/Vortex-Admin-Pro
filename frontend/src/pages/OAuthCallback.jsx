@@ -1,34 +1,45 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { jwtDecode } from 'jwt-decode';
 
 const OAuthCallback = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { setToken } = useAuth(); // Assuming useAuth exposes this, or we update it
+    const { updateUser } = useAuth();
 
     useEffect(() => {
-        // The backend should redirect here with ?token=...
         const params = new URLSearchParams(location.search);
         const token = params.get('token');
+        const refreshToken = params.get('refreshToken');
 
         if (token) {
-            // Save token and authenticate user
             localStorage.setItem('token', token);
-            // Ideally call setToken(token) or a specific oauthLogin function in useAuth
-            navigate('/');
+            if (refreshToken) {
+                localStorage.setItem('refreshToken', refreshToken);
+            }
+            try {
+                const decoded = jwtDecode(token);
+                const authorities = decoded.roles || decoded.authorities || [];
+                const roleAuthority = authorities.find(auth => auth.startsWith('ROLE_'));
+                const roles = roleAuthority ? [roleAuthority.replace('ROLE_', '')] : ['USER'];
+                const permissions = authorities.filter(auth => !auth.startsWith('ROLE_'));
+                updateUser({ username: decoded.sub || 'User', roles, permissions });
+            } catch {
+                // token decode failed — app will recover on next render via AuthContext
+            }
+            navigate('/', { replace: true });
         } else {
-            // Handle error
-            navigate('/login');
+            navigate('/login', { replace: true });
         }
-    }, [location, navigate, setToken]);
+    }, [location, navigate, updateUser]);
 
     return (
-        <div className="min-h-screen bg-zinc-950 flex flex-col justify-center items-center p-4">
+        <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">
             <div className="flex flex-col items-center">
-                <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <h2 className="text-xl font-medium text-white">Authenticating...</h2>
-                <p className="text-zinc-400 mt-2 text-sm">Please wait while we complete your sign in.</p>
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                <h2 className="text-xl font-medium text-text-primary">Authenticating...</h2>
+                <p className="text-text-secondary mt-2 text-sm">Please wait while we complete your sign in.</p>
             </div>
         </div>
     );

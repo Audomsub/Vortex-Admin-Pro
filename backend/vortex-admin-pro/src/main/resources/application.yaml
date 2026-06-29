@@ -4,8 +4,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: -1
-      max-request-size: -1
+      max-file-size: 10MB
+      max-request-size: 10MB
 
   security:
     oauth2:
@@ -19,18 +19,26 @@ spring:
             client-secret: dummy-client-secret
 
   datasource:
-    url: jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres
-    username: postgres.boskcvexjyixxyhxczpe
-    password: Diwooo1661@
+    url: ${DB_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
+    username: ${DB_USERNAME:postgres.boskcvexjyixxyhxczpe}
+    password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      idle-timeout: 30000
+      max-lifetime: 60000
+      keepalive-time: 25000
+      connection-timeout: 20000
+      connection-test-query: SELECT 1
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
   mail:
     host: ${MAIL_HOST:}

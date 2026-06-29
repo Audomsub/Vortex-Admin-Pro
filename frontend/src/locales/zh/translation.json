@@ -75,6 +75,42 @@
     "verify": "验证",
     "invalidCode": "验证码无效"
   },
+  "forgotPassword": {
+    "title": "忘记密码？",
+    "subtitle": "输入您的邮箱，我们将向您发送重置密码链接。",
+    "emailLabel": "电子邮件地址",
+    "emailPlaceholder": "you@example.com",
+    "sendLink": "发送重置链接",
+    "sending": "发送中...",
+    "backToLogin": "返回登录",
+    "successMessage": "如果 {{email}} 存在对应账户，重置密码链接已发送，请检查您的邮箱。",
+    "errorFallback": "出现错误，请重试。"
+  },
+  "resetPassword": {
+    "title": "重置密码",
+    "subtitle": "为您的账户选择新密码。",
+    "newPasswordLabel": "新密码",
+    "newPasswordPlaceholder": "至少 8 个字符",
+    "confirmPasswordLabel": "确认新密码",
+    "confirmPasswordPlaceholder": "••••••••",
+    "resetButton": "重置密码",
+    "resetting": "重置中...",
+    "backToLogin": "返回登录",
+    "missingToken": "缺少重置令牌，请使用邮件中的链接。",
+    "passwordMismatch": "两次密码不一致",
+    "successMessage": "密码重置成功！正在跳转至登录页面...",
+    "errorFallback": "重置密码失败，链接可能已过期。"
+  },
+  "emailBuilder": {
+    "title": "邮件构建器",
+    "subtitle": "设计和编辑发送给用户的电子邮件模板",
+    "subjectLabel": "主题：",
+    "subjectPlaceholder": "邮件主题",
+    "saveTemplate": "保存模板",
+    "saving": "保存中...",
+    "saveSuccess": "模板保存成功！",
+    "saveFailed": "保存模板失败"
+  },
   "org": {
     "title": "组织架构",
     "myOrganizations": "我的组织",
@@ -419,8 +455,29 @@
     "subtitle": "安排和管理团队活动。",
     "addEvent": "添加活动",
     "today": "今天",
-    "monthNames": ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"],
-    "weekDays": ["日", "一", "二", "三", "四", "五", "六"],
+    "monthNames": [
+      "一月",
+      "二月",
+      "三月",
+      "四月",
+      "五月",
+      "六月",
+      "七月",
+      "八月",
+      "九月",
+      "十月",
+      "十一月",
+      "十二月"
+    ],
+    "weekDays": [
+      "日",
+      "一",
+      "二",
+      "三",
+      "四",
+      "五",
+      "六"
+    ],
     "newEvent": "新建活动",
     "editEvent": "编辑活动",
     "eventTitle": "活动标题",
@@ -436,7 +493,14 @@
     "createEvent": "创建活动",
     "deleteConfirm": "您确定要删除此活动吗？",
     "errorSavingEvent": "保存活动时出错",
-    "errorDeletingEvent": "删除活动时出错"
+    "errorDeletingEvent": "删除活动时出错",
+    "attendees": "参与者",
+    "selectMode": "选择",
+    "searchMode": "搜索",
+    "selectAttendeesPlaceholder": "选择参与者...",
+    "searchAttendeesPlaceholder": "按姓名或邮箱搜索...",
+    "attendeesSelected": "已选 {{count}} 位",
+    "noUsersFound": "未找到用户"
   },
   "sessions": {
     "title": "活跃会话",

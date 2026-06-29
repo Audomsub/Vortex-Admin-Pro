@@ -28,4 +28,5 @@ public interface UserService {
     UserActivityResponse getUserActivity(Long userId);
     java.util.Map<String, Long> getGeoStats();
     void bulkAction(com.vortexadmin.dto.request.BulkActionRequest request);
+    List<UserProfileResponse> searchUsers(String q);
 }

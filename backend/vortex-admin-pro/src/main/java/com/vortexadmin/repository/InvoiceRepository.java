@@ -20,6 +20,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     @Query("SELECT COALESCE(SUM(i.amount), 0) FROM Invoice i WHERE i.status = 'PAID' AND i.issuedAt >= :from")
     BigDecimal sumPaidAmountSince(@Param("from") LocalDateTime from);
 
+    @Query("SELECT COALESCE(SUM(i.amount), 0) FROM Invoice i WHERE i.status = 'PAID' AND i.issuedAt BETWEEN :from AND :to")
+    BigDecimal sumPaidAmountBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     List<Invoice> findByStatusAndIssuedAtBetweenOrderByIssuedAtAsc(String status, LocalDateTime start, LocalDateTime end);
 
     @Modifying

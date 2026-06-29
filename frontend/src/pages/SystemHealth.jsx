@@ -16,7 +16,7 @@ const SystemHealth = () => {
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState(new Date());
     
-    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace('/api', '');
+    const baseUrl = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/api\/?$/, '');
 
     const fetchHealth = async () => {
         try {

@@ -178,21 +178,28 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public int importUsersFromCsv(MultipartFile file) {
+        Role defaultRole = roleRepository.findByName("USER").orElse(null);
+
         int importedCount = 0;
-        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(file.getInputStream()))) {
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(file.getInputStream()))) {
             String line;
             boolean isHeader = true;
             while ((line = reader.readLine()) != null) {
                 if (isHeader) {
                     isHeader = false;
-                    continue; // skip header
+                    continue;
                 }
-                String[] data = line.split(",");
-                if (data.length >= 3) { // Expecting: Username, Email, FirstName, LastName
+                // RFC-4180 compliant CSV split: handle quoted fields containing commas
+                String[] data = parseCsvLine(line);
+                if (data.length >= 4) { // Required columns: Username, Email, FirstName, LastName (minimum 4 fields)
                     String username = data[0].trim();
                     String email = data[1].trim();
                     String firstName = data[2].trim();
-                    String lastName = data.length > 3 ? data[3].trim() : "";
+                    String lastName = data[3].trim();
+
+                    if (username.isEmpty() || email.isEmpty()) continue;
+                    if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) continue;
 
                     if (!userRepository.existsByUsername(username) && !userRepository.existsByEmail(email)) {
                         User user = User.builder()
@@ -202,6 +209,7 @@ public class UserServiceImpl implements UserService {
                                 .firstName(firstName)
                                 .lastName(lastName)
                                 .status("Active")
+                                .role(defaultRole)
                                 .failedLoginAttempts(0)
                                 .build();
                         userRepository.save(user);
@@ -213,6 +221,30 @@ public class UserServiceImpl implements UserService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Failed to parse CSV file: " + e.getMessage());
         }
         return importedCount;
+    }
+
+    private String[] parseCsvLine(String line) {
+        java.util.List<String> fields = new java.util.ArrayList<>();
+        boolean inQuotes = false;
+        StringBuilder field = new StringBuilder();
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    field.append('"');
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == ',' && !inQuotes) {
+                fields.add(field.toString());
+                field.setLength(0);
+            } else {
+                field.append(c);
+            }
+        }
+        fields.add(field.toString());
+        return fields.toArray(new String[0]);
     }
 
     @Override
@@ -285,6 +317,14 @@ public class UserServiceImpl implements UserService {
             default -> throw new ApiException(HttpStatus.BAD_REQUEST, "Unknown action: " + request.getAction());
         }
         userRepository.saveAll(users);
+    }
+
+    @Override
+    public List<UserProfileResponse> searchUsers(String q) {
+        if (q == null || q.isBlank()) return userRepository.findByDeletedAtIsNull()
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
+        return userRepository.searchByKeyword(q.trim())
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     private String generateSecurePassword() {

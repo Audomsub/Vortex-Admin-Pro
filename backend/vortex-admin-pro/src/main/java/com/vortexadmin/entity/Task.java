@@ -25,7 +25,7 @@ public class Task {
     private String description;
 
     @Column(length = 50)
-    private String status; // TODO, IN_PROGRESS, REVIEW, DONE
+    private String status; // TODO, IN_PROGRESS, DONE
 
     @Column(length = 50)
     private String priority; // LOW, MEDIUM, HIGH

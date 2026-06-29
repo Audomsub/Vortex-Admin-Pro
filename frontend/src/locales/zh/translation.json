@@ -195,7 +195,12 @@
     "revenue": "收入",
     "expenses": "支出",
     "activeUsersChart": "活跃用户",
-    "newUsersChart": "新用户"
+    "newUsersChart": "新用户",
+    "exportFailed": "导出报告失败"
+  },
+  "login": {
+    "githubSsoComingSoon": "GitHub SSO 即将推出",
+    "microsoftSsoComingSoon": "Microsoft SSO 即将推出"
   },
   "home": {
     "welcomeBack": "欢迎回来",
@@ -255,7 +260,13 @@
     "next": "下一页",
     "deleteConfirm": "您确定要删除此用户吗？",
     "bulkDeleteConfirm": "您确定要删除这 {{count}} 名用户吗？",
-    "recently": "最近"
+    "bulkSuspendConfirm": "暂停 {{count}} 名用户？",
+    "recently": "最近",
+    "errorDelete": "删除用户失败",
+    "errorBulkDelete": "部分用户删除失败",
+    "errorExport": "导出失败",
+    "errorChangeRole": "更改角色失败",
+    "errorBulkSuspend": "暂停用户失败"
   },
   "tasks": {
     "title": "任务看板",
@@ -284,7 +295,9 @@
     "cancel": "取消",
     "saveChanges": "保存更改",
     "createTaskBtn": "创建任务",
-    "deleteConfirm": "您确定要删除此任务吗？"
+    "deleteConfirm": "您确定要删除此任务吗？",
+    "errorSave": "保存任务失败",
+    "errorDelete": "删除任务失败"
   },
   "teams": {
     "title": "团队",

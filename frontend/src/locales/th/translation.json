@@ -195,7 +195,12 @@
     "revenue": "รายได้",
     "expenses": "รายจ่าย",
     "activeUsersChart": "ผู้ใช้งานอยู่",
-    "newUsersChart": "ผู้ใช้ใหม่"
+    "newUsersChart": "ผู้ใช้ใหม่",
+    "exportFailed": "ส่งออกรายงานไม่สำเร็จ"
+  },
+  "login": {
+    "githubSsoComingSoon": "GitHub SSO เร็วๆ นี้",
+    "microsoftSsoComingSoon": "Microsoft SSO เร็วๆ นี้"
   },
   "home": {
     "welcomeBack": "ยินดีต้อนรับกลับมา",
@@ -255,7 +260,13 @@
     "next": "ถัดไป",
     "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้คนนี้?",
     "bulkDeleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้ {{count}} คน?",
-    "recently": "เพิ่งเข้าสู่ระบบ"
+    "bulkSuspendConfirm": "ระงับ {{count}} บัญชีผู้ใช้?",
+    "recently": "เพิ่งเข้าสู่ระบบ",
+    "errorDelete": "ลบผู้ใช้ไม่สำเร็จ",
+    "errorBulkDelete": "ลบผู้ใช้บางรายไม่สำเร็จ",
+    "errorExport": "ส่งออกข้อมูลไม่สำเร็จ",
+    "errorChangeRole": "เปลี่ยนบทบาทไม่สำเร็จ",
+    "errorBulkSuspend": "ระงับผู้ใช้ไม่สำเร็จ"
   },
   "tasks": {
     "title": "กระดานงาน",
@@ -284,7 +295,9 @@
     "cancel": "ยกเลิก",
     "saveChanges": "บันทึกการเปลี่ยนแปลง",
     "createTaskBtn": "สร้างงาน",
-    "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้?"
+    "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้?",
+    "errorSave": "บันทึกงานไม่สำเร็จ",
+    "errorDelete": "ลบงานไม่สำเร็จ"
   },
   "teams": {
     "title": "ทีม",

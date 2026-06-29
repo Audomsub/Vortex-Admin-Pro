@@ -112,51 +112,48 @@ public class AuthServiceImpl implements AuthService {
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList());
 
-            if (userOpt.isPresent()) {
-                User user = userOpt.get();
-                user.setFailedLoginAttempts(0);
-                user.setLockoutUntil(null);
-                user.setLastLogin(LocalDateTime.now());
-                userRepository.save(user);
+            User user = userOpt.get();
+            user.setFailedLoginAttempts(0);
+            user.setLockoutUntil(null);
+            user.setLastLogin(LocalDateTime.now());
+            userRepository.save(user);
 
-                // Create UserSession log
-                String ipAddress = request.getRemoteAddr();
-                String userAgent = request.getHeader("User-Agent");
-                String[] geo = geoLocationService.lookupCountry(ipAddress);
+            // Create UserSession log
+            String ipAddress = request.getRemoteAddr();
+            String userAgent = request.getHeader("User-Agent");
+            String[] geo = geoLocationService.lookupCountry(ipAddress);
 
-                UserSession session = UserSession.builder()
-                        .user(user)
-                        .ipAddress(ipAddress)
-                        .country(geo[0])
-                        .countryCode(geo[1])
-                        .userAgent(userAgent != null ? userAgent : "Unknown")
-                        .loginAt(LocalDateTime.now())
-                        .build();
-                userSessionRepository.save(session);
+            UserSession session = UserSession.builder()
+                    .user(user)
+                    .ipAddress(ipAddress)
+                    .country(geo[0])
+                    .countryCode(geo[1])
+                    .userAgent(userAgent != null ? userAgent : "Unknown")
+                    .loginAt(LocalDateTime.now())
+                    .build();
+            userSessionRepository.save(session);
 
-                auditLogService.logAction("LOGIN", "User", user.getId(), "User logged into the system via credentials", ipAddress);
-                
-                // Refresh Token Logic
-                refreshTokenRepository.deleteByUser(user);
-                refreshTokenRepository.flush();
-                
-                RefreshToken refreshToken = RefreshToken.builder()
-                        .user(user)
-                        .token(UUID.randomUUID().toString())
-                        .expiryDate(LocalDateTime.now().plusDays(7)) // 7 days expiry
-                        .build();
-                refreshTokenRepository.save(refreshToken);
+            auditLogService.logAction("LOGIN", "User", user.getId(), "User logged into the system via credentials", ipAddress);
 
-                return JwtResponse.builder()
-                        .token(jwt)
-                        .refreshToken(refreshToken.getToken())
-                        .id(userDetails.getId())
-                        .username(userDetails.getUsername())
-                        .email(userDetails.getEmail())
-                        .roles(roles)
-                        .build();
-            }
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "User not found after auth.");
+            // Refresh Token Logic
+            refreshTokenRepository.deleteByUser(user);
+            refreshTokenRepository.flush();
+
+            RefreshToken refreshToken = RefreshToken.builder()
+                    .user(user)
+                    .token(UUID.randomUUID().toString())
+                    .expiryDate(LocalDateTime.now().plusDays(7)) // 7 days expiry
+                    .build();
+            refreshTokenRepository.save(refreshToken);
+
+            return JwtResponse.builder()
+                    .token(jwt)
+                    .refreshToken(refreshToken.getToken())
+                    .id(userDetails.getId())
+                    .username(userDetails.getUsername())
+                    .email(userDetails.getEmail())
+                    .roles(roles)
+                    .build();
 
         } catch (ApiException e) {
             throw e;

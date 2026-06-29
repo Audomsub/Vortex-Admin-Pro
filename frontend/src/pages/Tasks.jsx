@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import ModalPortal from '../components/ui/ModalPortal';
 import { CheckSquare, Plus, Edit2, Trash2, Search, ChevronDown } from 'lucide-react';
 import api from '../api/axios';
+import { toast } from '../components/ui/Toast';
 import { cn } from '../lib/utils';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
@@ -97,19 +98,18 @@ const Tasks = () => {
             handleCloseModal();
         } catch (error) {
             console.error('Failed to save task:', error);
-            alert(error.response?.data?.message || 'Error saving task');
+            toast.error(t('common.error'), error.response?.data?.message || t('tasks.errorSave'));
         }
     };
 
     async function handleDelete(id) {
-        if (await window.confirm(t('tasks.deleteConfirm'))) {
-            try {
-                await api.delete(`/tasks/${id}`);
-                fetchData();
-            } catch (error) {
-                console.error('Failed to delete task:', error);
-                alert(error.response?.data?.message || 'Error deleting task');
-            }
+        if (!window.confirm(t('tasks.deleteConfirm'))) return;
+        try {
+            await api.delete(`/tasks/${id}`);
+            fetchData();
+        } catch (error) {
+            console.error('Failed to delete task:', error);
+            toast.error(t('common.error'), error.response?.data?.message || t('tasks.errorDelete'));
         }
     };
 

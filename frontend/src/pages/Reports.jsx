@@ -10,6 +10,7 @@ import {
     BarChart, Bar, Legend
 } from 'recharts';
 import { cn } from '../lib/utils';
+import { toast } from '../components/ui/Toast';
 
 const Reports = () => {
     const { t } = useTranslation();
@@ -54,7 +55,7 @@ const Reports = () => {
             await reportService.export(type, exportFormat);
         } catch (error) {
             console.error('Export failed:', error);
-            alert(error.response?.data?.message || t('common.error'));
+            toast.error(t('common.error'), error.response?.data?.message || t('reports.exportFailed'));
         } finally {
             setExporting(null);
         }

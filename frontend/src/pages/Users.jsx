@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
+import { toast } from '../components/ui/Toast';
 import UserModal from '../components/modals/UserModal';
 import ImportModal from '../components/modals/ImportModal';
 
@@ -45,7 +46,7 @@ const Users = () => {
         try {
             setLoading(true);
             const response = await api.get('/users');
-            setUsers(response.data.data);
+            setUsers(response.data.data || []);
             setCurrentPage(1); // Reset to page 1 on fetch
         } catch (error) {
             console.error('Failed to fetch users:', error);
@@ -60,26 +61,26 @@ const Users = () => {
     };
 
     async function handleDelete(id) {
-        if (!await window.confirm(t('users.deleteConfirm'))) return;
+        if (!window.confirm(t('users.deleteConfirm'))) return;
         try {
             await api.delete(`/users/${id}`);
             fetchUsers();
             setSelectedUsers(selectedUsers.filter(userId => userId !== id));
         } catch (error) {
             console.error('Failed to delete user:', error);
-            alert('Failed to delete user');
+            toast.error(t('common.error'), error.response?.data?.message || t('users.errorDelete'));
         }
     };
 
     async function handleBulkDelete() {
-        if (!await window.confirm(t('users.bulkDeleteConfirm', { count: selectedUsers.length }))) return;
+        if (!window.confirm(t('users.bulkDeleteConfirm', { count: selectedUsers.length }))) return;
         try {
             await Promise.all(selectedUsers.map(id => api.delete(`/users/${id}`)));
             fetchUsers();
             setSelectedUsers([]);
         } catch (error) {
             console.error('Failed to delete users:', error);
-            alert('Failed to delete some users');
+            toast.error(t('common.error'), error.response?.data?.message || t('users.errorBulkDelete'));
         }
     };
 
@@ -95,7 +96,7 @@ const Users = () => {
             link.parentNode.removeChild(link);
         } catch (error) {
             console.error('Failed to export users:', error);
-            alert('Failed to export');
+            toast.error(t('common.error'), error.response?.data?.message || t('users.errorExport'));
         }
     };
 
@@ -141,18 +142,18 @@ const Users = () => {
             setBulkRoleModal(false);
             setSelectedBulkRoleId('');
         } catch (e) {
-            alert(e.response?.data?.message || 'Failed to change roles');
+            toast.error(t('common.error'), e.response?.data?.message || t('users.errorChangeRole'));
         }
     }
 
     async function handleBulkSuspend() {
-        if (!window.confirm(`Suspend ${selectedUsers.length} user(s)?`)) return;
+        if (!window.confirm(t('users.bulkSuspendConfirm', { count: selectedUsers.length }))) return;
         try {
             await api.post('/users/bulk-action', { userIds: selectedUsers, action: 'SUSPEND' });
             fetchUsers();
             setSelectedUsers([]);
         } catch (e) {
-            alert(e.response?.data?.message || 'Failed to suspend users');
+            toast.error(t('common.error'), e.response?.data?.message || t('users.errorBulkSuspend'));
         }
     }
 

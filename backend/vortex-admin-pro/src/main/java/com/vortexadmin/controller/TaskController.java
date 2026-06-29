@@ -59,7 +59,7 @@ public class TaskController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('task.update') or hasAuthority('task.update.own')")
+    @PreAuthorize("hasAuthority('task.delete') or hasAuthority('task.delete.own')")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.ok(ApiResponse.success("Task deleted successfully", null));

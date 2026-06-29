@@ -174,10 +174,10 @@ const Login = () => {
                             <button type="button" onClick={() => handleGoogleLogin()} className="flex items-center justify-center py-2.5 bg-background/50 border border-border rounded-xl hover:bg-zinc-800 transition-colors">
                                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
                             </button>
-                            <button type="button" onClick={() => alert('GitHub SSO coming soon')} className="flex items-center justify-center py-2.5 bg-background/50 border border-border rounded-xl hover:bg-zinc-800 transition-colors">
+                            <button type="button" onClick={() => setError(t('login.githubSsoComingSoon'))} className="flex items-center justify-center py-2.5 bg-background/50 border border-border rounded-xl hover:bg-zinc-800 transition-colors">
                                 <img src="https://www.svgrepo.com/show/512317/github-142.svg" alt="GitHub" className="h-5 w-5 filter invert opacity-80" />
                             </button>
-                            <button type="button" onClick={() => alert('Microsoft SSO coming soon')} className="flex items-center justify-center py-2.5 bg-background/50 border border-border rounded-xl hover:bg-zinc-800 transition-colors">
+                            <button type="button" onClick={() => setError(t('login.microsoftSsoComingSoon'))} className="flex items-center justify-center py-2.5 bg-background/50 border border-border rounded-xl hover:bg-zinc-800 transition-colors">
                                 <img src="https://www.svgrepo.com/show/475662/microsoft-color.svg" alt="Microsoft" className="h-5 w-5" />
                             </button>
                         </div>

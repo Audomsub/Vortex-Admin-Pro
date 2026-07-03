@@ -26,7 +26,6 @@ public class AppConfig {
         return cacheManager;
     }
 
-    // BUG-012 / BUG-025: shared, connection-pooled RestTemplate with sane timeouts
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder

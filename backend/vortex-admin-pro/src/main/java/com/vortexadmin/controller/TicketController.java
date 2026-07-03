@@ -19,7 +19,6 @@ public class TicketController {
 
     private final TicketService ticketService;
 
-    // BUG-013: all ticket endpoints now require authentication and appropriate permissions
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ticket.read', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN', 'ROLE_MANAGER')")
     public ResponseEntity<ApiResponse<List<Ticket>>> getAllTickets() {

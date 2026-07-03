@@ -57,9 +57,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return headerAuth.substring(7);
         }
 
-        // BUG-005: removed query-parameter JWT — tokens in URLs appear in server logs,
-        // browser history and Referrer headers. The SSE client sends Authorization header instead.
-
+        // Tokens in URL query params appear in server logs and browser history — Authorization header only.
         return null;
     }
 }

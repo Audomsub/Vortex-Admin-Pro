@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
 import com.vortexadmin.exception.ApiException;
 import java.lang.management.ManagementFactory;
+import java.io.File;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -207,7 +208,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         long memoryUsagePct = maxMemory > 0 ? (usedMemory * 100) / maxMemory : 0;
 
-        java.io.File root = Paths.get("").toAbsolutePath().toFile();
+        File root = Paths.get("").toAbsolutePath().toFile();
         long totalSpace = root.getTotalSpace();
         long freeSpace = root.getFreeSpace();
         long usedSpace = totalSpace - freeSpace;

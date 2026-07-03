@@ -21,15 +21,21 @@ import com.vortexadmin.repository.UserSessionRepository;
 import com.vortexadmin.repository.UserTwoFactorRepository;
 import com.vortexadmin.security.config.UserDetailsImpl;
 import com.vortexadmin.security.jwt.JwtUtils;
-import com.vortexadmin.service.AuthService;
 import com.vortexadmin.service.AuditLogService;
+import com.vortexadmin.service.AuthService;
+import com.vortexadmin.service.GeoLocationService;
 import com.vortexadmin.service.MailService;
+import com.vortexadmin.service.PasswordPolicyService;
 import com.vortexadmin.service.WebhookService;
 import com.vortexadmin.util.TotpUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -39,19 +45,27 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    private static final int REFRESH_TOKEN_DAYS = 7;
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private static final int LOCKOUT_MINUTES = 15;
+    private static final int PASSWORD_HISTORY_LIMIT = 5;
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -66,9 +80,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuditLogService auditLogService;
     private final PasswordEncoder encoder;
     private final JwtUtils jwtUtils;
-    private final com.vortexadmin.service.PasswordPolicyService passwordPolicyService;
-    private final com.vortexadmin.service.GeoLocationService geoLocationService;
-    // BUG-012: singleton RestTemplate with connection pool — never create per-call
+    private final PasswordPolicyService passwordPolicyService;
+    private final GeoLocationService geoLocationService;
     private final RestTemplate restTemplate;
 
     @Value("${vortex.app.frontendUrl}")
@@ -78,19 +91,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public JwtResponse authenticateUser(LoginRequest loginRequest, HttpServletRequest request) {
         Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            // BUG-006: reject soft-deleted or suspended users before authentication
-            if (user.getDeletedAt() != null) {
-                throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
-            }
-            if ("Suspended".equalsIgnoreCase(user.getStatus())) {
-                throw new ApiException(HttpStatus.FORBIDDEN, "Your account has been suspended. Please contact support.");
-            }
-            if (user.getLockoutUntil() != null && user.getLockoutUntil().isAfter(LocalDateTime.now())) {
-                throw new ApiException(HttpStatus.LOCKED, "Account is temporarily locked due to too many failed attempts.");
-            }
-        }
+        userOpt.ifPresent(this::validateUserActive);
 
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -98,12 +99,10 @@ public class AuthServiceImpl implements AuthService {
 
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-            // Two-Factor Authentication check (password is already verified at this point)
             Optional<UserTwoFactor> twoFactorOpt = userTwoFactorRepository.findByUserId(userDetails.getId());
             if (twoFactorOpt.isPresent() && Boolean.TRUE.equals(twoFactorOpt.get().getEnabled())) {
                 String code = loginRequest.getTwoFactorCode();
                 if (code == null || code.isBlank()) {
-                    // Tell the client to prompt for an OTP, without issuing tokens
                     return JwtResponse.builder()
                             .twoFactorRequired(true)
                             .username(userDetails.getUsername())
@@ -115,11 +114,6 @@ public class AuthServiceImpl implements AuthService {
             }
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = jwtUtils.generateJwtToken(authentication);
-
-            List<String> roles = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toList());
 
             User user = userOpt.get();
             user.setFailedLoginAttempts(0);
@@ -127,55 +121,19 @@ public class AuthServiceImpl implements AuthService {
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
 
-            // Create UserSession log
-            String ipAddress = request.getRemoteAddr();
-            String userAgent = request.getHeader("User-Agent");
-            String[] geo = geoLocationService.lookupCountry(ipAddress);
-
-            UserSession session = UserSession.builder()
-                    .user(user)
-                    .ipAddress(ipAddress)
-                    .country(geo[0])
-                    .countryCode(geo[1])
-                    .userAgent(userAgent != null ? userAgent : "Unknown")
-                    .loginAt(LocalDateTime.now())
-                    .build();
-            userSessionRepository.save(session);
-
-            auditLogService.logAction("LOGIN", "User", user.getId(), "User logged into the system via credentials", ipAddress);
-
-            // Refresh Token Logic
-            refreshTokenRepository.deleteByUser(user);
-            refreshTokenRepository.flush();
-
-            RefreshToken refreshToken = RefreshToken.builder()
-                    .user(user)
-                    .token(UUID.randomUUID().toString())
-                    .expiryDate(LocalDateTime.now().plusDays(7)) // 7 days expiry
-                    .build();
-            refreshTokenRepository.save(refreshToken);
-
-            return JwtResponse.builder()
-                    .token(jwt)
-                    .refreshToken(refreshToken.getToken())
-                    .id(userDetails.getId())
-                    .username(userDetails.getUsername())
-                    .email(userDetails.getEmail())
-                    .roles(roles)
-                    .build();
+            return buildSessionAndJwtResponse(user, userDetails, request, "credentials");
 
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
-            if (userOpt.isPresent()) {
-                User user = userOpt.get();
+            userOpt.ifPresent(user -> {
                 int attempts = user.getFailedLoginAttempts() == null ? 0 : user.getFailedLoginAttempts();
                 user.setFailedLoginAttempts(attempts + 1);
-                if (user.getFailedLoginAttempts() >= 5) {
-                    user.setLockoutUntil(LocalDateTime.now().plusMinutes(15));
+                if (user.getFailedLoginAttempts() >= MAX_FAILED_ATTEMPTS) {
+                    user.setLockoutUntil(LocalDateTime.now().plusMinutes(LOCKOUT_MINUTES));
                 }
                 userRepository.save(user);
-            }
+            });
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
         }
     }
@@ -183,14 +141,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public JwtResponse authenticateWithGoogle(String token, HttpServletRequest request) {
-        // BUG-012: uses the injected restTemplate bean (connection-pooled, configured timeout)
         String googleUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
         try {
-            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + token);
-            org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            ResponseEntity<Map> response = restTemplate.exchange(googleUrl, org.springframework.http.HttpMethod.GET, entity, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(googleUrl, HttpMethod.GET, entity, Map.class);
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid Google token");
             }
@@ -200,7 +157,6 @@ public class AuthServiceImpl implements AuthService {
             String firstName = (String) payload.get("given_name");
             String lastName = (String) payload.get("family_name");
 
-            // BUG-008: reject unverified Google email addresses
             Object emailVerified = payload.get("email_verified");
             if (!Boolean.TRUE.equals(emailVerified) && !"true".equals(String.valueOf(emailVerified))) {
                 throw new ApiException(HttpStatus.UNAUTHORIZED, "Google account email is not verified");
@@ -210,144 +166,33 @@ public class AuthServiceImpl implements AuthService {
                 throw new ApiException(HttpStatus.UNAUTHORIZED, "Email not found in Google token");
             }
 
-            // BUG-007: findByEmail does not filter deleted/suspended; do so explicitly
             Optional<User> userOpt = userRepository.findByEmail(email);
             User user;
             if (userOpt.isPresent()) {
                 user = userOpt.get();
-                if (user.getDeletedAt() != null) {
-                    throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-                }
-                if ("Suspended".equalsIgnoreCase(user.getStatus())) {
-                    throw new ApiException(HttpStatus.FORBIDDEN, "Your account has been suspended. Please contact support.");
-                }
-                if (user.getLockoutUntil() != null && user.getLockoutUntil().isAfter(LocalDateTime.now())) {
-                    throw new ApiException(HttpStatus.LOCKED, "Account is temporarily locked.");
-                }
+                validateUserActive(user);
             } else {
-                // Register user dynamically
-                Role userRole = roleRepository.findByName("USER").orElseGet(() -> {
-                    Role role = Role.builder()
-                            .name("USER")
-                            .description("Standard User")
-                            .permissions(new HashSet<>())
-                            .build();
-                    return roleRepository.save(role);
-                });
-
-                String generatedPassword = UUID.randomUUID().toString();
-                String username = email.split("@")[0] + "_" + UUID.randomUUID().toString().substring(0, 4);
-
-                user = User.builder()
-                        .username(username)
-                        .email(email)
-                        .firstName(firstName)
-                        .lastName(lastName)
-                        .password(encoder.encode(generatedPassword))
-                        .role(userRole)
-                        .status("Active")
-                        .failedLoginAttempts(0)
-                        .build();
-                user = userRepository.save(user);
-
-                webhookService.triggerEvent("user.created", java.util.Map.of(
-                        "id", user.getId(),
-                        "username", user.getUsername(),
-                        "email", user.getEmail()));
+                user = createOAuthUser(email, firstName, lastName);
+                notifyUserCreated(user);
             }
 
-            // Create Authentication object for Spring Security context
             UserDetailsImpl userDetails = UserDetailsImpl.build(user);
-            Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            String jwt = jwtUtils.generateJwtToken(authentication);
-
-            List<String> roles = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toList());
 
             user.setFailedLoginAttempts(0);
             user.setLockoutUntil(null);
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
 
-            // Create UserSession log
-            String ipAddress = request.getRemoteAddr();
-            String userAgent = request.getHeader("User-Agent");
-            String[] geo = geoLocationService.lookupCountry(ipAddress);
+            return buildSessionAndJwtResponse(user, userDetails, request, "Google OAuth");
 
-            UserSession session = UserSession.builder()
-                    .user(user)
-                    .ipAddress(ipAddress)
-                    .country(geo[0])
-                    .countryCode(geo[1])
-                    .userAgent(userAgent != null ? userAgent : "Unknown")
-                    .loginAt(LocalDateTime.now())
-                    .build();
-            userSessionRepository.save(session);
-
-            auditLogService.logAction("LOGIN", "User", user.getId(), "User logged into the system via Google OAuth", ipAddress);
-            
-            // Refresh Token Logic
-            refreshTokenRepository.deleteByUser(user);
-            refreshTokenRepository.flush();
-            
-            RefreshToken refreshToken = RefreshToken.builder()
-                    .user(user)
-                    .token(UUID.randomUUID().toString())
-                    .expiryDate(LocalDateTime.now().plusDays(7)) // 7 days expiry
-                    .build();
-            refreshTokenRepository.save(refreshToken);
-
-            return JwtResponse.builder()
-                    .token(jwt)
-                    .refreshToken(refreshToken.getToken())
-                    .id(userDetails.getId())
-                    .username(userDetails.getUsername())
-                    .email(userDetails.getEmail())
-                    .roles(roles)
-                    .build();
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Failed to authenticate with Google: " + e.getMessage());
         }
-    }
-
-    /**
-     * Accepts either a live TOTP code or an unused backup code.
-     * Used backup codes are consumed so they cannot be replayed.
-     * BUG-009: TOTP codes are marked used to prevent replay within the same 30-second window.
-     */
-    private boolean verifyTwoFactorCode(UserTwoFactor twoFactor, String code) {
-        if (TotpUtil.verifyCode(twoFactor.getSecretKey(), code)) {
-            // Prevent replay: record the start of the current 30-second window
-            long windowStart = (System.currentTimeMillis() / 1000L / 30L) * 30L;
-            LocalDateTime windowStartDt = java.time.Instant.ofEpochSecond(windowStart)
-                    .atZone(java.time.ZoneOffset.UTC).toLocalDateTime();
-            if (twoFactor.getLastUsedTotpAt() != null
-                    && !twoFactor.getLastUsedTotpAt().isBefore(windowStartDt)) {
-                return false; // same window — reject replay
-            }
-            twoFactor.setLastUsedTotpAt(windowStartDt);
-            userTwoFactorRepository.save(twoFactor);
-            return true;
-        }
-        if (twoFactor.getBackupCodes() != null && !twoFactor.getBackupCodes().isBlank()) {
-            List<String> hashes = new java.util.ArrayList<>(List.of(twoFactor.getBackupCodes().split(",")));
-            java.util.Iterator<String> it = hashes.iterator();
-            while (it.hasNext()) {
-                String hash = it.next();
-                if (encoder.matches(code, hash)) {
-                    it.remove();
-                    twoFactor.setBackupCodes(String.join(",", hashes));
-                    userTwoFactorRepository.save(twoFactor);
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     @Override
@@ -356,21 +201,13 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Error: Username is already taken!");
         }
-
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Error: Email is already in use!");
         }
 
         passwordPolicyService.validate(signUpRequest.getPassword());
 
-        Role userRole = roleRepository.findByName("USER").orElseGet(() -> {
-            Role role = Role.builder()
-                    .name("USER")
-                    .description("Standard User")
-                    .permissions(new HashSet<>())
-                    .build();
-            return roleRepository.save(role);
-        });
+        Role userRole = findOrCreateUserRole();
 
         User user = User.builder()
                 .username(signUpRequest.getUsername())
@@ -383,19 +220,13 @@ public class AuthServiceImpl implements AuthService {
                 .failedLoginAttempts(0)
                 .build();
         userRepository.save(user);
-
-        webhookService.triggerEvent("user.created", java.util.Map.of(
-                "id", user.getId(),
-                "username", user.getUsername(),
-                "email", user.getEmail()));
+        notifyUserCreated(user);
     }
 
     @Override
     @Transactional
     public JwtResponse refreshToken(TokenRefreshRequest request) {
-        String requestRefreshToken = request.getRefreshToken();
-        
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(requestRefreshToken)
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
                 .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "Refresh token is not in database!"));
 
         if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
@@ -408,17 +239,13 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenRepository.delete(refreshToken);
             throw new ApiException(HttpStatus.FORBIDDEN, "Refresh token has no associated user");
         }
-        
-        // BUG-011: build once; return full authorities list matching login response
+
         UserDetailsImpl userDetails = UserDetailsImpl.build(user);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, null, userDetails.getAuthorities());
 
         String jwt = jwtUtils.generateJwtToken(authentication);
-
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList());
+        List<String> roles = extractAuthorities(userDetails);
 
         return JwtResponse.builder()
                 .token(jwt)
@@ -433,32 +260,25 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void logout(String refreshTokenStr) {
-        if (refreshTokenStr != null && !refreshTokenStr.isEmpty()) {
-            Optional<RefreshToken> tokenOpt = refreshTokenRepository.findByToken(refreshTokenStr);
-            if (tokenOpt.isPresent()) {
-                RefreshToken token = tokenOpt.get();
-                User user = token.getUser();
-                
-                // Delete refresh token
-                refreshTokenRepository.delete(token);
-                
-                // Close the latest active session for this user
-                userSessionRepository.findFirstByUserAndLogoutAtIsNullOrderByLoginAtDesc(user)
-                        .ifPresent(session -> {
-                            session.setLogoutAt(LocalDateTime.now());
-                            userSessionRepository.save(session);
-                        });
-            }
-        }
+        if (refreshTokenStr == null || refreshTokenStr.isEmpty()) return;
+
+        refreshTokenRepository.findByToken(refreshTokenStr).ifPresent(token -> {
+            User user = token.getUser();
+            refreshTokenRepository.delete(token);
+            userSessionRepository.findFirstByUserAndLogoutAtIsNullOrderByLoginAtDesc(user)
+                    .ifPresent(session -> {
+                        session.setLogoutAt(LocalDateTime.now());
+                        userSessionRepository.save(session);
+                    });
+        });
     }
 
     @Override
     @Transactional
     public void forgotPassword(String email) {
-        // Always respond success to the caller to avoid leaking which emails exist
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty() || userOpt.get().getDeletedAt() != null) {
-            return;
+            return; // Always respond success to avoid leaking which emails exist
         }
         User user = userOpt.get();
 
@@ -491,20 +311,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = resetToken.getUser();
-
-        // BUG-010: validate password policy (was missing from resetPassword; only changeMyPassword had it)
         passwordPolicyService.validate(newPassword);
-
-        // Prevent reusing one of the last 5 passwords
-        List<PasswordHistory> recentPasswords = passwordHistoryRepository.findTop5ByUserOrderByChangedAtDesc(user);
-        for (PasswordHistory history : recentPasswords) {
-            if (encoder.matches(newPassword, history.getPasswordHash())) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "New password must not match any of your last 5 passwords");
-            }
-        }
-        if (encoder.matches(newPassword, user.getPassword())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "New password must not match your current password");
-        }
+        validatePasswordNotReused(user, newPassword);
 
         passwordHistoryRepository.save(PasswordHistory.builder()
                 .user(user)
@@ -519,7 +327,140 @@ public class AuthServiceImpl implements AuthService {
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
 
-        // Invalidate existing refresh tokens so old sessions must re-login
         refreshTokenRepository.deleteByUser(user);
+    }
+
+    // --- Private helpers ---
+
+    private void validateUserActive(User user) {
+        if (user.getDeletedAt() != null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+        }
+        if ("Suspended".equalsIgnoreCase(user.getStatus())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Your account has been suspended. Please contact support.");
+        }
+        if (user.getLockoutUntil() != null && user.getLockoutUntil().isAfter(LocalDateTime.now())) {
+            throw new ApiException(HttpStatus.LOCKED, "Account is temporarily locked due to too many failed attempts.");
+        }
+    }
+
+    private JwtResponse buildSessionAndJwtResponse(User user, UserDetailsImpl userDetails,
+                                                    HttpServletRequest request, String loginMethod) {
+        String ipAddress = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+        String[] geo = geoLocationService.lookupCountry(ipAddress);
+
+        userSessionRepository.save(UserSession.builder()
+                .user(user)
+                .ipAddress(ipAddress)
+                .country(geo[0])
+                .countryCode(geo[1])
+                .userAgent(userAgent != null ? userAgent : "Unknown")
+                .loginAt(LocalDateTime.now())
+                .build());
+
+        auditLogService.logAction("LOGIN", "User", user.getId(),
+                "User logged into the system via " + loginMethod, ipAddress);
+
+        refreshTokenRepository.deleteByUser(user);
+        refreshTokenRepository.flush();
+
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user(user)
+                .token(UUID.randomUUID().toString())
+                .expiryDate(LocalDateTime.now().plusDays(REFRESH_TOKEN_DAYS))
+                .build();
+        refreshTokenRepository.save(refreshToken);
+
+        String jwt = jwtUtils.generateJwtToken(
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
+
+        return JwtResponse.builder()
+                .token(jwt)
+                .refreshToken(refreshToken.getToken())
+                .id(userDetails.getId())
+                .username(userDetails.getUsername())
+                .email(userDetails.getEmail())
+                .roles(extractAuthorities(userDetails))
+                .build();
+    }
+
+    private List<String> extractAuthorities(UserDetailsImpl userDetails) {
+        return userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+    }
+
+    private Role findOrCreateUserRole() {
+        return roleRepository.findByName("USER").orElseGet(() -> roleRepository.save(
+                Role.builder()
+                        .name("USER")
+                        .description("Standard User")
+                        .permissions(new HashSet<>())
+                        .build()));
+    }
+
+    private User createOAuthUser(String email, String firstName, String lastName) {
+        String username = email.split("@")[0] + "_" + UUID.randomUUID().toString().substring(0, 4);
+        return userRepository.save(User.builder()
+                .username(username)
+                .email(email)
+                .firstName(firstName)
+                .lastName(lastName)
+                .password(encoder.encode(UUID.randomUUID().toString()))
+                .role(findOrCreateUserRole())
+                .status("Active")
+                .failedLoginAttempts(0)
+                .build());
+    }
+
+    private void notifyUserCreated(User user) {
+        webhookService.triggerEvent("user.created", Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "email", user.getEmail()));
+    }
+
+    private void validatePasswordNotReused(User user, String newPassword) {
+        if (encoder.matches(newPassword, user.getPassword())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "New password must not match your current password");
+        }
+        List<PasswordHistory> recent = passwordHistoryRepository.findTop5ByUserOrderByChangedAtDesc(user);
+        for (PasswordHistory history : recent) {
+            if (encoder.matches(newPassword, history.getPasswordHash())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "New password must not match any of your last " + PASSWORD_HISTORY_LIMIT + " passwords");
+            }
+        }
+    }
+
+    private boolean verifyTwoFactorCode(UserTwoFactor twoFactor, String code) {
+        if (TotpUtil.verifyCode(twoFactor.getSecretKey(), code)) {
+            // Prevent replay within the same 30-second TOTP window
+            long windowStart = (System.currentTimeMillis() / 1000L / 30L) * 30L;
+            LocalDateTime windowStartDt = Instant.ofEpochSecond(windowStart)
+                    .atZone(ZoneOffset.UTC).toLocalDateTime();
+            if (twoFactor.getLastUsedTotpAt() != null
+                    && !twoFactor.getLastUsedTotpAt().isBefore(windowStartDt)) {
+                return false;
+            }
+            twoFactor.setLastUsedTotpAt(windowStartDt);
+            userTwoFactorRepository.save(twoFactor);
+            return true;
+        }
+        if (twoFactor.getBackupCodes() != null && !twoFactor.getBackupCodes().isBlank()) {
+            List<String> hashes = new ArrayList<>(List.of(twoFactor.getBackupCodes().split(",")));
+            Iterator<String> it = hashes.iterator();
+            while (it.hasNext()) {
+                String hash = it.next();
+                if (encoder.matches(code, hash)) {
+                    it.remove();
+                    twoFactor.setBackupCodes(String.join(",", hashes));
+                    userTwoFactorRepository.save(twoFactor);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

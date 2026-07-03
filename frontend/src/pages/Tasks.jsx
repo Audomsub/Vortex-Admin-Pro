@@ -128,10 +128,9 @@ const Tasks = () => {
         const taskId = parseInt(draggableId);
         const newStatus = destination.droppableId;
         
-        const task = tasks.find(t => t.id === taskId);
+        const task = tasks.find(task => task.id === taskId);
         if (task && task.status !== newStatus) {
-            // Optimistic update
-            const updatedTasks = tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
+            const updatedTasks = tasks.map(task => task.id === taskId ? { ...task, status: newStatus } : task);
             setTasks(updatedTasks);
             
             try {
@@ -160,8 +159,8 @@ const Tasks = () => {
         }
     };
 
-    const filteredTasks = tasks.filter(t => 
-        t.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredTasks = tasks.filter(task =>
+        task.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -216,12 +215,12 @@ const Tasks = () => {
                                             <div className="flex items-center justify-between mb-4">
                                                 <h3 className="font-bold text-text-primary">{column.title}</h3>
                                                 <span className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/5 text-xs font-semibold text-text-secondary">
-                                                    {filteredTasks.filter(t => t.status === column.id).length}
+                                                    {filteredTasks.filter(task => task.status === column.id).length}
                                                 </span>
                                             </div>
                                             
                                             <div className="flex-1 overflow-y-auto space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                                                {filteredTasks.filter(t => t.status === column.id).map((task, index) => (
+                                                {filteredTasks.filter(task => task.status === column.id).map((task, index) => (
                                                     <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
                                                         {(provided, snapshot) => (
                                                             <div 
@@ -269,7 +268,7 @@ const Tasks = () => {
                                                     </Draggable>
                                                 ))}
                                                 {provided.placeholder}
-                                                {filteredTasks.filter(t => t.status === column.id).length === 0 && (
+                                                {filteredTasks.filter(task => task.status === column.id).length === 0 && (
                                                     <div className="h-24 flex items-center justify-center border-2 border-dashed border-border rounded-xl text-text-secondary text-sm">
                                                         {t('tasks.dropTasksHere')}
                                                     </div>

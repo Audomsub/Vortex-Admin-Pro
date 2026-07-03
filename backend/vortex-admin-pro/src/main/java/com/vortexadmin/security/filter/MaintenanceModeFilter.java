@@ -22,7 +22,6 @@ public class MaintenanceModeFilter extends OncePerRequestFilter {
 
     private final SystemSettingRepository settingRepository;
 
-    // BUG-028: cache result for 30 seconds to avoid a DB round-trip on every request
     private final AtomicBoolean cachedValue = new AtomicBoolean(false);
     private final AtomicLong cacheExpiry = new AtomicLong(0);
     private static final long CACHE_TTL_MS = 30_000;

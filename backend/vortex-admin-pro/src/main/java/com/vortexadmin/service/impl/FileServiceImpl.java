@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,7 +80,7 @@ public class FileServiceImpl implements FileService {
     @Transactional
     public FileResponse uploadFile(MultipartFile file) {
         String originalFileName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown");
-        String fileName = java.util.UUID.randomUUID().toString() + "_" + originalFileName;
+        String fileName = UUID.randomUUID().toString() + "_" + originalFileName;
         try {
             if (fileName.contains("..")) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "Sorry! Filename contains invalid path sequence " + fileName);
@@ -98,7 +100,7 @@ public class FileServiceImpl implements FileService {
                     .build();
             
             return mapFile(fileRepository.save(fileEntity));
-        } catch (java.io.IOException ex) {
+        } catch (IOException ex) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not store file " + fileName + ". Please try again!");
         }
     }

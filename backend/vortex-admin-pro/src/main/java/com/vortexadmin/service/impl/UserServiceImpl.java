@@ -27,8 +27,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.vortexadmin.service.PasswordPolicyService;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,7 +47,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final com.vortexadmin.service.PasswordPolicyService passwordPolicyService;
+    private final PasswordPolicyService passwordPolicyService;
     private final AuditLogRepository auditLogRepository;
     private final UserSessionRepository userSessionRepository;
     private final PasswordHistoryRepository passwordHistoryRepository;
@@ -74,7 +79,6 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         
-        // Optional: Check if email is already taken by another user
         if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Email is already in use");
         }
@@ -96,7 +100,6 @@ public class UserServiceImpl implements UserService {
 
         passwordPolicyService.validate(request.getNewPassword());
 
-        // BUG-021: check password history (was missing; resetPassword already did this)
         List<PasswordHistory> recent = passwordHistoryRepository.findTop5ByUserOrderByChangedAtDesc(user);
         for (PasswordHistory h : recent) {
             if (passwordEncoder.matches(request.getNewPassword(), h.getPasswordHash())) {
@@ -190,7 +193,6 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // Soft Delete
         user.setDeletedAt(LocalDateTime.now());
         userRepository.save(user);
     }
@@ -198,7 +200,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public int importUsersFromCsv(MultipartFile file) {
-        // BUG-019: validate file content-type before parsing
         String contentType = file.getContentType();
         String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
         boolean looksLikeCsv = (contentType != null && (contentType.startsWith("text/csv") || contentType.equals("text/plain") || contentType.equals("application/vnd.ms-excel")))
@@ -210,8 +211,7 @@ public class UserServiceImpl implements UserService {
         Role defaultRole = roleRepository.findByName("USER").orElse(null);
 
         int importedCount = 0;
-        try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                new java.io.InputStreamReader(file.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
             String line;
             boolean isHeader = true;
             while ((line = reader.readLine()) != null) {
@@ -253,7 +253,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private String[] parseCsvLine(String line) {
-        java.util.List<String> fields = new java.util.ArrayList<>();
+        List<String> fields = new ArrayList<>();
         boolean inQuotes = false;
         StringBuilder field = new StringBuilder();
         for (int i = 0; i < line.length(); i++) {
@@ -281,7 +281,6 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // BUG-020: limit to most recent 100 logs to avoid full-table heap load
         List<UserActivityResponse.ActivityItem> timeline = auditLogRepository
                 .findTop100ByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
@@ -335,7 +334,6 @@ public class UserServiceImpl implements UserService {
         switch (request.getAction().toUpperCase()) {
             case "SUSPEND" -> users.forEach(u -> u.setStatus("Suspended"));
             case "ACTIVATE" -> users.forEach(u -> u.setStatus("Active"));
-            // BUG-018: exclude the currently authenticated user from bulk delete
             case "DELETE" -> {
                 Long selfId = SecurityUtils.getCurrentUserId();
                 users.forEach(u -> {

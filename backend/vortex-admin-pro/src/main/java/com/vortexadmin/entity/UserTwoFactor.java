@@ -32,7 +32,6 @@ public class UserTwoFactor {
     @Column(name = "backup_codes", columnDefinition = "TEXT")
     private String backupCodes;
 
-    // BUG-009: track start of last-used TOTP window to prevent within-window replay
     @Column(name = "last_used_totp_at")
     private LocalDateTime lastUsedTotpAt;
 

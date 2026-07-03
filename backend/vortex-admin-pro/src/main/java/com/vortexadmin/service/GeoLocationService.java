@@ -12,7 +12,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GeoLocationService {
 
-    // BUG-026: use HTTPS to prevent MITM tampering of geo data; use injected RestTemplate
     private static final String GEO_API = "https://ip-api.com/json/%s?fields=status,country,countryCode";
     private final RestTemplate restTemplate;
 
@@ -36,7 +35,7 @@ public class GeoLocationService {
     }
 
     private boolean isPrivateIp(String ip) {
-        // BUG-027: RFC 1918 172.16.0.0/12 covers 172.16.* through 172.31.*
+        // RFC 1918 172.16.0.0/12 covers 172.16.* through 172.31.* (not just 172.16.*)
         if (ip.startsWith("172.")) {
             try {
                 int second = Integer.parseInt(ip.split("\\.")[1]);

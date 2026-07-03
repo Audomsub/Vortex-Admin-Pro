@@ -39,7 +39,6 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .build();
     }
 
-    // BUG-023: use paginated query — default 500 most recent logs; callers can extend later
     @Override
     public List<AuditLogResponse> getCompanyAuditLogs() {
         return auditLogRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 500))

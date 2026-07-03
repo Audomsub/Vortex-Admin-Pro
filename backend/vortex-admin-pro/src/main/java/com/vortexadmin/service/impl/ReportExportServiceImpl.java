@@ -49,7 +49,6 @@ public class ReportExportServiceImpl implements ReportExportService {
     private final OrganizationRepository organizationRepository;
     private final InvoiceRepository invoiceRepository;
 
-    // BUG-022: cap exports at 10,000 rows to prevent OOM on large tables
     private static final int MAX_EXPORT_ROWS = 10_000;
 
     private record ReportData(String title, List<String> headers, List<List<String>> rows) {

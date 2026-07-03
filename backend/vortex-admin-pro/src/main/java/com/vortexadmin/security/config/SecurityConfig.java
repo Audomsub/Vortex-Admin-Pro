@@ -96,7 +96,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // BUG-004: wildcard + allowCredentials is a security hole; read allowed origins from config
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

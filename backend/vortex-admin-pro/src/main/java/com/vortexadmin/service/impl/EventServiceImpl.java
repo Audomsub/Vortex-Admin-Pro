@@ -66,7 +66,6 @@ public class EventServiceImpl implements EventService {
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    // BUG-015: verify requester is creator or attendee
     @Override
     public EventResponse getEventById(Long id) {
         Event event = eventRepository.findById(id)
@@ -107,7 +106,6 @@ public class EventServiceImpl implements EventService {
         return mapToResponse(eventRepository.save(event));
     }
 
-    // BUG-016: only the creator may update
     @Override
     @Transactional
     public void updateEvent(Long id, EventRequest request) {
@@ -135,7 +133,6 @@ public class EventServiceImpl implements EventService {
         eventRepository.save(event);
     }
 
-    // BUG-017: only the creator may delete
     @Override
     @Transactional
     public void deleteEvent(Long id) {

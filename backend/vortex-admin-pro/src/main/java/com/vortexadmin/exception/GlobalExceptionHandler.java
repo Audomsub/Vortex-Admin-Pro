@@ -23,7 +23,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(ApiResponse.error(ex.getMessage()), ex.getStatus());
     }
 
-    // BUG-001: validation errors must return success:false
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -35,7 +34,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(ApiResponse.error("Validation failed", errors), HttpStatus.BAD_REQUEST);
     }
 
-    // BUG-002: do not expose raw exception details to clients; log server-side only
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGlobalException(Exception ex) {
         logger.error("Unhandled exception: {}", ex.getMessage(), ex);

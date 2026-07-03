@@ -6,6 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,7 +19,6 @@ public class UserDetailsImpl implements UserDetails {
     private String email;
     @JsonIgnore
     private String password;
-    // BUG-003: carry status so isEnabled() reflects Suspended/Active state
     private String status;
 
     private Collection<? extends GrantedAuthority> authorities;
@@ -34,7 +34,7 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     public static UserDetailsImpl build(User user) {
-        List<GrantedAuthority> authorities = new java.util.ArrayList<>();
+        List<GrantedAuthority> authorities = new ArrayList<>();
 
         if (user.getRole() != null) {
             if (user.getRole().getPermissions() != null) {
@@ -93,7 +93,6 @@ public class UserDetailsImpl implements UserDetails {
         return true;
     }
 
-    // BUG-003: suspended users must not be able to authenticate or use existing JWTs
     @Override
     public boolean isEnabled() {
         return status == null || !"Suspended".equalsIgnoreCase(status);

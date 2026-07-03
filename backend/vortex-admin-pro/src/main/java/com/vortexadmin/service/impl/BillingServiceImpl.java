@@ -63,9 +63,7 @@ public class BillingServiceImpl implements BillingService {
         Organization org = subscription.getOrganization();
         long currentUsers = memberRepository.countByOrganizationId(org.getId());
 
-        List<Long> memberUserIds = memberRepository.findByOrganizationId(org.getId()).stream()
-                .map(m -> m.getUser().getId())
-                .collect(Collectors.toList());
+        List<Long> memberUserIds = memberRepository.findUserIdsByOrganizationId(org.getId());
         Long rawStorage = memberUserIds.isEmpty() ? null : fileRepository.sumFileSizeByUserIds(memberUserIds);
         long storageUsedBytes = rawStorage != null ? rawStorage : 0L;
 

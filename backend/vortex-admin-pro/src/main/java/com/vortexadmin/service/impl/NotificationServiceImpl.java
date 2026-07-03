@@ -10,6 +10,7 @@ import com.vortexadmin.service.NotificationService;
 import com.vortexadmin.service.SseEmitterService;
 import com.vortexadmin.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +40,7 @@ public class NotificationServiceImpl implements NotificationService {
     public List<NotificationResponse> getMyNotifications() {
         User user = userRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
-        return notificationRepository.findByUserOrderByCreatedAtDesc(user).stream()
+        return notificationRepository.findByUserOrderByCreatedAtDesc(user, PageRequest.of(0, 200)).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

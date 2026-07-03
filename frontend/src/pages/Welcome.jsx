@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { Sparkles, ArrowRight, Loader2, Bot } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const Welcome = () => {
@@ -24,8 +23,6 @@ const Welcome = () => {
     const [query, setQuery] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [insight, setInsight] = useState('');
-    const navigate = useNavigate();
-
     const [showRightBubbles, setShowRightBubbles] = useState(true);
 
     useEffect(() => {

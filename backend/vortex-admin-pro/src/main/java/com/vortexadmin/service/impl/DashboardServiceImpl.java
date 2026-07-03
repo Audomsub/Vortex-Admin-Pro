@@ -152,20 +152,21 @@ public class DashboardServiceImpl implements DashboardService {
         return chart;
     }
 
+    private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("MMM yyyy");
+
     private List<DashboardDataResponse.ChartData> generateLoginActivityChart() {
-        Map<String, long[]> loginCountsByMonth = new LinkedHashMap<>(); // [totalLogins, activeSessions]
+        Map<YearMonth, long[]> loginCountsByMonth = new LinkedHashMap<>(); // [totalLogins, activeSessions]
         LocalDate now = LocalDate.now();
 
         for (int i = 5; i >= 0; i--) {
-            String monthName = now.minusMonths(i).getMonth().name().substring(0, 3);
-            loginCountsByMonth.put(monthName, new long[]{0L, 0L});
+            loginCountsByMonth.put(YearMonth.from(now.minusMonths(i)), new long[]{0L, 0L});
         }
 
         List<UserSession> sessions = userSessionRepository.findByLoginAtAfter(now.minusMonths(6).atStartOfDay());
         for (UserSession session : sessions) {
             if (session.getLoginAt() != null) {
-                String monthName = session.getLoginAt().getMonth().name().substring(0, 3);
-                long[] counts = loginCountsByMonth.get(monthName);
+                YearMonth ym = YearMonth.from(session.getLoginAt());
+                long[] counts = loginCountsByMonth.get(ym);
                 if (counts != null) {
                     counts[0]++;
                     if (session.getLogoutAt() == null) {
@@ -176,9 +177,9 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         List<DashboardDataResponse.ChartData> chart = new ArrayList<>();
-        for (Map.Entry<String, long[]> entry : loginCountsByMonth.entrySet()) {
+        for (Map.Entry<YearMonth, long[]> entry : loginCountsByMonth.entrySet()) {
             chart.add(DashboardDataResponse.ChartData.builder()
-                    .name(entry.getKey())
+                    .name(entry.getKey().format(MONTH_FMT))
                     .users(entry.getValue()[0])
                     .active(entry.getValue()[1])
                     .build());

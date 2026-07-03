@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { Activity, Cpu, HardDrive, Database, Server, RefreshCw } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 
 const SystemHealth = () => {
-    const { t } = useTranslation();
     const [health, setHealth] = useState(null);
     const [metrics, setMetrics] = useState({
         cpuUsage: 0,
@@ -47,7 +45,7 @@ const SystemHealth = () => {
         fetchHealth();
         const interval = setInterval(fetchHealth, 10000);
         return () => clearInterval(interval);
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const formatBytes = (bytes) => {
         if (!bytes) return '0 MB';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, CheckCircle, AlertTriangle, AlertCircle, Info, Bell, ExternalLink } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle, AlertCircle, Info, ExternalLink } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // AudioContext singleton — created only after first user gesture to avoid browser warning
@@ -14,7 +14,7 @@ const unlockAudio = () => {
         if (!AC) return;
         _audioCtx = new AC();
         _audioReady = true;
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
 };
 
 ['click', 'keydown', 'touchstart'].forEach(evt =>
@@ -40,23 +40,7 @@ const playChime = () => {
         const now = _audioCtx.currentTime;
         playTone(523.25, now, 0.25);       // C5
         playTone(659.25, now + 0.08, 0.35); // E5
-    } catch (err) { /* ignore */ }
-};
-
-// Singleton helper to dispatch custom event
-export const toast = {
-    show: (title, message, type = 'info', action = null, duration = 5000) => {
-        const id = Math.random().toString(36).substring(2, 9);
-        const event = new CustomEvent('vortex-toast', {
-            detail: { id, title, message, type, action, duration }
-        });
-        window.dispatchEvent(event);
-        return id;
-    },
-    success: (title, message, action, duration) => toast.show(title, message, 'success', action, duration),
-    error: (title, message, action, duration) => toast.show(title, message, 'error', action, duration),
-    warning: (title, message, action, duration) => toast.show(title, message, 'warning', action, duration),
-    info: (title, message, action, duration) => toast.show(title, message, 'info', action, duration)
+    } catch { /* ignore */ }
 };
 
 // Single Toast Card Component
@@ -65,7 +49,7 @@ const ToastCard = ({ item, onRemove }) => {
     const [progress, setProgress] = useState(100);
     const [isExiting, setIsExiting] = useState(false);
     const progressInterval = useRef(null);
-    const startTime = useRef(Date.now());
+    const startTime = useRef(0);
     const remainingTime = useRef(item.duration);
     const isHovered = useRef(false);
 
@@ -119,6 +103,7 @@ const ToastCard = ({ item, onRemove }) => {
         return () => {
             if (progressInterval.current) clearInterval(progressInterval.current);
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [item]);
 
     // Icon & styles map

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,8 +32,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String name = oauth2User.getAttribute("name");
         String picture = oauth2User.getAttribute("picture");
 
-        if (email != null) {
-            User user = userRepository.findByEmail(email).orElseGet(() -> {
+        if (email == null) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("missing_email", "OAuth2 provider did not supply an email address", null));
+        }
+
+        User user = userRepository.findByEmail(email).orElseGet(() -> {
                 Role userRole = roleRepository.findByName("USER").orElseGet(() -> {
                     Role role = Role.builder()
                             .name("USER")
@@ -64,9 +69,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         .build();
             });
 
-            if (picture != null && !picture.equals(user.getAvatarUrl())) {
-                user.setAvatarUrl(picture);
-            }
+        if (picture != null && !picture.equals(user.getAvatarUrl())) {
+            user.setAvatarUrl(picture);
+            userRepository.save(user);
+        } else if (user.getId() == null) {
             userRepository.save(user);
         }
 

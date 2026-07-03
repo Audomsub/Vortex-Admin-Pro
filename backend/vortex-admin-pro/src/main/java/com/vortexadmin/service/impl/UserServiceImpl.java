@@ -8,11 +8,13 @@ import com.vortexadmin.dto.request.UpdateMyProfileRequest;
 import com.vortexadmin.dto.response.UserActivityResponse;
 import com.vortexadmin.dto.response.UserProfileResponse;
 import com.vortexadmin.entity.AuditLog;
+import com.vortexadmin.entity.PasswordHistory;
 import com.vortexadmin.entity.Role;
 import com.vortexadmin.entity.User;
 import com.vortexadmin.entity.UserSession;
 import com.vortexadmin.exception.ApiException;
 import com.vortexadmin.repository.AuditLogRepository;
+import com.vortexadmin.repository.PasswordHistoryRepository;
 import com.vortexadmin.repository.RoleRepository;
 import com.vortexadmin.repository.UserRepository;
 import com.vortexadmin.repository.UserSessionRepository;
@@ -43,6 +45,7 @@ public class UserServiceImpl implements UserService {
     private final com.vortexadmin.service.PasswordPolicyService passwordPolicyService;
     private final AuditLogRepository auditLogRepository;
     private final UserSessionRepository userSessionRepository;
+    private final PasswordHistoryRepository passwordHistoryRepository;
 
     private UserProfileResponse mapToResponse(User user) {
         return UserProfileResponse.builder()
@@ -92,6 +95,23 @@ public class UserServiceImpl implements UserService {
         }
 
         passwordPolicyService.validate(request.getNewPassword());
+
+        // BUG-021: check password history (was missing; resetPassword already did this)
+        List<PasswordHistory> recent = passwordHistoryRepository.findTop5ByUserOrderByChangedAtDesc(user);
+        for (PasswordHistory h : recent) {
+            if (passwordEncoder.matches(request.getNewPassword(), h.getPasswordHash())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "New password must not match any of your last 5 passwords");
+            }
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "New password must not match your current password");
+        }
+
+        passwordHistoryRepository.save(PasswordHistory.builder()
+                .user(user)
+                .passwordHash(user.getPassword())
+                .build());
+
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
@@ -178,6 +198,15 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public int importUsersFromCsv(MultipartFile file) {
+        // BUG-019: validate file content-type before parsing
+        String contentType = file.getContentType();
+        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+        boolean looksLikeCsv = (contentType != null && (contentType.startsWith("text/csv") || contentType.equals("text/plain") || contentType.equals("application/vnd.ms-excel")))
+                || originalFilename.endsWith(".csv");
+        if (!looksLikeCsv) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only CSV files are accepted");
+        }
+
         Role defaultRole = roleRepository.findByName("USER").orElse(null);
 
         int importedCount = 0;
@@ -252,8 +281,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
 
+        // BUG-020: limit to most recent 100 logs to avoid full-table heap load
         List<UserActivityResponse.ActivityItem> timeline = auditLogRepository
-                .findByUserIdOrderByCreatedAtDesc(userId)
+                .findTop100ByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(log -> UserActivityResponse.ActivityItem.builder()
                         .id(log.getId())
@@ -305,7 +335,15 @@ public class UserServiceImpl implements UserService {
         switch (request.getAction().toUpperCase()) {
             case "SUSPEND" -> users.forEach(u -> u.setStatus("Suspended"));
             case "ACTIVATE" -> users.forEach(u -> u.setStatus("Active"));
-            case "DELETE" -> users.forEach(u -> u.setDeletedAt(LocalDateTime.now()));
+            // BUG-018: exclude the currently authenticated user from bulk delete
+            case "DELETE" -> {
+                Long selfId = SecurityUtils.getCurrentUserId();
+                users.forEach(u -> {
+                    if (!u.getId().equals(selfId)) {
+                        u.setDeletedAt(LocalDateTime.now());
+                    }
+                });
+            }
             case "CHANGE_ROLE" -> {
                 if (request.getRoleId() == null) {
                     throw new ApiException(HttpStatus.BAD_REQUEST, "roleId is required for CHANGE_ROLE action");

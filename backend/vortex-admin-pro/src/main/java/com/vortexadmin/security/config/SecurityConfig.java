@@ -8,6 +8,7 @@ import com.vortexadmin.security.filter.JwtAuthFilter;
 import com.vortexadmin.security.jwt.JwtAuthEntryPoint;
 import com.vortexadmin.security.oauth2.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -26,11 +27,15 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    @Value("${vortex.cors.allowedOrigins:http://localhost:5173}")
+    private String allowedOriginsRaw;
 
     private final UserDetailsServiceImpl userDetailsService;
     private final CustomOAuth2UserService customOAuth2UserService;
@@ -91,10 +96,12 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // BUG-004: wildcard + allowCredentials is a security hole; read allowed origins from config
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        List<String> origins = Arrays.asList(allowedOriginsRaw.split(","));
+        configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

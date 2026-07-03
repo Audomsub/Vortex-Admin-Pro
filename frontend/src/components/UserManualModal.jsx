@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { BookOpen, X, ChevronRight, Key, Shield, LayoutDashboard } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 
 const UserManualModal = ({ triggerClassName }) => {
-    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('login');
 

@@ -110,6 +110,10 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public Resource downloadFile(File fileEntity) {
+        boolean isAdmin = currentUserHasAuthority("file.read.all");
+        if (!isAdmin && (fileEntity.getUser() == null || !fileEntity.getUser().getId().equals(SecurityUtils.getCurrentUserId()))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Access Denied");
+        }
         try {
             java.nio.file.Path filePath = this.fileStorageLocation.resolve(fileEntity.getFileUrl()).normalize();
             Resource resource = new UrlResource(filePath.toUri());

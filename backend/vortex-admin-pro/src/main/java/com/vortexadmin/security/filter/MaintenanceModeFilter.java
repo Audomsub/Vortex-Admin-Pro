@@ -6,18 +6,38 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 @RequiredArgsConstructor
 public class MaintenanceModeFilter extends OncePerRequestFilter {
 
     private final SystemSettingRepository settingRepository;
+
+    // BUG-028: cache result for 30 seconds to avoid a DB round-trip on every request
+    private final AtomicBoolean cachedValue = new AtomicBoolean(false);
+    private final AtomicLong cacheExpiry = new AtomicLong(0);
+    private static final long CACHE_TTL_MS = 30_000;
+
+    private boolean isMaintenanceMode() {
+        long now = System.currentTimeMillis();
+        if (now > cacheExpiry.get()) {
+            boolean fresh = settingRepository.findBySettingKey("maintenance_mode")
+                    .map(s -> "true".equalsIgnoreCase(s.getSettingValue()))
+                    .orElse(false);
+            cachedValue.set(fresh);
+            cacheExpiry.set(now + CACHE_TTL_MS);
+        }
+        return cachedValue.get();
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -31,9 +51,7 @@ public class MaintenanceModeFilter extends OncePerRequestFilter {
             return;
         }
 
-        boolean maintenance = settingRepository.findBySettingKey("maintenance_mode")
-                .map(s -> "true".equalsIgnoreCase(s.getSettingValue()))
-                .orElse(false);
+        boolean maintenance = isMaintenanceMode();
 
         if (maintenance) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();

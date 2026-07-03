@@ -1,9 +1,11 @@
 package com.vortexadmin.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vortexadmin.dto.response.AuditLogResponse;
 import com.vortexadmin.exception.ApiException;
 import com.vortexadmin.repository.UserPreferenceRepository;
 import com.vortexadmin.service.AiService;
+import com.vortexadmin.service.AuditLogService;
 import com.vortexadmin.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +27,14 @@ public class AiServiceImpl implements AiService {
     private String geminiApiKey;
 
     private final UserPreferenceRepository userPreferenceRepository;
+    private final AuditLogService auditLogService;
+    private final RestTemplate restTemplate;
 
     @Override
-    public String analyzeAuditLogs(List<com.vortexadmin.dto.response.AuditLogResponse> logs) {
+    public String analyzeAuditLogs() {
+        List<AuditLogResponse> logs = auditLogService.getCompanyAuditLogs().stream()
+                .limit(50)
+                .toList();
         if (geminiApiKey == null || geminiApiKey.isEmpty() || geminiApiKey.contains("YOUR_API_KEY")) {
             return "❌ Gemini API Key is missing. Please set 'vortex.ai.gemini.key' in application.yaml to use AI features.";
         }
@@ -63,7 +70,6 @@ public class AiServiceImpl implements AiService {
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {

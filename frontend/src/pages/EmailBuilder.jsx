@@ -3,7 +3,7 @@ import Layout from '../components/layout/Layout';
 import { Mail, Save, Code, Eye, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
-import { toast } from '../components/ui/Toast';
+import { toast } from '../components/ui/toastHelper';
 
 const defaultTemplate = `<!DOCTYPE html>
 <html>
@@ -31,7 +31,6 @@ const defaultTemplate = `<!DOCTYPE html>
 
 const EmailBuilder = () => {
     const { t } = useTranslation();
-    const [templates, setTemplates] = useState([]);
     const [selectedTemplate, setSelectedTemplate] = useState('welcome');
     const [subject, setSubject] = useState('Welcome to Vortex Admin Pro!');
     const [code, setCode] = useState(defaultTemplate);
@@ -40,7 +39,6 @@ const EmailBuilder = () => {
 
     useEffect(() => {
         api.get('/email-templates').then(res => {
-            setTemplates(res.data.data || []);
             const welcome = (res.data.data || []).find(tmpl => tmpl.name === 'welcome');
             if (welcome) {
                 setCode(welcome.content);
@@ -72,8 +70,6 @@ const EmailBuilder = () => {
                 content: code
             });
             toast.success(t('common.success'), t('emailBuilder.saveSuccess'));
-            const res = await api.get('/email-templates');
-            setTemplates(res.data.data || []);
         } catch (error) {
             console.error('Save failed', error);
             toast.error(t('common.error'), error.response?.data?.message || t('emailBuilder.saveFailed'));

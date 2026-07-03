@@ -1,12 +1,14 @@
 package com.vortexadmin.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 
@@ -22,5 +24,14 @@ public class AppConfig {
                 .expireAfterWrite(Duration.ofSeconds(60))
                 .maximumSize(1000));
         return cacheManager;
+    }
+
+    // BUG-012 / BUG-025: shared, connection-pooled RestTemplate with sane timeouts
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder
+                .connectTimeout(Duration.ofSeconds(5))
+                .readTimeout(Duration.ofSeconds(10))
+                .build();
     }
 }

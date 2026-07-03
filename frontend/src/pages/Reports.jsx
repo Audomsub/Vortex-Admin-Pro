@@ -10,7 +10,7 @@ import {
     BarChart, Bar, Legend
 } from 'recharts';
 import { cn } from '../lib/utils';
-import { toast } from '../components/ui/Toast';
+import { toast } from '../components/ui/toastHelper';
 
 const Reports = () => {
     const { t } = useTranslation();

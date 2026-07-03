@@ -1,4 +1,4 @@
-import { X, Search, Monitor, Moon, Sun, Keyboard, ShieldAlert, Users, LayoutDashboard } from 'lucide-react';
+import { X, Search, Monitor, Moon, Keyboard, Users, LayoutDashboard } from 'lucide-react';
 
 const ShortcutsModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;

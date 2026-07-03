@@ -4,7 +4,7 @@ import Layout from '../components/layout/Layout';
 import ModalPortal from '../components/ui/ModalPortal';
 import { CheckSquare, Plus, Edit2, Trash2, Search, ChevronDown } from 'lucide-react';
 import api from '../api/axios';
-import { toast } from '../components/ui/Toast';
+import { toast } from '../components/ui/toastHelper';
 import { cn } from '../lib/utils';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
@@ -29,8 +29,9 @@ const Tasks = () => {
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
-    const [formData, setFormData] = useState({ 
-        title: '', description: '', status: 'TODO', priority: 'MEDIUM', assignedTo: '', teamId: '' 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formData, setFormData] = useState({
+        title: '', description: '', status: 'TODO', priority: 'MEDIUM', assignedTo: '', teamId: ''
     });
 
     useEffect(() => {
@@ -82,13 +83,15 @@ const Tasks = () => {
 
     async function handleSubmit(e) {
         e.preventDefault();
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             const payload = {
                 ...formData,
                 assignedTo: formData.assignedTo ? parseInt(formData.assignedTo) : null,
                 teamId: formData.teamId ? parseInt(formData.teamId) : null
             };
-            
+
             if (editingTask) {
                 await api.put(`/tasks/${editingTask.id}`, payload);
             } else {
@@ -99,6 +102,8 @@ const Tasks = () => {
         } catch (error) {
             console.error('Failed to save task:', error);
             toast.error(t('common.error'), error.response?.data?.message || t('tasks.errorSave'));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -387,11 +392,12 @@ const Tasks = () => {
                                 >
                                     {t('tasks.cancel')}
                                 </button>
-                                <button 
+                                <button
                                     type="submit"
-                                    className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium shadow-lg shadow-primary/20 transition-all active:scale-95"
+                                    disabled={isSubmitting}
+                                    className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    {editingTask ? t('tasks.saveChanges') : t('tasks.createTaskBtn')}
+                                    {isSubmitting ? '...' : editingTask ? t('tasks.saveChanges') : t('tasks.createTaskBtn')}
                                 </button>
                             </div>
                         </form>

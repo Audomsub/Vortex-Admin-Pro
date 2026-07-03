@@ -67,8 +67,7 @@ const AuditLogs = () => {
             setIsAnalyzing(true);
             setIsAiModalOpen(true);
             setAiInsights('');
-            const logsToAnalyze = filteredLogs.slice(0, 50);
-            const response = await api.post('/ai/analyze-logs', logsToAnalyze);
+            const response = await api.post('/ai/analyze-logs');
             
             setAiInsights(response.data.data);
         } catch (error) {

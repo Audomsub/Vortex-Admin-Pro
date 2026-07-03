@@ -57,11 +57,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return headerAuth.substring(7);
         }
 
-        // EventSource (SSE) cannot set headers, so allow token via query param for the stream endpoint
-        String paramToken = request.getParameter("token");
-        if (StringUtils.hasText(paramToken) && request.getRequestURI().endsWith("/stream")) {
-            return paramToken;
-        }
+        // BUG-005: removed query-parameter JWT — tokens in URLs appear in server logs,
+        // browser history and Referrer headers. The SSE client sends Authorization header instead.
 
         return null;
     }

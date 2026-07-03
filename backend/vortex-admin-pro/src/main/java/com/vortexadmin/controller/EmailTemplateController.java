@@ -20,19 +20,19 @@ public class EmailTemplateController {
     private final EmailTemplateService emailTemplateService;
 
     @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('settings.manage')")
     public ResponseEntity<ApiResponse<List<EmailTemplateResponse>>> getAllTemplates() {
         return ResponseEntity.ok(ApiResponse.success("Success", emailTemplateService.getAllTemplates()));
     }
 
     @GetMapping("/{name}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('settings.manage')")
     public ResponseEntity<ApiResponse<EmailTemplateResponse>> getTemplate(@PathVariable String name) {
         return ResponseEntity.ok(ApiResponse.success("Success", emailTemplateService.getTemplateByName(name)));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('settings.manage')")
     public ResponseEntity<ApiResponse<EmailTemplateResponse>> saveTemplate(@Valid @RequestBody EmailTemplateRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Template saved", emailTemplateService.saveTemplate(request)));
     }

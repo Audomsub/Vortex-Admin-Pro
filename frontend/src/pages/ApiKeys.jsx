@@ -261,7 +261,7 @@ const ApiKeys = () => {
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="5" className="p-10 text-center text-text-secondary">
+                                        <td colSpan="7" className="p-10 text-center text-text-secondary">
                                             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
                                             <p className="text-sm">{t('apiKeys.loading')}</p>
                                         </td>
@@ -360,7 +360,7 @@ const ApiKeys = () => {
 
                                 {!loading && keys.length === 0 && (
                                     <tr>
-                                        <td colSpan="5" className="p-10 text-center text-text-secondary">
+                                        <td colSpan="7" className="p-10 text-center text-text-secondary">
                                             <Key className="w-12 h-12 opacity-20 mx-auto mb-4" />
                                             <p className="text-lg font-medium text-text-primary">{t('apiKeys.emptyTitle')}</p>
                                             <p className="text-sm mt-1">{t('apiKeys.emptySubtitle')}</p>

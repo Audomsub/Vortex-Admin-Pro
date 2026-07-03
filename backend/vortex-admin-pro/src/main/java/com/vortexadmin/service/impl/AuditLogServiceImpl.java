@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,9 +39,11 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .build();
     }
 
+    // BUG-023: use paginated query — default 500 most recent logs; callers can extend later
     @Override
     public List<AuditLogResponse> getCompanyAuditLogs() {
-        return auditLogRepository.findAllByOrderByCreatedAtDesc().stream()
+        return auditLogRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 500))
+                .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

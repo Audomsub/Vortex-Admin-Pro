@@ -18,15 +18,18 @@ public class UserDetailsImpl implements UserDetails {
     private String email;
     @JsonIgnore
     private String password;
+    // BUG-003: carry status so isEnabled() reflects Suspended/Active state
+    private String status;
 
     private Collection<? extends GrantedAuthority> authorities;
 
-    public UserDetailsImpl(Long id, String username, String email, String password,
+    public UserDetailsImpl(Long id, String username, String email, String password, String status,
                            Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
+        this.status = status;
         this.authorities = authorities;
     }
 
@@ -47,6 +50,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getUsername(),
                 user.getEmail(),
                 user.getPassword(),
+                user.getStatus(),
                 authorities);
     }
 
@@ -89,8 +93,9 @@ public class UserDetailsImpl implements UserDetails {
         return true;
     }
 
+    // BUG-003: suspended users must not be able to authenticate or use existing JWTs
     @Override
     public boolean isEnabled() {
-        return true;
+        return status == null || !"Suspended".equalsIgnoreCase(status);
     }
 }

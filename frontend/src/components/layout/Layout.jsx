@@ -7,7 +7,7 @@ import ShortcutsModal from '../modals/ShortcutsModal';
 import { cn } from '../../lib/utils';
 import TourGuide from '../TourGuide';
 import Breadcrumbs from '../ui/Breadcrumbs';
-import { AuthContext } from '../../context/AuthContext';
+import { AuthContext } from '../../context/authContextDef';
 import api from '../../api/axios';
 
 const Layout = ({ children }) => {

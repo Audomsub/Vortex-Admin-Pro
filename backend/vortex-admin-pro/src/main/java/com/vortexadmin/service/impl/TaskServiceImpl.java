@@ -17,7 +17,9 @@ import com.vortexadmin.service.NotificationService;
 import com.vortexadmin.service.TaskService;
 import com.vortexadmin.service.WebhookService;
 import com.vortexadmin.util.SecurityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,9 +80,11 @@ public class TaskServiceImpl implements TaskService {
                 .build();
     }
 
+    private static final int MAX_TASKS = 50;
+
     @Override
     public List<TaskResponse> getAllTasks() {
-        return taskRepository.findAll().stream()
+        return taskRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, MAX_TASKS)).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -94,6 +98,12 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public List<TaskResponse> getTasksByAssignee(Long userId) {
+        boolean hasFullRead = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("task.read"));
+        if (!hasFullRead && !userId.equals(SecurityUtils.getCurrentUserId())) {
+            throw new ApiException(org.springframework.http.HttpStatus.FORBIDDEN, "Access Denied");
+        }
         return taskRepository.findByAssignedToId(userId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

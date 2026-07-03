@@ -13,6 +13,9 @@ import java.util.Optional;
 @Repository
 public interface OrganizationMemberRepository extends JpaRepository<OrganizationMember, Long> {
     List<OrganizationMember> findByOrganizationId(Long organizationId);
+
+    @Query("SELECT m.user.id FROM OrganizationMember m WHERE m.organization.id = :organizationId")
+    List<Long> findUserIdsByOrganizationId(@Param("organizationId") Long organizationId);
     List<OrganizationMember> findByUserId(Long userId);
     Optional<OrganizationMember> findByOrganizationIdAndUserId(Long organizationId, Long userId);
     boolean existsByOrganizationIdAndUserId(Long organizationId, Long userId);

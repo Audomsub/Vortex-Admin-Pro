@@ -66,10 +66,18 @@ public class EventServiceImpl implements EventService {
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
+    // BUG-015: verify requester is creator or attendee
     @Override
     public EventResponse getEventById(Long id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Event not found"));
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        boolean isCreator = event.getCreatedBy() != null && event.getCreatedBy().getId().equals(currentUserId);
+        boolean isAttendee = event.getAttendees() != null
+                && event.getAttendees().stream().anyMatch(u -> u.getId().equals(currentUserId));
+        if (!isCreator && !isAttendee) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You do not have access to this event");
+        }
         return mapToResponse(event);
     }
 
@@ -99,11 +107,16 @@ public class EventServiceImpl implements EventService {
         return mapToResponse(eventRepository.save(event));
     }
 
+    // BUG-016: only the creator may update
     @Override
     @Transactional
     public void updateEvent(Long id, EventRequest request) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Event not found"));
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (event.getCreatedBy() == null || !event.getCreatedBy().getId().equals(currentUserId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can only update events you created");
+        }
 
         if (request.getStartDate() == null || request.getEndDate() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Start date and end date are required");
@@ -122,11 +135,16 @@ public class EventServiceImpl implements EventService {
         eventRepository.save(event);
     }
 
+    // BUG-017: only the creator may delete
     @Override
     @Transactional
     public void deleteEvent(Long id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Event not found"));
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (event.getCreatedBy() == null || !event.getCreatedBy().getId().equals(currentUserId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can only delete events you created");
+        }
         eventRepository.delete(event);
     }
 }

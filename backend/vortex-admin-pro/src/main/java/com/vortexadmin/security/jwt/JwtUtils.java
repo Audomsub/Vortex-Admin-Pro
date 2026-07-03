@@ -4,6 +4,7 @@ import com.vortexadmin.security.config.UserDetailsImpl;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,9 +21,19 @@ import org.springframework.security.core.GrantedAuthority;
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    // Using a hardcoded secret for starter kit, should be in application.properties
-    @Value("${vortex.app.jwtSecret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    @Value("${vortex.app.jwtSecret}")
     private String jwtSecret;
+
+    @PostConstruct
+    public void validateSecret() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException("vortex.app.jwtSecret must be set via environment variable JWT_SECRET");
+        }
+        byte[] decoded = Decoders.BASE64.decode(jwtSecret);
+        if (decoded.length < 32) {
+            throw new IllegalStateException("vortex.app.jwtSecret must decode to at least 256 bits (32 bytes)");
+        }
+    }
 
     @Value("${vortex.app.jwtExpirationMs:86400000}")
     private int jwtExpirationMs; // 24 hours

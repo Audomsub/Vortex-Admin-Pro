@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import LanguageSwitcher from '../LanguageSwitcher';
 import { createSseClient } from '../../utils/sseClient';
-import { toast } from '../ui/Toast';
+import { toast } from '../ui/toastHelper';
 
 const Navbar = ({ onMenuClick, onSearchClick }) => {
     const { user, logout } = useAuth();

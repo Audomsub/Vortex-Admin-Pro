@@ -41,8 +41,8 @@ public class WebhookService {
 
     private final WebhookEndpointRepository endpointRepository;
     private final WebhookDeliveryRepository deliveryRepository;
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    // BUG-025: injected bean has connect/read timeouts configured in AppConfig
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // ---------- CRUD ----------

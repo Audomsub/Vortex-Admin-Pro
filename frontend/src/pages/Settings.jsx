@@ -16,6 +16,15 @@ const getTabs = (t) => [
     { id: 'localization', label: t('settings.tabs.localization'), icon: Globe2 },
 ];
 
+// BUG-035: define which setting keys belong to each tab so Save only writes current-tab keys
+const TAB_KEYS = {
+    general: ['site_name', 'support_email', 'default_timezone', 'maintenance_mode'],
+    security: ['require_2fa', 'session_timeout', 'password_expiration', 'pw_min_length',
+               'pw_require_uppercase', 'pw_require_lowercase', 'pw_require_digit', 'pw_require_special'],
+    smtp: ['smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_user', 'smtp_pass'],
+    localization: ['default_language', 'date_format', 'currency'],
+};
+
 const Settings = () => {
     const { t } = useTranslation();
     const tabs = getTabs(t);
@@ -82,9 +91,11 @@ const Settings = () => {
                 setBranding({ ...branding, ...orgSettings });
                 alert(t('settings.alerts.brandingSaved'));
             } else {
-                const promises = Object.entries(settings).map(([key, value]) => {
-                    return api.post('/settings', { key, value: String(value) });
-                });
+                // BUG-035: only save keys that belong to the currently active tab
+                const tabKeys = TAB_KEYS[activeTab] || Object.keys(settings);
+                const promises = Object.entries(settings)
+                    .filter(([key]) => tabKeys.includes(key))
+                    .map(([key, value]) => api.post('/settings', { key, value: String(value) }));
                 await Promise.all(promises);
                 alert(t('settings.alerts.settingsSaved'));
             }
@@ -142,9 +153,10 @@ const Settings = () => {
                                 <form className="space-y-6" onSubmit={handleSave}>
                                     <div>
                                         <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.platformName')}</label>
-                                        <input 
-                                            type="text" 
-                                            defaultValue={settings['site_name'] || ''}
+                                        {/* BUG-036: use controlled value= so async-loaded settings populate the field */}
+                                        <input
+                                            type="text"
+                                            value={settings['site_name'] || ''}
                                             onChange={(e) => setSettings({...settings, site_name: e.target.value})}
                                             className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
                                         />
@@ -152,9 +164,9 @@ const Settings = () => {
 
                                     <div>
                                         <label className="block text-sm font-medium text-text-primary mb-2">{t('settings.fields.supportEmail')}</label>
-                                        <input 
-                                            type="email" 
-                                            defaultValue={settings['support_email'] || ''}
+                                        <input
+                                            type="email"
+                                            value={settings['support_email'] || ''}
                                             onChange={(e) => setSettings({...settings, support_email: e.target.value})}
                                             className="w-full px-4 py-2.5 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
                                         />

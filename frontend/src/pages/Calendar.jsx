@@ -73,7 +73,6 @@ const AttendeeSelector = ({ selectedIds, onChange, t }) => {
     };
 
     const selectedUsers = allUsers.filter(u => selectedIds.includes(u.id));
-    const unselectedUsers = allUsers.filter(u => !selectedIds.includes(u.id));
 
     return (
         <div>

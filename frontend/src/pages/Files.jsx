@@ -31,20 +31,22 @@ const ImagePreview = ({ file }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        let objectUrl = '';
+        let mounted = true;
+        let objectUrl = null;
         async function fetchImage() {
             try {
                 const response = await api.get(`/files/download/${file.id}`, { responseType: 'blob' });
                 objectUrl = URL.createObjectURL(response.data);
-                setImgSrc(objectUrl);
+                if (mounted) setImgSrc(objectUrl);
             } catch (error) {
                 console.error("Failed to load image preview", error);
             } finally {
-                setLoading(false);
+                if (mounted) setLoading(false);
             }
-        };
+        }
         fetchImage();
         return () => {
+            mounted = false;
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
     }, [file]);

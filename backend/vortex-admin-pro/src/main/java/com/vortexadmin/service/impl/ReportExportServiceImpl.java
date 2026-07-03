@@ -28,6 +28,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.PageRequest;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -47,6 +49,9 @@ public class ReportExportServiceImpl implements ReportExportService {
     private final OrganizationRepository organizationRepository;
     private final InvoiceRepository invoiceRepository;
 
+    // BUG-022: cap exports at 10,000 rows to prevent OOM on large tables
+    private static final int MAX_EXPORT_ROWS = 10_000;
+
     private record ReportData(String title, List<String> headers, List<List<String>> rows) {
     }
 
@@ -64,7 +69,7 @@ public class ReportExportServiceImpl implements ReportExportService {
                 return new ReportData(
                         "Users Report",
                         List.of("ID", "Username", "Email", "First Name", "Last Name", "Role", "Status", "Last Login", "Created At"),
-                        userRepository.findAll().stream()
+                        userRepository.findAll(PageRequest.of(0, MAX_EXPORT_ROWS)).stream()
                                 .map(u -> List.of(
                                         nvl(u.getId()), nvl(u.getUsername()), nvl(u.getEmail()),
                                         nvl(u.getFirstName()), nvl(u.getLastName()),
@@ -75,7 +80,7 @@ public class ReportExportServiceImpl implements ReportExportService {
                 return new ReportData(
                         "Audit Logs Report",
                         List.of("ID", "User", "Action", "Entity Type", "Entity ID", "IP Address", "Details", "Created At"),
-                        auditLogRepository.findAll().stream()
+                        auditLogRepository.findAll(PageRequest.of(0, MAX_EXPORT_ROWS)).stream()
                                 .map(a -> List.of(
                                         nvl(a.getId()),
                                         a.getUser() != null ? a.getUser().getUsername() : "",
@@ -86,7 +91,7 @@ public class ReportExportServiceImpl implements ReportExportService {
                 return new ReportData(
                         "Login Activity Report",
                         List.of("ID", "User", "IP Address", "User Agent", "Login At", "Logout At"),
-                        userSessionRepository.findAll().stream()
+                        userSessionRepository.findAll(PageRequest.of(0, MAX_EXPORT_ROWS)).stream()
                                 .map(s -> List.of(
                                         nvl(s.getId()),
                                         s.getUser() != null ? s.getUser().getUsername() : "",
@@ -97,7 +102,7 @@ public class ReportExportServiceImpl implements ReportExportService {
                 return new ReportData(
                         "Organizations Report",
                         List.of("ID", "Name", "Slug", "Plan", "Owner", "Created At"),
-                        organizationRepository.findAll().stream()
+                        organizationRepository.findAll(PageRequest.of(0, MAX_EXPORT_ROWS)).stream()
                                 .map(o -> List.of(
                                         nvl(o.getId()), nvl(o.getName()), nvl(o.getSlug()), nvl(o.getPlanType()),
                                         o.getOwner() != null ? o.getOwner().getUsername() : "",
@@ -107,7 +112,7 @@ public class ReportExportServiceImpl implements ReportExportService {
                 return new ReportData(
                         "Billing Report",
                         List.of("ID", "Invoice Number", "Organization", "Plan", "Amount", "Status", "Issued At"),
-                        invoiceRepository.findAll().stream()
+                        invoiceRepository.findAll(PageRequest.of(0, MAX_EXPORT_ROWS)).stream()
                                 .map(i -> List.of(
                                         nvl(i.getId()), nvl(i.getInvoiceNumber()),
                                         i.getSubscription() != null ? i.getSubscription().getOrganization().getName() : "",

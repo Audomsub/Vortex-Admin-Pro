@@ -82,7 +82,7 @@ const Tickets = () => {
                 setActiveTicket(foundTicket);
             }
         }
-    }, [tickets, ticketIdParam]);
+    }, [tickets, ticketIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Poll messages every 5 seconds for the active ticket
     useEffect(() => {
@@ -95,7 +95,7 @@ const Tickets = () => {
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [activeTicket?.id]);
+    }, [activeTicket?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     async function fetchTickets() {
         try {

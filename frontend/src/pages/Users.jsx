@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
-import { toast } from '../components/ui/Toast';
+import { toast } from '../components/ui/toastHelper';
 import UserModal from '../components/modals/UserModal';
 import ImportModal from '../components/modals/ImportModal';
 
@@ -55,11 +55,6 @@ const Users = () => {
         }
     };
 
-    const toggleSelectAll = (e) => {
-        if (e.target.checked) setSelectedUsers(users.map(u => u.id));
-        else setSelectedUsers([]);
-    };
-
     async function handleDelete(id) {
         if (!window.confirm(t('users.deleteConfirm'))) return;
         try {
@@ -72,10 +67,11 @@ const Users = () => {
         }
     };
 
+    // BUG-037: use the bulk-action endpoint for atomic delete instead of N individual requests
     async function handleBulkDelete() {
         if (!window.confirm(t('users.bulkDeleteConfirm', { count: selectedUsers.length }))) return;
         try {
-            await Promise.all(selectedUsers.map(id => api.delete(`/users/${id}`)));
+            await api.post('/users/bulk-action', { userIds: selectedUsers, action: 'DELETE' });
             fetchUsers();
             setSelectedUsers([]);
         } catch (error) {

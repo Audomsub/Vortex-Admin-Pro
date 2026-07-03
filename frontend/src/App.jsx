@@ -29,7 +29,7 @@ import Tickets from './pages/Tickets';
 import SystemHealth from './pages/SystemHealth';
 import EmailBuilder from './pages/EmailBuilder';
 import GlobalSearch from './components/GlobalSearch';
-import { ThemeProvider } from './hooks/useTheme';
+import { ThemeProvider } from './hooks/ThemeProvider';
 import { ToastContainer } from './components/ui/Toast';
 import { GlobalDialog } from './components/ui/GlobalDialog';
 import './utils/dialog';

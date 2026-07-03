@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { User, Mail, Shield, Key, Save, Camera, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../api/axios';
+import { toast } from '../components/ui/toastHelper';
 import TwoFactorSettings from '../components/TwoFactorSettings';
 import ActiveSessions from '../components/ActiveSessions';
 
@@ -61,10 +62,10 @@ const Profile = () => {
                 lastName: formData.lastName,
                 email: formData.email
             });
-            alert(t('profile.alerts.profileUpdated'));
+            toast.success(t('profile.alerts.profileUpdated'));
         } catch (error) {
             console.error(error);
-            alert(t('profile.alerts.profileUpdateFailed'));
+            toast.error(t('profile.alerts.profileUpdateFailed'));
         } finally {
             setSaving(false);
         }
@@ -73,7 +74,8 @@ const Profile = () => {
     async function handleSaveSecurity(e) {
         e.preventDefault();
         if (formData.newPassword !== formData.confirmPassword) {
-            return alert(t('profile.alerts.passwordMismatch'));
+            toast.error(t('profile.alerts.passwordMismatch'));
+            return;
         }
         setSaving(true);
         try {
@@ -81,11 +83,11 @@ const Profile = () => {
                 oldPassword: formData.currentPassword,
                 newPassword: formData.newPassword
             });
-            alert(t('profile.alerts.passwordUpdated'));
+            toast.success(t('profile.alerts.passwordUpdated'));
             setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
         } catch (error) {
             console.error(error);
-            alert(error.response?.data?.message || t('profile.alerts.profileUpdateFailed'));
+            toast.error(error.response?.data?.message || t('profile.alerts.profileUpdateFailed'));
         } finally {
             setSaving(false);
         }

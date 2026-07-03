@@ -1,6 +1,10 @@
 let activeDialog = null;
 let listeners = [];
 
+const notify = () => {
+    listeners.forEach(l => l(activeDialog));
+};
+
 export const registerDialogListener = (fn) => {
     listeners.push(fn);
     return () => {
@@ -50,10 +54,6 @@ export const showAlert = (message, title = 'Alert') => {
         activeDialog = dialog;
         notify();
     });
-};
-
-const notify = () => {
-    listeners.forEach(l => l(activeDialog));
 };
 
 window.vortexConfirm = showConfirm;

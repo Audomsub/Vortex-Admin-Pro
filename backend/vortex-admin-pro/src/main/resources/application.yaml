@@ -2,6 +2,9 @@ spring:
   application:
     name: vortex-admin-pro
 
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
   servlet:
     multipart:
       max-file-size: 10MB
@@ -19,9 +22,9 @@ spring:
             client-secret: dummy-client-secret
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
-    username: ${DB_USERNAME:postgres.boskcvexjyixxyhxczpe}
-    password: ${DB_PASSWORD:}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       minimum-idle: 2
@@ -68,7 +71,10 @@ management:
       enabled: false
 
 vortex:
+  cors:
+    allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   app:
+    jwtSecret: ${JWT_SECRET}
     frontendUrl: ${FRONTEND_URL:http://localhost:5173}
     mailFrom: ${MAIL_FROM:no-reply@vortexadmin.com}
   ai:

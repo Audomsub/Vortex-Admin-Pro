@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { useAuth } from './useAuth';
-
-const ThemeContext = createContext({});
+import { ThemeContext } from '../context/ThemeContext';
 
 export const ThemeProvider = ({ children }) => {
     const { user } = useAuth();
@@ -18,7 +17,7 @@ export const ThemeProvider = ({ children }) => {
             try {
                 const response = await api.get('/organizations');
                 if (response.data.data && response.data.data.length > 0) {
-                    const org = response.data.data[0]; // Assuming first org is the active one
+                    const org = response.data.data[0];
                     setBranding({
                         primaryColor: org.primaryColor,
                         secondaryColor: org.secondaryColor,
@@ -29,7 +28,7 @@ export const ThemeProvider = ({ children }) => {
             } catch (error) {
                 console.error('Failed to load branding', error);
             }
-        };
+        }
 
         if (user) {
             fetchBranding();
@@ -39,16 +38,12 @@ export const ThemeProvider = ({ children }) => {
     useEffect(() => {
         const root = document.documentElement;
         if (branding.primaryColor) {
-            // Very simplistic hex to RGB conversion for CSS variables
             const hexToRgb = (hex) => {
                 const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
                 return result ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}` : null;
             };
             const rgb = hexToRgb(branding.primaryColor);
-            if (rgb) {
-                root.style.setProperty('--primary', rgb);
-                // Adjust hover/glow properties if needed
-            }
+            if (rgb) root.style.setProperty('--primary', rgb);
         } else {
             root.style.removeProperty('--primary');
         }
@@ -60,5 +55,3 @@ export const ThemeProvider = ({ children }) => {
         </ThemeContext.Provider>
     );
 };
-
-export const useTheme = () => useContext(ThemeContext);

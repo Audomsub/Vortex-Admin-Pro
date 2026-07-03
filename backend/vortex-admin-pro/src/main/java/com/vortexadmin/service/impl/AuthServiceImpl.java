@@ -38,6 +38,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -46,8 +48,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
 
 @Service
 @RequiredArgsConstructor
@@ -68,6 +68,8 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtils jwtUtils;
     private final com.vortexadmin.service.PasswordPolicyService passwordPolicyService;
     private final com.vortexadmin.service.GeoLocationService geoLocationService;
+    // BUG-012: singleton RestTemplate with connection pool — never create per-call
+    private final RestTemplate restTemplate;
 
     @Value("${vortex.app.frontendUrl}")
     private String frontendUrl;
@@ -78,6 +80,13 @@ public class AuthServiceImpl implements AuthService {
         Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+            // BUG-006: reject soft-deleted or suspended users before authentication
+            if (user.getDeletedAt() != null) {
+                throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+            }
+            if ("Suspended".equalsIgnoreCase(user.getStatus())) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "Your account has been suspended. Please contact support.");
+            }
             if (user.getLockoutUntil() != null && user.getLockoutUntil().isAfter(LocalDateTime.now())) {
                 throw new ApiException(HttpStatus.LOCKED, "Account is temporarily locked due to too many failed attempts.");
             }
@@ -174,32 +183,44 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public JwtResponse authenticateWithGoogle(String token, HttpServletRequest request) {
-        RestTemplate restTemplate = new RestTemplate();
+        // BUG-012: uses the injected restTemplate bean (connection-pooled, configured timeout)
         String googleUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
         try {
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.set("Authorization", "Bearer " + token);
             org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
-            
+
             ResponseEntity<Map> response = restTemplate.exchange(googleUrl, org.springframework.http.HttpMethod.GET, entity, Map.class);
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
                 throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid Google token");
             }
-            
+
             Map<String, Object> payload = response.getBody();
             String email = (String) payload.get("email");
             String firstName = (String) payload.get("given_name");
             String lastName = (String) payload.get("family_name");
-            String googleId = (String) payload.get("sub");
-            
+
+            // BUG-008: reject unverified Google email addresses
+            Object emailVerified = payload.get("email_verified");
+            if (!Boolean.TRUE.equals(emailVerified) && !"true".equals(String.valueOf(emailVerified))) {
+                throw new ApiException(HttpStatus.UNAUTHORIZED, "Google account email is not verified");
+            }
+
             if (email == null) {
                 throw new ApiException(HttpStatus.UNAUTHORIZED, "Email not found in Google token");
             }
 
+            // BUG-007: findByEmail does not filter deleted/suspended; do so explicitly
             Optional<User> userOpt = userRepository.findByEmail(email);
             User user;
             if (userOpt.isPresent()) {
                 user = userOpt.get();
+                if (user.getDeletedAt() != null) {
+                    throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+                }
+                if ("Suspended".equalsIgnoreCase(user.getStatus())) {
+                    throw new ApiException(HttpStatus.FORBIDDEN, "Your account has been suspended. Please contact support.");
+                }
                 if (user.getLockoutUntil() != null && user.getLockoutUntil().isAfter(LocalDateTime.now())) {
                     throw new ApiException(HttpStatus.LOCKED, "Account is temporarily locked.");
                 }
@@ -297,9 +318,20 @@ public class AuthServiceImpl implements AuthService {
     /**
      * Accepts either a live TOTP code or an unused backup code.
      * Used backup codes are consumed so they cannot be replayed.
+     * BUG-009: TOTP codes are marked used to prevent replay within the same 30-second window.
      */
     private boolean verifyTwoFactorCode(UserTwoFactor twoFactor, String code) {
         if (TotpUtil.verifyCode(twoFactor.getSecretKey(), code)) {
+            // Prevent replay: record the start of the current 30-second window
+            long windowStart = (System.currentTimeMillis() / 1000L / 30L) * 30L;
+            LocalDateTime windowStartDt = java.time.Instant.ofEpochSecond(windowStart)
+                    .atZone(java.time.ZoneOffset.UTC).toLocalDateTime();
+            if (twoFactor.getLastUsedTotpAt() != null
+                    && !twoFactor.getLastUsedTotpAt().isBefore(windowStartDt)) {
+                return false; // same window — reject replay
+            }
+            twoFactor.setLastUsedTotpAt(windowStartDt);
+            userTwoFactorRepository.save(twoFactor);
             return true;
         }
         if (twoFactor.getBackupCodes() != null && !twoFactor.getBackupCodes().isBlank()) {
@@ -377,13 +409,16 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Refresh token has no associated user");
         }
         
-        // Create new JWT
+        // BUG-011: build once; return full authorities list matching login response
+        UserDetailsImpl userDetails = UserDetailsImpl.build(user);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                UserDetailsImpl.build(user), null, UserDetailsImpl.build(user).getAuthorities());
-                
+                userDetails, null, userDetails.getAuthorities());
+
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        List<String> roles = user.getRole() != null ? List.of(user.getRole().getName()) : List.of();
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
 
         return JwtResponse.builder()
                 .token(jwt)
@@ -456,6 +491,9 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = resetToken.getUser();
+
+        // BUG-010: validate password policy (was missing from resetPassword; only changeMyPassword had it)
+        passwordPolicyService.validate(newPassword);
 
         // Prevent reusing one of the last 5 passwords
         List<PasswordHistory> recentPasswords = passwordHistoryRepository.findTop5ByUserOrderByChangedAtDesc(user);

@@ -4,6 +4,12 @@ import { Mail, Shield, ChevronRight, ArrowLeft, MailCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 
+/**
+ * The Forgot Password page.
+ * Renders a form where users enter their email address to request a password-reset link.
+ * On success, shows a confirmation message instead of the form.
+ * @returns {JSX.Element}
+ */
 const ForgotPassword = () => {
     const { t } = useTranslation();
     const [email, setEmail] = useState('');
@@ -11,6 +17,12 @@ const ForgotPassword = () => {
     const [sent, setSent] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    /**
+     * Handles form submission by sending the email to the forgot-password endpoint.
+     * Sets `sent` to true on success, or sets an error message on failure.
+     * @param {React.FormEvent<HTMLFormElement>} e - The form submit event.
+     * @returns {Promise<void>}
+     */
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');

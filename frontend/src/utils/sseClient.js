@@ -2,20 +2,35 @@
  * Fetch-based SSE client that sends the JWT via Authorization header
  * instead of a URL query parameter (which would be logged by servers).
  *
+ * `token` may be a string or a function returning the current token, so
+ * reconnects pick up a refreshed JWT instead of reusing a stale one.
+ *
  * Returns a cleanup function that cancels the stream.
  */
 export function createSseClient(url, token, handlers) {
+    const getToken = typeof token === 'function' ? token : () => token;
+    const RECONNECT_DELAY_MS = 5000;
+
     let active = true;
-    let abortController = new AbortController();
+    const abortController = new AbortController();
+
+    function scheduleReconnect() {
+        if (active) setTimeout(connect, RECONNECT_DELAY_MS);
+    }
 
     async function connect() {
+        if (!active) return;
         try {
             const response = await fetch(url, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${getToken()}` },
                 signal: abortController.signal,
             });
 
-            if (!response.ok || !active) return;
+            if (!active) return;
+            if (!response.ok) {
+                scheduleReconnect();
+                return;
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -42,12 +57,15 @@ export function createSseClient(url, token, handlers) {
                     }
                 }
             }
+
+            // Stream ended normally (e.g. server-side emitter timeout) — reconnect
+            scheduleReconnect();
         } catch (err) {
             if (active && err.name !== 'AbortError') {
-                setTimeout(connect, 5000);
+                scheduleReconnect();
             }
         }
-    };
+    }
 
     connect();
 

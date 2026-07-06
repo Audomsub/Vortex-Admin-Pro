@@ -4,6 +4,13 @@ import { Building2, Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useOrganizationStore } from '../store/organizationStore';
 
+/**
+ * Sidebar workspace switcher dropdown that lists the user's organizations and
+ * allows switching the active workspace. Navigates to `/organizations` when the
+ * "Create Organization" option is selected.
+ * @param {{ isCollapsed: boolean }} props
+ * @returns {JSX.Element}
+ */
 const WorkspaceSwitcher = ({ isCollapsed }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -34,7 +41,7 @@ const WorkspaceSwitcher = ({ isCollapsed }) => {
                 }`}
             >
                 <div className="w-7 h-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                    {currentOrg?.name 
+                    {currentOrg?.name
                         ? <span className="font-bold text-sm uppercase">{currentOrg.name.charAt(0)}</span>
                         : <Building2 className="w-4 h-4" />}
                 </div>

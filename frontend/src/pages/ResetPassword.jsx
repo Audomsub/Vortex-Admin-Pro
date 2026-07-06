@@ -4,6 +4,13 @@ import { Lock, Shield, ChevronRight, ArrowLeft, CircleCheck } from 'lucide-react
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 
+/**
+ * The Reset Password page.
+ * Reads the reset `token` from the URL query string and provides a form to set a
+ * new password. Validates that both password fields match before submitting.
+ * On success, shows a confirmation banner and redirects to login after 3 seconds.
+ * @returns {JSX.Element}
+ */
 const ResetPassword = () => {
     const { t } = useTranslation();
     const [searchParams] = useSearchParams();
@@ -16,6 +23,13 @@ const ResetPassword = () => {
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    /**
+     * Handles form submission for password reset.
+     * Validates password match, then POSTs the token and new password to the API.
+     * Redirects to /login after a 3-second delay on success.
+     * @param {React.FormEvent<HTMLFormElement>} e - The form submit event.
+     * @returns {Promise<void>}
+     */
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');

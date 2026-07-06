@@ -2,13 +2,20 @@ import { useState } from 'react';
 import { BookOpen, X, ChevronRight, Key, Shield, LayoutDashboard } from 'lucide-react';
 import { cn } from '../lib/utils';
 
+/**
+ * Floating user manual modal with a sidebar tab navigation covering three
+ * sections: Getting Started (default credentials), Navigation (module overview),
+ * and Security & 2FA. Renders as a fixed bottom-right trigger button when closed.
+ * @param {{ triggerClassName?: string }} props
+ * @returns {JSX.Element}
+ */
 const UserManualModal = ({ triggerClassName }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('login');
 
     if (!isOpen) {
         return (
-            <button 
+            <button
                 onClick={() => setIsOpen(true)}
                 className={cn(
                     "fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-surface/80 backdrop-blur-xl border border-border shadow-premium rounded-full text-text-primary hover:bg-surface transition-all active:scale-95 animate-fade-in hover:shadow-primary/20",
@@ -24,9 +31,9 @@ const UserManualModal = ({ triggerClassName }) => {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-fade-in" onClick={() => setIsOpen(false)} />
-            
+
             <div className="relative w-full max-w-3xl bg-surface border border-border shadow-2xl rounded-3xl overflow-hidden animate-zoom-in flex flex-col md:flex-row h-[80vh] max-h-[600px]">
-                
+
                 {/* Sidebar */}
                 <div className="w-full md:w-64 bg-black/5 dark:bg-white/5 border-r border-border p-6 flex flex-col shrink-0 overflow-y-auto">
                     <div className="flex items-center justify-between mb-8">
@@ -64,7 +71,7 @@ const UserManualModal = ({ triggerClassName }) => {
                             <p className="text-text-secondary leading-relaxed">
                                 Vortex Admin Pro is an enterprise-grade management system. This guide will help you get started quickly.
                             </p>
-                            
+
                             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mt-6">
                                 <h4 className="font-bold text-primary mb-3">Default Credentials</h4>
                                 <ul className="space-y-2 text-sm text-text-secondary">
@@ -82,7 +89,7 @@ const UserManualModal = ({ triggerClassName }) => {
                             <p className="text-text-secondary leading-relaxed">
                                 The sidebar contains all main modules you have access to based on your role.
                             </p>
-                            
+
                             <div className="space-y-4 mt-6">
                                 <div className="p-4 border border-border rounded-xl">
                                     <h4 className="font-bold text-text-primary mb-1">Users & Teams</h4>
@@ -102,7 +109,7 @@ const UserManualModal = ({ triggerClassName }) => {
                             <p className="text-text-secondary leading-relaxed">
                                 We prioritize the security of your enterprise data.
                             </p>
-                            
+
                             <div className="bg-warning/10 border border-warning/20 rounded-2xl p-6 mt-6">
                                 <h4 className="font-bold text-warning mb-2">Two-Factor Authentication (2FA)</h4>
                                 <p className="text-sm text-warning/80">

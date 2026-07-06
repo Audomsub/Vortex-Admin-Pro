@@ -1,17 +1,24 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import {
-    BarChart2, TrendingUp, Users, Activity, DollarSign, Calendar, Download, Building2, CreditCard, FileSearch, Loader2
+    BarChart2, TrendingUp, Users, Activity, DollarSign, Calendar, Download, Building2, CreditCard, FileSearch
 } from 'lucide-react';
+import { SkeletonCard, SkeletonChart } from '../components/ui/Skeleton';
 import { useTranslation } from 'react-i18next';
 import { reportService } from '../services/reportService';
-import { 
+import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
     BarChart, Bar, Legend
 } from 'recharts';
 import { cn } from '../lib/utils';
 import { toast } from '../components/ui/toastHelper';
 
+/**
+ * The Reports & Analytics page.
+ * Fetches KPI stats and chart data for a selected timeframe and renders them
+ * alongside an export center for downloading various report types in csv, excel, or pdf.
+ * @returns {JSX.Element}
+ */
 const Reports = () => {
     const { t } = useTranslation();
     const [timeframe, setTimeframe] = useState('7D'); // 7D, 30D, 3M, 1Y
@@ -20,6 +27,10 @@ const Reports = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    /**
+     * Fetches report statistics for the currently selected timeframe.
+     * @returns {Promise<void>}
+     */
     async function fetchStats() {
         try {
             setLoading(true);
@@ -29,7 +40,6 @@ const Reports = () => {
             }
         } catch (error) {
             console.error('Failed to fetch stats:', error);
-            // Optionally handle error state
         } finally {
             setLoading(false);
         }
@@ -40,7 +50,6 @@ const Reports = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeframe]);
 
-
     const exportTargets = [
         { type: 'users', label: t('reports.exportUsers'), icon: Users },
         { type: 'audit', label: t('reports.exportAudit'), icon: FileSearch },
@@ -49,6 +58,11 @@ const Reports = () => {
         { type: 'billing', label: t('reports.exportBilling'), icon: CreditCard },
     ];
 
+    /**
+     * Exports a specific report type in the currently selected format and triggers a download.
+     * @param {'users'|'audit'|'activity'|'organizations'|'billing'} type - The report category to export.
+     * @returns {Promise<void>}
+     */
     async function handleExport(type) {
         setExporting(type);
         try {
@@ -80,10 +94,10 @@ const Reports = () => {
                         </h1>
                         <p className="text-text-secondary mt-1 text-sm">{t('reports.subtitle')}</p>
                     </div>
-                    
+
                     <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl shrink-0">
                         {['7D', '30D', '3M', '1Y'].map(tf => (
-                            <button 
+                            <button
                                 key={tf}
                                 onClick={() => setTimeframe(tf)}
                                 className={cn(
@@ -137,10 +151,15 @@ const Reports = () => {
                 </div>
 
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center p-20 bg-surface border border-border rounded-2xl">
-                        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-                        <p className="text-text-secondary">{t('reports.loadingData')}</p>
-                    </div>
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2"><SkeletonChart /></div>
+                            <SkeletonChart />
+                        </div>
+                    </>
                 ) : (
                     <>
                         {/* KPI Cards */}
@@ -193,7 +212,7 @@ const Reports = () => {
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }} dy={10} />
                                             <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }} />
-                                            <RechartsTooltip 
+                                            <RechartsTooltip
                                                 contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', borderRadius: '12px' }}
                                                 itemStyle={{ fontWeight: 600 }}
                                             />
@@ -216,7 +235,7 @@ const Reports = () => {
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }} dy={10} />
                                             <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }} />
-                                            <RechartsTooltip 
+                                            <RechartsTooltip
                                                 cursor={{ fill: 'var(--color-text-secondary)', opacity: 0.1 }}
                                                 contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', borderRadius: '12px' }}
                                             />
@@ -236,4 +255,3 @@ const Reports = () => {
 };
 
 export default Reports;
-

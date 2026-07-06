@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+/**
+ * Renders children into the `#modal-root` DOM element (or document.body as
+ * fallback) using a React Portal, ensuring modals stack above the rest of
+ * the page regardless of their position in the component tree.
+ * @param {{ children: React.ReactNode }} props
+ * @returns {React.ReactPortal|null}
+ */
 const ModalPortal = ({ children }) => {
     const [mounted, setMounted] = useState(false);
 

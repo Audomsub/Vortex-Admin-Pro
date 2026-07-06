@@ -3,6 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { jwtDecode } from 'jwt-decode';
 
+/**
+ * OAuth callback handler page.
+ * Reads the JWT access token and optional refresh token from the URL query string
+ * (set by the backend after a successful OAuth2 flow), persists them to localStorage,
+ * decodes roles and permissions from the JWT, updates the auth context, then
+ * redirects to the dashboard. If no token is found, redirects to /login.
+ * @returns {JSX.Element} A full-screen loading spinner shown while authentication completes.
+ */
 const OAuthCallback = () => {
     const navigate = useNavigate();
     const location = useLocation();

@@ -8,6 +8,13 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
+/**
+ * Full-screen keyboard-driven command palette for navigating the application
+ * and running quick actions. Supports filtering by label, arrow-key navigation,
+ * and Enter to execute. Opened via Ctrl/Cmd+K or the search bar trigger.
+ * @param {{ open: boolean, onClose: function }} props
+ * @returns {JSX.Element|null}
+ */
 const CommandPalette = ({ open, onClose }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -16,6 +23,10 @@ const CommandPalette = ({ open, onClose }) => {
     const inputRef = useRef(null);
     const listRef = useRef(null);
 
+    /**
+     * Toggles dark/light mode by flipping the `dark` class on the document
+     * root and persisting the choice to localStorage.
+     */
     const toggleTheme = useCallback(() => {
         const isDark = document.documentElement.classList.contains('dark');
         document.documentElement.classList.toggle('dark', !isDark);
@@ -61,11 +72,20 @@ const CommandPalette = ({ open, onClose }) => {
         setActiveIndex(0);
     }, [query]);
 
+    /**
+     * Closes the palette and executes the selected command's action.
+     * @param {{ action: function }} command - The command to run.
+     */
     const runCommand = useCallback((command) => {
         onClose();
         command.action();
     }, [onClose]);
 
+    /**
+     * Handles keyboard navigation (ArrowUp/ArrowDown/Enter/Escape) within the
+     * command list.
+     * @param {React.KeyboardEvent} e
+     */
     const handleKeyDown = (e) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();

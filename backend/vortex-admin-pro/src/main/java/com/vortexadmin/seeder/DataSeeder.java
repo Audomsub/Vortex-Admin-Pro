@@ -30,6 +30,30 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Application startup component that seeds the Vortex Admin Pro database with the
+ * minimum reference data required for a functional system.
+ *
+ * <p>Implements {@link CommandLineRunner} so that Spring Boot automatically invokes
+ * {@link #run(String...)} after the application context is fully initialized, before
+ * serving any HTTP requests. The entire run is wrapped in a single database transaction
+ * via {@code @Transactional}.
+ *
+ * <p>The seeder is <strong>idempotent</strong>: every operation checks for the existence
+ * of the target record before inserting it, making it safe to run on every application
+ * restart without creating duplicates.
+ *
+ * <p>Three top-level seeding groups are performed in order:
+ * <ol>
+ *   <li>{@link #seedPermissionsAndRoles()} – creates the four RBAC roles
+ *       ({@code USER}, {@code MANAGER}, {@code ADMIN}, {@code SUPER_ADMIN}) with their
+ *       cumulative permission sets, and provisions the default super-admin account.</li>
+ *   <li>{@link #seedSubscriptionPlans()} – creates the {@code FREE}, {@code PRO},
+ *       {@code BUSINESS}, and {@code ENTERPRISE} billing tiers.</li>
+ *   <li>{@link #seedMockData()} – inserts sample users, system settings, teams, and a
+ *       default organisation when the database contains only the seeded admin account.</li>
+ * </ol>
+ */
 @Component
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
@@ -44,6 +68,18 @@ public class DataSeeder implements CommandLineRunner {
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
 
+    /**
+     * Entry point invoked by Spring Boot after the application context is ready.
+     *
+     * <p>Delegates sequentially to the three seeding methods. The method signature
+     * accepts varargs {@code args} passed from the command line but they are not
+     * used by this implementation.
+     *
+     * @param args command-line arguments passed to the Spring Boot application
+     *             (unused by this seeder).
+     * @throws Exception if any database operation fails and causes the transaction
+     *                   to roll back.
+     */
     @Override
     @Transactional
     public void run(String... args) throws Exception {
@@ -52,11 +88,29 @@ public class DataSeeder implements CommandLineRunner {
         seedMockData();
     }
 
+    /**
+     * Seeds all RBAC permissions and roles using a hierarchical permission model.
+     *
+     * <p>Permissions are grouped into four tiers that mirror the four application roles.
+     * Each higher-tier role inherits all permissions of every lower tier:
+     * <ul>
+     *   <li>{@code USER} – personal profile, own tasks, own files, and organisation management.</li>
+     *   <li>{@code MANAGER} – inherits USER plus team management, task assignment, and team reports.</li>
+     *   <li>{@code ADMIN} – inherits MANAGER plus user administration, audit access, and billing view.</li>
+     *   <li>{@code SUPER_ADMIN} – inherits ADMIN plus destructive operations (delete, security settings,
+     *       database management, system maintenance).</li>
+     * </ul>
+     *
+     * <p>After roles are created, the default super-admin account ({@code admin} /
+     * {@code password123}) is provisioned if it does not already exist. If the account exists
+     * but has a {@code null} role (e.g., due to a previous partial migration), the
+     * {@code SUPER_ADMIN} role is reattached without overriding any intentional role change.
+     */
     private void seedPermissionsAndRoles() {
         // 1. Define Permission Arrays based on hierarchy
         List<String> userPerms = Arrays.asList(
                 "dashboard.view", "profile.view", "profile.update", "password.change",
-                "task.read.own", "task.update.own", "calendar.read.own",
+                "task.read.own", "task.update.own", "task.delete.own", "calendar.read.own",
                 "notes.create", "notes.read.own", "notes.update.own", "notes.delete.own",
                 "file.upload.own", "file.read.own", "file.delete.own",
                 "notification.read", "chat.send", "chat.read",
@@ -65,7 +119,7 @@ public class DataSeeder implements CommandLineRunner {
 
         List<String> managerPerms = Arrays.asList(
                 "user.read", "team.read", "team.create", "team.update", "team.assign",
-                "task.create", "task.read", "task.update", "task.assign",
+                "task.create", "task.read", "task.update", "task.delete", "task.assign",
                 "calendar.create", "calendar.update", "report.view.team", "dashboard.team",
                 "file.read.team", "notes.read.team"
         );
@@ -87,13 +141,13 @@ public class DataSeeder implements CommandLineRunner {
 
         // 2. Save all permissions to DB and collect them in Sets
         Set<Permission> userPermissionSet = saveAndGetPermissions(userPerms);
-        
+
         Set<Permission> managerPermissionSet = saveAndGetPermissions(managerPerms);
         managerPermissionSet.addAll(userPermissionSet); // Hierarchy: Manager gets User
-        
+
         Set<Permission> adminPermissionSet = saveAndGetPermissions(adminPerms);
         adminPermissionSet.addAll(managerPermissionSet); // Hierarchy: Admin gets Manager
-        
+
         Set<Permission> superAdminPermissionSet = saveAndGetPermissions(superAdminPerms);
         superAdminPermissionSet.addAll(adminPermissionSet); // Hierarchy: SuperAdmin gets Admin
 
@@ -121,12 +175,32 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("Default Super Admin created: admin / password123");
             System.out.println("======================================================");
         } else {
+            // Only repair a missing role — never override an intentional role change
             User admin = adminOpt.get();
-            admin.setRole(superAdminRole);
-            userRepository.save(admin);
+            if (admin.getRole() == null) {
+                admin.setRole(superAdminRole);
+                userRepository.save(admin);
+            }
         }
     }
 
+    /**
+     * Ensures that all permission codes in the provided list exist in the database,
+     * creating any that are missing, and returns the full set of managed
+     * {@link Permission} entities.
+     *
+     * <p>For each code, an {@code upsert} pattern is used: the repository is queried
+     * first, and a new {@link Permission} is persisted only if no record with that code
+     * exists. This keeps the method idempotent across restarts.
+     *
+     * <p>The permission name is derived from the code by replacing dots with spaces and
+     * capitalising the first letter of each word (e.g., {@code "user.read"} becomes
+     * {@code "User Read"}).
+     *
+     * @param codes the list of permission code strings to ensure exist in the database.
+     * @return a mutable {@link Set} containing the managed {@link Permission} entities
+     *         for all codes in the input list.
+     */
     private Set<Permission> saveAndGetPermissions(List<String> codes) {
         Set<Permission> set = new HashSet<>();
         for (String code : codes) {
@@ -142,8 +216,23 @@ public class DataSeeder implements CommandLineRunner {
         return set;
     }
 
+    /**
+     * Creates a new {@link Role} or updates the permissions of an existing role with the
+     * given name.
+     *
+     * <p>Uses an upsert pattern: if a role with the given {@code name} is found in the
+     * database its permission set is replaced with {@code permissions} and the updated
+     * record is saved. If no role exists, a new one is built with the provided
+     * {@code description} and {@code permissions}.
+     *
+     * @param name        the unique role name (e.g., {@code "ADMIN"}).
+     * @param description a human-readable description stored for display purposes.
+     * @param permissions the complete set of {@link Permission} entities to assign to
+     *                    this role.
+     * @return the saved (and managed) {@link Role} entity.
+     */
     private Role createOrUpdateRole(String name, String description, Set<Permission> permissions) {
-        Role role = roleRepository.findByName(name).orElseGet(() -> 
+        Role role = roleRepository.findByName(name).orElseGet(() ->
             Role.builder()
                 .name(name)
                 .description(description)
@@ -153,6 +242,17 @@ public class DataSeeder implements CommandLineRunner {
         return roleRepository.save(role);
     }
 
+    /**
+     * Capitalises the first letter of each space-delimited word in the input string.
+     *
+     * <p>Used to convert a dot-notation permission code (after dot-to-space replacement)
+     * into a readable display name. For example, {@code "user read"} becomes
+     * {@code "User Read"}.
+     *
+     * @param str the input string; may be {@code null} or empty, in which case it is
+     *            returned unchanged.
+     * @return a new string with the first character of each word in upper case.
+     */
     private String capitalize(String str) {
         if (str == null || str.isEmpty()) return str;
         String[] words = str.split(" ");
@@ -165,6 +265,18 @@ public class DataSeeder implements CommandLineRunner {
         return sb.toString().trim();
     }
 
+    /**
+     * Seeds the four standard subscription plans into the database.
+     *
+     * <p>Plans are created only if they do not already exist (checked by name). The
+     * four tiers are:
+     * <ul>
+     *   <li>{@code FREE} – $0/month, 5 users, 1 GB storage.</li>
+     *   <li>{@code PRO} – $29/month, 25 users, 10 GB storage.</li>
+     *   <li>{@code BUSINESS} – $99/month, 100 users, 100 GB storage.</li>
+     *   <li>{@code ENTERPRISE} – $299/month, unlimited users (0 = no limit), 1 TB storage.</li>
+     * </ul>
+     */
     private void seedSubscriptionPlans() {
         seedPlan("FREE", BigDecimal.ZERO, BigDecimal.ZERO, 5, 1024L);
         seedPlan("PRO", new BigDecimal("29.00"), new BigDecimal("290.00"), 25, 10_240L);
@@ -172,6 +284,17 @@ public class DataSeeder implements CommandLineRunner {
         seedPlan("ENTERPRISE", new BigDecimal("299.00"), new BigDecimal("2990.00"), 0, 1_048_576L); // 0 = unlimited users
     }
 
+    /**
+     * Persists a single {@link SubscriptionPlan} if no plan with the given name already
+     * exists in the database.
+     *
+     * @param name          the unique plan name (e.g., {@code "PRO"}).
+     * @param monthly       the monthly price as a {@link BigDecimal}.
+     * @param yearly        the yearly price as a {@link BigDecimal}.
+     * @param maxUsers      the maximum number of users allowed on this plan; {@code 0}
+     *                      denotes unlimited.
+     * @param maxStorageMb  the maximum storage quota in megabytes.
+     */
     private void seedPlan(String name, BigDecimal monthly, BigDecimal yearly, int maxUsers, Long maxStorageMb) {
         if (!subscriptionPlanRepository.existsByName(name)) {
             subscriptionPlanRepository.save(SubscriptionPlan.builder()
@@ -184,6 +307,26 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 
+    /**
+     * Seeds sample/mock data for development and demonstration purposes.
+     *
+     * <p>This method only inserts data when the corresponding table is empty or contains
+     * only the seeded admin account, preventing mock data from polluting a production
+     * database that already has real records. The following data is seeded:
+     * <ul>
+     *   <li><strong>Mock users</strong> – three sample accounts ({@code john_doe} as ADMIN,
+     *       {@code jane_smith} as MANAGER, {@code bob_wilson} as USER) are created if the
+     *       user table has at most 1 row (the super-admin).</li>
+     *   <li><strong>System settings</strong> – default key/value settings (site name,
+     *       support email, theme, maintenance mode, and password policy flags) are
+     *       inserted if the {@code system_settings} table is empty.</li>
+     *   <li><strong>Teams</strong> – three sample teams (Engineering, Marketing, Sales)
+     *       are created if the {@code teams} table is empty.</li>
+     *   <li><strong>Organisation</strong> – a default {@code "Vortex Inc"} organisation
+     *       owned by the admin user, with the admin as {@code OWNER} member, is created
+     *       if the {@code organizations} table is empty.</li>
+     * </ul>
+     */
     private void seedMockData() {
         if (userRepository.count() <= 1) { // Only admin exists
             Role adminRole = roleRepository.findByName("ADMIN").orElseThrow(() -> new RuntimeException("Role ADMIN not found — seeding incomplete"));

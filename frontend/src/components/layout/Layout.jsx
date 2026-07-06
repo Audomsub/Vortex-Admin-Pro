@@ -10,6 +10,13 @@ import Breadcrumbs from '../ui/Breadcrumbs';
 import { AuthContext } from '../../context/authContextDef';
 import api from '../../api/axios';
 
+/**
+ * Root application shell that composes the Sidebar, Navbar, Breadcrumbs, and
+ * page content area. Manages responsive sidebar state, keyboard shortcut
+ * listeners, command palette, shortcuts modal, and maintenance mode banner.
+ * @param {{ children: React.ReactNode }} props
+ * @returns {JSX.Element}
+ */
 const Layout = ({ children }) => {
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
@@ -27,7 +34,16 @@ const Layout = ({ children }) => {
         }).catch(() => {});
     }, []);
 
+    /**
+     * Memoized callback to open the command palette.
+     * @type {function(): void}
+     */
     const openPalette = useCallback(() => setIsPaletteOpen(true), []);
+
+    /**
+     * Memoized callback to close the command palette.
+     * @type {function(): void}
+     */
     const closePalette = useCallback(() => setIsPaletteOpen(false), []);
 
     // Handle responsive sidebar states
@@ -63,8 +79,8 @@ const Layout = ({ children }) => {
             const now = Date.now();
 
             // Ignore shortcuts when typing in inputs/textareas
-            const isTyping = e.target.tagName === 'INPUT' || 
-                             e.target.tagName === 'TEXTAREA' || 
+            const isTyping = e.target.tagName === 'INPUT' ||
+                             e.target.tagName === 'TEXTAREA' ||
                              e.target.isContentEditable;
             if (isTyping) return;
 

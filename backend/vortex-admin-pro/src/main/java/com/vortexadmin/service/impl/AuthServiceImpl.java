@@ -58,6 +58,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Handles all authentication business logic including credential-based login,
+ * Google OAuth sign-in, user registration, JWT token refresh, logout, and
+ * password reset with policy enforcement and two-factor authentication verification.
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -87,6 +92,22 @@ public class AuthServiceImpl implements AuthService {
     @Value("${vortex.app.frontendUrl}")
     private String frontendUrl;
 
+    /**
+     * Authenticates a user with username and password credentials.
+     * Validates account status (deleted, suspended, temporarily locked) before attempting
+     * authentication. If two-factor authentication is enabled, validates the supplied TOTP
+     * code or backup code and prevents TOTP replay within the same 30-second window.
+     * On success, resets failed login counters, records a geolocation-enriched session,
+     * writes an audit log entry, and issues fresh access and refresh tokens.
+     * On failure, increments the failed attempt counter and locks the account for
+     * {@value #LOCKOUT_MINUTES} minutes after {@value #MAX_FAILED_ATTEMPTS} consecutive failures.
+     *
+     * @param loginRequest the login credentials (username, password, optional two-factor code)
+     * @param request      the HTTP servlet request used to extract client IP and User-Agent
+     * @return a {@link JwtResponse} with access token, refresh token, user details, and roles;
+     *         or a partial response with {@code twoFactorRequired=true} if the MFA step is pending
+     * @throws ApiException if credentials are invalid, the account is locked, suspended, or soft-deleted
+     */
     @Override
     @Transactional
     public JwtResponse authenticateUser(LoginRequest loginRequest, HttpServletRequest request) {
@@ -138,6 +159,21 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * Authenticates or provisions a user via a Google OAuth2 access token.
+     * Validates the token against Google's userinfo endpoint and checks that the
+     * associated email address is verified. If a user with the matching email already
+     * exists the account status is verified; otherwise a new account is created with a
+     * random secure password and the default USER role, and a webhook is fired.
+     * On success, the session, audit log, and JWT response are created identically to
+     * credential-based login.
+     *
+     * @param token   the Google OAuth2 access token obtained by the frontend
+     * @param request the HTTP servlet request used to extract client IP and User-Agent
+     * @return a {@link JwtResponse} with access token, refresh token, user details, and roles
+     * @throws ApiException if the Google token is invalid, the email is unverified,
+     *                      or the account is suspended
+     */
     @Override
     @Transactional
     public JwtResponse authenticateWithGoogle(String token, HttpServletRequest request) {
@@ -195,6 +231,16 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * Registers a new user account with the default USER role.
+     * Validates that the username and email are not already taken, enforces the
+     * configured password policy, encodes the password with BCrypt, and fires a
+     * {@code user.created} webhook on successful save.
+     *
+     * @param signUpRequest the registration details (username, email, password, first name, last name)
+     * @throws ApiException if the username or email is already in use, or if the password
+     *                      fails the configured password policy
+     */
     @Override
     @Transactional
     public void registerUser(RegisterRequest signUpRequest) {
@@ -223,6 +269,15 @@ public class AuthServiceImpl implements AuthService {
         notifyUserCreated(user);
     }
 
+    /**
+     * Exchanges a valid, non-expired refresh token for a new JWT access token.
+     * If the token is expired it is deleted from the database and a {@code 403 Forbidden}
+     * is thrown. The existing refresh token string is reused rather than rotated.
+     *
+     * @param request the request body containing the refresh token string
+     * @return a {@link JwtResponse} with a fresh access token and the same refresh token
+     * @throws ApiException if the refresh token is not found, is expired, or has no associated user
+     */
     @Override
     @Transactional
     public JwtResponse refreshToken(TokenRefreshRequest request) {
@@ -257,6 +312,13 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    /**
+     * Logs the user out by deleting the supplied refresh token from the database and
+     * marking the most recent open session with a logout timestamp.
+     * If the token string is {@code null} or blank the method returns silently.
+     *
+     * @param refreshTokenStr the refresh token string to invalidate
+     */
     @Override
     @Transactional
     public void logout(String refreshTokenStr) {
@@ -273,6 +335,14 @@ public class AuthServiceImpl implements AuthService {
         });
     }
 
+    /**
+     * Initiates the forgot-password flow by generating a single-use reset token valid for
+     * one hour, persisting it, and emailing a reset link to the user.
+     * If no active (non-deleted) account with the given email exists the method returns
+     * silently to avoid leaking which email addresses are registered in the system.
+     *
+     * @param email the email address of the account to reset
+     */
     @Override
     @Transactional
     public void forgotPassword(String email) {
@@ -300,6 +370,17 @@ public class AuthServiceImpl implements AuthService {
                         + "This link expires in 1 hour. If you didn't request this, you can safely ignore this email.");
     }
 
+    /**
+     * Completes the password reset flow by validating the single-use token, enforcing the
+     * password policy, verifying the new password has not appeared in the user's last
+     * {@value #PASSWORD_HISTORY_LIMIT} passwords, encoding and saving the new password,
+     * marking the token as used, and invalidating all active refresh tokens for the account.
+     *
+     * @param token       the single-use reset token sent to the user's email
+     * @param newPassword the new plaintext password chosen by the user
+     * @throws ApiException if the token is invalid, already used, or expired; or if the new
+     *                      password violates the policy or matches a recent password
+     */
     @Override
     @Transactional
     public void resetPassword(String token, String newPassword) {
@@ -332,6 +413,13 @@ public class AuthServiceImpl implements AuthService {
 
     // --- Private helpers ---
 
+    /**
+     * Checks that the user account is not soft-deleted, suspended, or temporarily locked.
+     *
+     * @param user the user entity to validate
+     * @throws ApiException with {@code 401} if the account is soft-deleted,
+     *                      {@code 403} if suspended, or {@code 423} if locked
+     */
     private void validateUserActive(User user) {
         if (user.getDeletedAt() != null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
@@ -344,6 +432,17 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * Creates and persists a user session record enriched with IP address, country, and
+     * User-Agent, writes an audit log entry for the login event, rotates the refresh token,
+     * generates a new JWT access token, and assembles the final {@link JwtResponse}.
+     *
+     * @param user        the authenticated user entity
+     * @param userDetails the Spring Security principal for the authenticated user
+     * @param request     the HTTP servlet request used to extract IP and User-Agent
+     * @param loginMethod a human-readable description of the login method (e.g. "credentials")
+     * @return the fully populated {@link JwtResponse}
+     */
     private JwtResponse buildSessionAndJwtResponse(User user, UserDetailsImpl userDetails,
                                                     HttpServletRequest request, String loginMethod) {
         String ipAddress = request.getRemoteAddr();
@@ -385,12 +484,24 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    /**
+     * Extracts the string authority names from a {@link UserDetailsImpl} principal.
+     *
+     * @param userDetails the authenticated user's details
+     * @return a list of authority strings (e.g. role names and permission codes)
+     */
     private List<String> extractAuthorities(UserDetailsImpl userDetails) {
         return userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Looks up the USER role, or creates and persists it with an empty permission set if
+     * it does not yet exist in the database.
+     *
+     * @return the existing or newly created USER {@link Role}
+     */
     private Role findOrCreateUserRole() {
         return roleRepository.findByName("USER").orElseGet(() -> roleRepository.save(
                 Role.builder()
@@ -400,6 +511,16 @@ public class AuthServiceImpl implements AuthService {
                         .build()));
     }
 
+    /**
+     * Creates and persists a new user account for an OAuth2 sign-in where no matching
+     * email exists. Assigns a randomly generated username (email prefix + 4-char UUID suffix)
+     * and a cryptographically random password that is never exposed to the user.
+     *
+     * @param email     the verified email address from the OAuth2 provider
+     * @param firstName the first name from the OAuth2 provider, or {@code null} if not provided
+     * @param lastName  the last name from the OAuth2 provider, or {@code null} if not provided
+     * @return the persisted {@link User} entity
+     */
     private User createOAuthUser(String email, String firstName, String lastName) {
         String username = email.split("@")[0] + "_" + UUID.randomUUID().toString().substring(0, 4);
         return userRepository.save(User.builder()
@@ -414,6 +535,12 @@ public class AuthServiceImpl implements AuthService {
                 .build());
     }
 
+    /**
+     * Fires a {@code user.created} webhook event with the newly registered user's id,
+     * username, and email as the payload.
+     *
+     * @param user the newly created user entity
+     */
     private void notifyUserCreated(User user) {
         webhookService.triggerEvent("user.created", Map.of(
                 "id", user.getId(),
@@ -421,6 +548,15 @@ public class AuthServiceImpl implements AuthService {
                 "email", user.getEmail()));
     }
 
+    /**
+     * Ensures the proposed new password has not been used before by comparing it against
+     * the user's current password and their last {@value #PASSWORD_HISTORY_LIMIT} historical
+     * password hashes using BCrypt matching.
+     *
+     * @param user        the user whose password history is checked
+     * @param newPassword the proposed new plaintext password
+     * @throws ApiException if the new password matches the current or any recent historical password
+     */
     private void validatePasswordNotReused(User user, String newPassword) {
         if (encoder.matches(newPassword, user.getPassword())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "New password must not match your current password");
@@ -434,6 +570,17 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * Verifies a two-factor authentication code against the user's TOTP secret or backup codes.
+     * For TOTP, replay within the same 30-second window is rejected by comparing
+     * {@link UserTwoFactor#getLastUsedTotpAt()} against the current window start time.
+     * For backup codes, the matching hashed entry is consumed (removed) from the stored list
+     * upon successful verification.
+     *
+     * @param twoFactor the user's two-factor authentication record containing the secret and backup codes
+     * @param code      the 6-digit TOTP code or 8-digit backup code provided by the user
+     * @return {@code true} if the code is valid and has not been replayed; {@code false} otherwise
+     */
     private boolean verifyTwoFactorCode(UserTwoFactor twoFactor, String code) {
         if (TotpUtil.verifyCode(twoFactor.getSecretKey(), code)) {
             // Prevent replay within the same 30-second TOTP window

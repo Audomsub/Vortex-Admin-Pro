@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import ModalPortal from '../components/ui/ModalPortal';
-import { 
-    Key, Plus, Copy, Trash2, Eye, EyeOff, AlertCircle, CheckCircle2, Shield, Loader2
+import {
+    Key, Plus, Copy, Trash2, Eye, EyeOff, AlertCircle, CheckCircle2, Shield
 } from 'lucide-react';
+import { SkeletonTableRow } from '../components/ui/Skeleton';
 import api from '../api/axios';
 import { useTranslation } from 'react-i18next';
 
@@ -260,12 +261,7 @@ const ApiKeys = () => {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan="7" className="p-10 text-center text-text-secondary">
-                                            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
-                                            <p className="text-sm">{t('apiKeys.loading')}</p>
-                                        </td>
-                                    </tr>
+                                    Array.from({ length: 5 }).map((_, i) => <SkeletonTableRow key={i} cols={7} />)
                                 ) : keys.map(key => (
                                     <tr key={key.id} className="border-b border-border last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                         <td className="p-4">

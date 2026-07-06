@@ -2,13 +2,21 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import ModalPortal from '../components/ui/ModalPortal';
-import { 
+import {
     Activity, Search, ShieldAlert, CheckCircle2, AlertCircle, User, Download
 } from 'lucide-react';
+import { SkeletonTableRow } from '../components/ui/Skeleton';
 import api from '../api/axios';
 import { cn } from '../lib/utils';
 import { X } from 'lucide-react';
 
+/**
+ * The Audit Logs page.
+ * Displays a filterable, searchable table of all system audit events.
+ * Supports exporting logs to CSV or Excel and running AI-powered analysis
+ * via the Gemini integration.
+ * @returns {JSX.Element}
+ */
 const AuditLogs = () => {
     const { t } = useTranslation();
 
@@ -24,6 +32,10 @@ const AuditLogs = () => {
         fetchLogs();
     }, []);
 
+    /**
+     * Fetches all audit log entries from the API and sorts them by date.
+     * @returns {Promise<void>}
+     */
     async function fetchLogs() {
         try {
             setLoading(true);
@@ -36,6 +48,11 @@ const AuditLogs = () => {
         }
     };
 
+    /**
+     * Exports audit logs in the specified format by downloading a blob from the API.
+     * @param {'csv'|'excel'} format - The export file format.
+     * @returns {Promise<void>}
+     */
     async function handleExport(format) {
         try {
             const response = await api.get(`/audit-logs/export?format=${format}`, { responseType: 'blob' });
@@ -62,22 +79,32 @@ const AuditLogs = () => {
         return matchesSearch && matchesAction;
     }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+    /**
+     * Sends current audit log data to the AI analysis endpoint and displays the
+     * generated insights in a modal. Opens the modal immediately so the user can
+     * see the loading state.
+     * @returns {Promise<void>}
+     */
     async function handleAiAnalysis() {
         try {
             setIsAnalyzing(true);
             setIsAiModalOpen(true);
             setAiInsights('');
             const response = await api.post('/ai/analyze-logs');
-            
             setAiInsights(response.data.data);
         } catch (error) {
             console.error('AI Analysis failed:', error);
-            setAiInsights(`❌ AI Analysis Failed\n\nReason: ${error.response?.data?.message || error.message || 'Cannot connect to server'}\n\nPlease check your backend terminal for more details, or ensure the Gemini API Key is valid.`);
+            setAiInsights(`AI Analysis Failed\n\nReason: ${error.response?.data?.message || error.message || 'Cannot connect to server'}\n\nPlease check your backend terminal for more details, or ensure the Gemini API Key is valid.`);
         } finally {
             setIsAnalyzing(false);
         }
     };
 
+    /**
+     * Returns a Lucide icon element for an audit log action type.
+     * @param {string} action - The action string from the audit log (e.g. "CREATE", "LOGIN").
+     * @returns {JSX.Element} An icon element.
+     */
     const getActionIcon = (action) => {
         const a = action?.toUpperCase() || '';
         if (a.includes('CREATE') || a.includes('ADD')) return <CheckCircle2 className="w-4 h-4 text-success" />;
@@ -87,6 +114,11 @@ const AuditLogs = () => {
         return <AlertCircle className="w-4 h-4 text-text-secondary" />;
     };
 
+    /**
+     * Returns Tailwind CSS badge classes for an audit log action type.
+     * @param {string} action - The action string from the audit log.
+     * @returns {string} CSS class string for the badge background and text color.
+     */
     const getActionColor = (action) => {
         const a = action?.toUpperCase() || '';
         if (a.includes('CREATE') || a.includes('ADD')) return 'bg-success/10 text-success';
@@ -96,6 +128,11 @@ const AuditLogs = () => {
         return 'bg-black/5 dark:bg-white/5 text-text-secondary';
     };
 
+    /**
+     * Formats an ISO date string for display in the audit log table.
+     * @param {string} dateStr - ISO 8601 date string.
+     * @returns {string} Human-readable date/time string.
+     */
     const formatDate = (dateStr) => {
         return new Date(dateStr).toLocaleString('en-US', {
             year: 'numeric', month: 'short', day: 'numeric',
@@ -115,9 +152,9 @@ const AuditLogs = () => {
                         </h1>
                         <p className="text-text-secondary mt-1 text-sm">{t('auditLogs.subtitle')}</p>
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={handleAiAnalysis}
                             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl font-medium transition-all shadow-md shadow-purple-500/20 text-sm active:scale-[0.98]"
                         >
@@ -133,7 +170,7 @@ const AuditLogs = () => {
                                 <button onClick={() => handleExport('excel')} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-b-xl">Excel</button>
                             </div>
                         </div>
-                        <button 
+                        <button
                             onClick={fetchLogs}
                             className="flex items-center justify-center gap-2 px-4 py-2 bg-surface border border-border text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl font-medium transition-colors text-sm shadow-sm"
                         >
@@ -146,9 +183,9 @@ const AuditLogs = () => {
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-                        <input 
-                            type="text" 
-                            placeholder={t('auditLogs.searchPlaceholder')} 
+                        <input
+                            type="text"
+                            placeholder={t('auditLogs.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
@@ -161,8 +198,8 @@ const AuditLogs = () => {
                                 onClick={() => setActionFilter(filter)}
                                 className={cn(
                                     "px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap",
-                                    actionFilter === filter 
-                                        ? "bg-primary text-white shadow-md shadow-primary/20" 
+                                    actionFilter === filter
+                                        ? "bg-primary text-white shadow-md shadow-primary/20"
                                         : "bg-surface border border-border text-text-secondary hover:text-text-primary"
                                 )}
                             >
@@ -188,11 +225,7 @@ const AuditLogs = () => {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan="6" className="p-20 text-center">
-                                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                                        </td>
-                                    </tr>
+                                    Array.from({ length: 8 }).map((_, i) => <SkeletonTableRow key={i} cols={6} />)
                                 ) : filteredLogs.length === 0 ? (
                                     <tr>
                                         <td colSpan="6" className="p-20 text-center text-text-secondary">
@@ -240,11 +273,11 @@ const AuditLogs = () => {
             {/* AI Insights Modal */}
             {isAiModalOpen && (
                 <ModalPortal>
-                <div 
+                <div
                     className="fixed inset-0 z-50 flex items-start justify-center px-4 pb-4 pt-20 sm:pt-24 bg-black/50 backdrop-blur-sm animate-fade-in overflow-y-auto"
                     onClick={() => !isAnalyzing && setIsAiModalOpen(false)}
                 >
-                    <div 
+                    <div
                         className="bg-surface rounded-2xl w-full max-w-2xl shadow-2xl border border-border overflow-hidden animate-zoom-in flex flex-col max-h-[80vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -277,7 +310,7 @@ const AuditLogs = () => {
                             )}
                         </div>
                         <div className="p-4 border-t border-border bg-background flex justify-end">
-                            <button 
+                            <button
                                 onClick={() => setIsAiModalOpen(false)}
                                 className="px-4 py-2 bg-surface border border-border text-text-primary rounded-xl font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                             >

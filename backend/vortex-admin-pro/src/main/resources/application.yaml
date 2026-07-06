@@ -27,21 +27,27 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      minimum-idle: 2
-      maximum-pool-size: 5
-      idle-timeout: 30000
-      max-lifetime: 60000
-      keepalive-time: 25000
-      connection-timeout: 20000
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      max-lifetime: 900000
+      keepalive-time: 120000
+      connection-timeout: 30000
       connection-test-query: SELECT 1
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: false
     properties:
       hibernate:
         format_sql: false
+        default_batch_fetch_size: 20
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
 
   mail:
     host: ${MAIL_HOST:}

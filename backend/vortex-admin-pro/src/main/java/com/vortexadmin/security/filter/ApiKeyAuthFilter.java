@@ -24,19 +24,77 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Servlet filter that authenticates HTTP requests using an API key supplied in the
+ * {@value #API_KEY_HEADER} request header.
+ *
+ * <p>Extends {@link OncePerRequestFilter} to guarantee a single execution per request.
+ * The filter is registered in
+ * {@link com.vortexadmin.security.config.SecurityConfig} and runs
+ * <em>before</em> {@link JwtAuthFilter} so that machine-to-machine clients carrying
+ * only an API key are authenticated without requiring a Bearer token.
+ *
+ * <p>Authentication flow:
+ * <ol>
+ *   <li>Read the raw API key from the {@value #API_KEY_HEADER} header.</li>
+ *   <li>Hash the raw key with SHA-256 (via {@link ApiKeyUtils#hash(String)}) and look it
+ *       up in the database — the plaintext key is never stored.</li>
+ *   <li>Verify that the key is not revoked, not expired, and that its owning user has not
+ *       been soft-deleted.</li>
+ *   <li>Enforce per-minute and per-hour rate limits via {@link ApiRateLimitService}; return
+ *       HTTP {@code 429} if the limit is exceeded.</li>
+ *   <li>Intersect the user's full authority set with the key's declared scopes, restricting
+ *       access to read-only operations ({@code .read}, {@code .view}, {@code .export}).</li>
+ *   <li>Store a {@link UsernamePasswordAuthenticationToken} in the
+ *       {@link SecurityContextHolder} with the scoped authorities.</li>
+ *   <li>Update the key's {@code lastUsedAt} timestamp.</li>
+ * </ol>
+ *
+ * <p>If the {@link SecurityContextHolder} already contains an authentication (e.g., a JWT
+ * was processed by a preceding filter), this filter takes no action and passes through.
+ */
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
+    /** Name of the HTTP request header expected to carry the raw API key. */
     public static final String API_KEY_HEADER = "X-API-Key";
     private static final Logger logger = LoggerFactory.getLogger(ApiKeyAuthFilter.class);
 
     private final ApiKeyRepository apiKeyRepository;
     private final ApiRateLimitService rateLimitService;
 
+    /**
+     * Constructs an {@code ApiKeyAuthFilter} with its required collaborators.
+     *
+     * <p>This filter is not a Spring-managed component ({@code @Component} is omitted
+     * intentionally) because it requires constructor arguments that are supplied
+     * programmatically from {@link com.vortexadmin.security.config.SecurityConfig#apiKeyAuthFilter()}.
+     *
+     * @param apiKeyRepository the JPA repository used to look up hashed API keys.
+     * @param rateLimitService the service that tracks and enforces per-key request rate limits.
+     */
     public ApiKeyAuthFilter(ApiKeyRepository apiKeyRepository, ApiRateLimitService rateLimitService) {
         this.apiKeyRepository = apiKeyRepository;
         this.rateLimitService = rateLimitService;
     }
 
+    /**
+     * Core filter logic executed once per request.
+     *
+     * <p>Reads the {@value #API_KEY_HEADER} header, validates the key, enforces rate limits,
+     * and populates the {@link SecurityContextHolder} with a scope-restricted authentication
+     * token. If the header is absent, or the key is invalid/revoked/expired, the method
+     * delegates immediately to the next filter without setting any authentication — downstream
+     * security rules will reject unauthorized requests accordingly.
+     *
+     * <p>On rate-limit violation, the method writes an HTTP {@code 429} JSON error response
+     * and returns early, preventing further filter-chain execution.
+     *
+     * @param request     the incoming HTTP request.
+     * @param response    the outgoing HTTP response.
+     * @param filterChain the remaining filter chain.
+     * @throws ServletException if a servlet-level error occurs.
+     * @throws IOException      if an I/O error occurs while writing the rate-limit error response.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {

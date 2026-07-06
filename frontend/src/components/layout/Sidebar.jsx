@@ -11,6 +11,12 @@ import {
 } from 'lucide-react';
 import WorkspaceSwitcher from '../WorkspaceSwitcher';
 
+/**
+ * Sidebar navigation component that renders role-filtered nav groups, a workspace
+ * switcher, and a collapse toggle button.
+ * @param {{ isCollapsed: boolean, setIsCollapsed: function }} props
+ * @returns {JSX.Element}
+ */
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     const { user } = useAuth();
     const { branding } = useTheme();
@@ -24,12 +30,23 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         }
     }, []);
 
+    /**
+     * Persists the current sidebar scroll position to sessionStorage.
+     * @param {React.UIEvent<HTMLElement>} e
+     */
     const handleScroll = (e) => {
         sessionStorage.setItem('sidebarScroll', e.target.scrollTop);
     };
 
     // Default roles to empty array if user or roles is missing
     const userRoles = user?.roles || [];
+
+    /**
+     * Returns true if the user holds at least one of the allowed roles.
+     * SUPER_ADMIN is granted access regardless of the allowed list.
+     * @param {string[]} allowedRoles - Roles permitted to see the nav item.
+     * @returns {boolean}
+     */
     const hasRole = (allowedRoles) => {
         // SUPER_ADMIN has access to everything
         if (userRoles.includes('SUPER_ADMIN')) return true;
@@ -106,7 +123,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             <WorkspaceSwitcher isCollapsed={isCollapsed} />
 
             {/* Navigation */}
-            <nav 
+            <nav
                 ref={navRef}
                 onScroll={handleScroll}
                 className="flex-1 overflow-y-auto py-4 px-3 space-y-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"

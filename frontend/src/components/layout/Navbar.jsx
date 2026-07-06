@@ -6,29 +6,34 @@ import { useAuth } from '../../hooks/useAuth';
 import LanguageSwitcher from '../LanguageSwitcher';
 import { createSseClient } from '../../utils/sseClient';
 import { toast } from '../ui/toastHelper';
+import api from '../../api/axios';
 
+/**
+ * Top navigation bar component that renders the search trigger, theme toggle,
+ * language switcher, notification bell with real-time SSE unread count, and
+ * the user profile dropdown with sign-out option.
+ * @param {{ onMenuClick: function, onSearchClick: function }} props
+ * @returns {JSX.Element}
+ */
 const Navbar = ({ onMenuClick, onSearchClick }) => {
     const { user, logout } = useAuth();
     const { t } = useTranslation();
     const [isDark, setIsDark] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
+    const isLoggedIn = !!user;
     useEffect(() => {
         // Fetch initial unread count
-        if (user) {
-            fetch(`${import.meta.env.VITE_API_URL}/notifications/unread-count`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.data) setUnreadCount(data.data);
-            })
-            .catch(err => console.error("Failed to fetch unread count", err));
+        if (isLoggedIn) {
+            api.get('/notifications/unread-count')
+                .then(res => {
+                    if (res.data.data) setUnreadCount(res.data.data);
+                })
+                .catch(err => console.error("Failed to fetch unread count", err));
 
-            // Setup SSE for real-time notifications
-            const token = localStorage.getItem('token');
+            // Setup SSE for real-time notifications; token getter keeps reconnects fresh
             const apiUrl = import.meta.env.VITE_API_URL;
-            const cleanup = createSseClient(`${apiUrl}/notifications/stream`, token, {
+            const cleanup = createSseClient(`${apiUrl}/notifications/stream`, () => localStorage.getItem('token'), {
                 notification: (data) => {
                     try {
                         const parsed = JSON.parse(data);
@@ -53,11 +58,13 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
 
             return cleanup;
         }
-    }, [user]);
+        // Depend on login state only — the user object is recreated on every profile
+        // merge, which would otherwise tear down and reopen the SSE stream each time
+    }, [isLoggedIn]);
 
     useEffect(() => {
         // Check system preference or localStorage
-        const isDarkMode = localStorage.getItem('theme') === 'dark' || 
+        const isDarkMode = localStorage.getItem('theme') === 'dark' ||
             (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
         setIsDark(isDarkMode);
         if (isDarkMode) {
@@ -67,6 +74,10 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
         }
     }, []);
 
+    /**
+     * Toggles between dark and light mode by updating the document class
+     * and persisting the preference to localStorage.
+     */
     const toggleTheme = () => {
         if (isDark) {
             document.documentElement.classList.remove('dark');
@@ -99,7 +110,7 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
                 </button>
 
                 {/* Mobile Search Icon */}
-                <button 
+                <button
                     onClick={onSearchClick}
                     className="md:hidden p-2 text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg"
                 >
@@ -108,7 +119,7 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
-                <button 
+                <button
                     onClick={toggleTheme}
                     className="w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 >
@@ -128,13 +139,13 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
 
                 <div className="relative group cursor-pointer header-profile-menu">
                     <div className="flex items-center gap-3 pl-2">
-                        <div className="flex flex-col items-end hidden sm:flex">
+                        <div className="hidden sm:flex flex-col items-end">
                             <span className="text-sm font-semibold text-text-primary leading-tight">
                                 {user?.firstName ? `${user.firstName} ${user.lastName}`.trim() : (user?.username || 'User')}
                             </span>
                             <span className="text-xs text-text-secondary">
-                                {user?.roles && user.roles.length > 0 
-                                    ? user.roles[0].replace(/_/g, ' ').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase()) 
+                                {user?.roles && user.roles.length > 0
+                                    ? user.roles[0].replace(/_/g, ' ').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase())
                                     : 'User'}
                             </span>
                         </div>

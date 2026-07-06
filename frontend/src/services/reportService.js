@@ -1,12 +1,30 @@
 import api from '../api/axios';
 
+/**
+ * Service object for fetching dashboard statistics and exporting reports.
+ */
 export const reportService = {
+    /**
+     * Fetches aggregated dashboard statistics for the given timeframe.
+     * GET /reports/stats?timeframe={timeframe}
+     * @param {string} [timeframe='7D'] - Timeframe code (e.g. '7D', '30D', '90D').
+     * @returns {Promise<object>} The `data` property of the API response.
+     */
     getStats: async (timeframe = '7D') => {
         const response = await api.get('/reports/stats', {
             params: { timeframe }
         });
         return response.data;
     },
+
+    /**
+     * Downloads a report file for the given type and format. Triggers a browser
+     * file download using a temporary anchor element.
+     * GET /reports/{reportType}/export?format={format}
+     * @param {string} reportType - Report type: 'users' | 'audit' | 'activity' | 'organizations' | 'billing'.
+     * @param {string} format - Output format: 'csv' | 'excel' | 'pdf'.
+     * @returns {Promise<void>}
+     */
     // reportType: users | audit | activity | organizations | billing
     // format: csv | excel | pdf
     export: async (reportType, format) => {

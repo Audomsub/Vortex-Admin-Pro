@@ -20,6 +20,10 @@ import java.util.Map;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Handles HTTP requests for audit log retrieval and export, exposing tamper-evident
+ * activity records for the tenant, delegating logic to AuditLogService and ExportService.
+ */
 @RestController
 @RequestMapping("/api/audit-logs")
 @RequiredArgsConstructor
@@ -28,12 +32,24 @@ public class AuditLogController {
     private final AuditLogService auditLogService;
     private final ExportService exportService;
 
+    /**
+     * Retrieves all audit log entries for the authenticated user's company/tenant.
+     *
+     * @return a list of {@link AuditLogResponse} objects representing all audit events
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('audit.read')")
     public ResponseEntity<ApiResponse<List<AuditLogResponse>>> getAuditLogs() {
         return ResponseEntity.ok(ApiResponse.success("Audit logs fetched", auditLogService.getCompanyAuditLogs()));
     }
 
+    /**
+     * Exports all audit log entries for the tenant as a downloadable file in the specified format.
+     *
+     * @param format the output format, either {@code "excel"} or {@code "csv"} (default)
+     * @return a byte array response with appropriate content-type and content-disposition headers
+     * @throws Exception if file generation fails
+     */
     @GetMapping("/export")
     @PreAuthorize("hasAuthority('audit.read')")
     public ResponseEntity<byte[]> exportLogs(@RequestParam(defaultValue = "csv") String format) throws Exception {

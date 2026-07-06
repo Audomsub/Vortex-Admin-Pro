@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
-import { 
+import {
     Bell, Check, CheckCircle2, AlertCircle, Info, Clock
 } from 'lucide-react';
 import api from '../api/axios';
 import { cn } from '../lib/utils';
 
+/**
+ * The Notifications page.
+ * Displays the current user's notification feed with ALL / UNREAD filter tabs.
+ * Allows marking individual or all unread notifications as read.
+ * @returns {JSX.Element}
+ */
 const Notifications = () => {
     const { t } = useTranslation();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('ALL'); // ALL, UNREAD
 
+    /**
+     * Fetches all notifications for the current user from the API.
+     * @returns {Promise<void>}
+     */
     async function fetchNotifications() {
         try {
             setLoading(true);
@@ -29,10 +39,15 @@ const Notifications = () => {
         fetchNotifications();
     }, []);
 
+    /**
+     * Marks a single notification as read by calling the API and updating local state.
+     * @param {number} id - The ID of the notification to mark as read.
+     * @returns {Promise<void>}
+     */
     async function handleMarkAsRead(id) {
         try {
             await api.put(`/notifications/${id}/read`);
-            setNotifications(notifications.map(n => 
+            setNotifications(notifications.map(n =>
                 n.id === id ? { ...n, isRead: true } : n
             ));
         } catch (error) {
@@ -40,12 +55,15 @@ const Notifications = () => {
         }
     };
 
+    /**
+     * Marks all unread notifications as read by calling the read endpoint for each in parallel.
+     * @returns {Promise<void>}
+     */
     async function handleMarkAllAsRead() {
         const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
         if (unreadIds.length === 0) return;
 
         try {
-            // Ideally we'd have a bulk endpoint, but loop for now
             await Promise.all(unreadIds.map(id => api.put(`/notifications/${id}/read`)));
             setNotifications(notifications.map(n => ({ ...n, isRead: true })));
         } catch (error) {
@@ -58,6 +76,11 @@ const Notifications = () => {
         return true;
     }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+    /**
+     * Returns the appropriate icon element based on the notification title keywords.
+     * @param {string} title - The notification title to inspect.
+     * @returns {JSX.Element} A Lucide icon element.
+     */
     const getIcon = (title) => {
         if (title?.toLowerCase().includes('success') || title?.toLowerCase().includes('completed')) {
             return <CheckCircle2 className="w-5 h-5 text-success" />;
@@ -68,8 +91,12 @@ const Notifications = () => {
         return <Info className="w-5 h-5 text-primary" />;
     };
 
+    /**
+     * Formats an ISO date string as a human-readable relative time (e.g. "2 hours ago").
+     * @param {string} dateStr - ISO 8601 date string.
+     * @returns {string} Localized relative time string.
+     */
     const formatTimeAgo = (dateStr) => {
-        // eslint-disable-next-line react-hooks/purity
         const diff = Date.now() - new Date(dateStr).getTime();
         const minutes = Math.floor(diff / 60000);
         const hours = Math.floor(minutes / 60);
@@ -95,9 +122,9 @@ const Notifications = () => {
                         </h1>
                         <p className="text-text-secondary mt-1 text-sm">{t('notifications.subtitle')}</p>
                     </div>
-                    
+
                     {unreadCount > 0 && (
-                        <button 
+                        <button
                             onClick={handleMarkAllAsRead}
                             className="flex items-center justify-center gap-2 px-4 py-2 bg-surface border border-border text-text-secondary hover:text-primary hover:border-primary/50 rounded-xl text-sm font-medium transition-all shadow-sm active:scale-95 shrink-0"
                         >
@@ -109,7 +136,7 @@ const Notifications = () => {
 
                 {/* Filters */}
                 <div className="flex border-b border-border">
-                    <button 
+                    <button
                         onClick={() => setFilter('ALL')}
                         className={cn(
                             "px-4 py-3 text-sm font-medium transition-all relative",
@@ -119,7 +146,7 @@ const Notifications = () => {
                         {t('notifications.filterAll')}
                         {filter === 'ALL' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full"></div>}
                     </button>
-                    <button 
+                    <button
                         onClick={() => setFilter('UNREAD')}
                         className={cn(
                             "px-4 py-3 text-sm font-medium transition-all relative flex items-center gap-2",
@@ -144,12 +171,12 @@ const Notifications = () => {
                 ) : (
                     <div className="space-y-3">
                         {filteredNotifications.map(notification => (
-                            <div 
-                                key={notification.id} 
+                            <div
+                                key={notification.id}
                                 className={cn(
                                     "flex items-start gap-4 p-4 rounded-2xl border transition-all",
-                                    !notification.isRead 
-                                        ? "bg-primary/5 border-primary/20 shadow-sm" 
+                                    !notification.isRead
+                                        ? "bg-primary/5 border-primary/20 shadow-sm"
                                         : "bg-surface border-border opacity-70 hover:opacity-100"
                                 )}
                             >
@@ -159,7 +186,7 @@ const Notifications = () => {
                                 )}>
                                     {getIcon(notification.title)}
                                 </div>
-                                
+
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2 mb-1">
                                         <h3 className={cn("text-sm font-semibold truncate", !notification.isRead ? "text-text-primary" : "text-text-secondary")}>
@@ -174,7 +201,7 @@ const Notifications = () => {
                                 </div>
 
                                 {!notification.isRead && (
-                                    <button 
+                                    <button
                                         onClick={() => handleMarkAsRead(notification.id)}
                                         className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-primary hover:bg-primary/10 transition-colors"
                                         title={t('notifications.markAsRead')}

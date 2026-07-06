@@ -9,6 +9,12 @@ const LANGUAGES = [
     { code: 'zh', label: '中文', flag: '🇨🇳' }
 ];
 
+/**
+ * Dropdown component for switching the application UI language. Changes are
+ * applied immediately via i18next, persisted to localStorage, and optionally
+ * synced to the backend user preference when the user is authenticated.
+ * @returns {JSX.Element}
+ */
 const LanguageSwitcher = () => {
     const { i18n } = useTranslation();
     const [open, setOpen] = useState(false);
@@ -22,6 +28,12 @@ const LanguageSwitcher = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    /**
+     * Switches the active language, persists the choice, and closes the dropdown.
+     * Also sends a PUT /preferences update when a JWT token is present.
+     * @param {string} code - BCP-47 language code (e.g. "en", "th", "zh").
+     * @returns {Promise<void>}
+     */
     async function changeLanguage(code) {
         i18n.changeLanguage(code);
         localStorage.setItem('language', code);

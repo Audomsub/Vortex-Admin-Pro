@@ -16,6 +16,11 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Service responsible for generating and emailing scheduled summary reports to the configured
+ * report recipient.  Reports are sent as HTML emails on a weekly (every Sunday at 08:00) and
+ * monthly (1st of each month at 08:00) basis using Spring's {@link Scheduled} task executor.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -33,6 +38,10 @@ public class ScheduledReportService {
     @Value("${vortex.report.email:diwooo1661@gmail.com}")
     private String reportEmail;
 
+    /**
+     * Generates and sends the weekly summary report every Sunday at 08:00.
+     * The report covers the preceding 7-day time frame ({@code "7D"}).
+     */
     // Every Sunday at 08:00
     @Scheduled(cron = "0 0 8 ? * SUN")
     public void sendWeeklyReport() {
@@ -40,6 +49,10 @@ public class ScheduledReportService {
         sendReport("Weekly", "7D");
     }
 
+    /**
+     * Generates and sends the monthly summary report on the 1st of each month at 08:00.
+     * The report covers the preceding calendar month ({@code "1M"}).
+     */
     // Every 1st of month at 08:00
     @Scheduled(cron = "0 0 8 1 * ?")
     public void sendMonthlyReport() {
@@ -47,6 +60,15 @@ public class ScheduledReportService {
         sendReport("Monthly", "1M");
     }
 
+    /**
+     * Builds and delivers an HTML summary email for the specified report type and time frame.
+     * Collects KPI data from {@link ReportStatsService} and user/audit counts from their
+     * respective repositories, then formats the data into a styled HTML email body.
+     * Any exception during construction or delivery is caught and logged without propagating.
+     *
+     * @param type      a human-readable label for the report period (e.g., "Weekly", "Monthly")
+     * @param timeframe the time-frame code passed to {@link ReportStatsService#getReportStats(String)}
+     */
     private void sendReport(String type, String timeframe) {
         try {
             ReportStatsResponse stats = reportStatsService.getReportStats(timeframe);
@@ -71,6 +93,17 @@ public class ScheduledReportService {
         }
     }
 
+    /**
+     * Renders an HTML email body containing a dark-themed KPI summary for the report.
+     *
+     * @param type   the report period label (e.g., "Weekly")
+     * @param date   the current date formatted as {@code yyyy-MM-dd}
+     * @param total  the total number of users in the system
+     * @param active the number of currently active users
+     * @param audit  the total number of audit log entries
+     * @param stats  the aggregated report statistics for the time frame
+     * @return the full HTML string for the email body
+     */
     private String buildHtml(String type, String date, long total, long active, long audit,
                               ReportStatsResponse stats) {
         String kpiRevenue = stats.getKpis() != null ? stats.getKpis().getTotalRevenue() : "N/A";
@@ -104,6 +137,14 @@ public class ScheduledReportService {
         );
     }
 
+    /**
+     * Renders a single KPI card HTML snippet for use inside the report email body.
+     *
+     * @param label the metric label (e.g., "Total Users")
+     * @param value the formatted metric value to display (e.g., "1,234")
+     * @param color the CSS colour used for the card's accent border and value text
+     * @return the HTML string for the KPI card {@code <div>} element
+     */
     private String kpiCard(String label, String value, String color) {
         return """
             <div style="flex:1;background:#27272a;border-radius:12px;padding:20px;text-align:center;border-left:4px solid %s;">

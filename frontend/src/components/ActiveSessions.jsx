@@ -4,11 +4,21 @@ import api from '../api/axios';
 import { Monitor, Smartphone, Globe, ShieldAlert, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
+/**
+ * Renders the list of the current user's active login sessions fetched from
+ * GET /sessions. Provides per-session revoke buttons and a bulk "sign out all"
+ * action for accounts with more than one active session.
+ * @returns {JSX.Element}
+ */
 const ActiveSessions = () => {
     const { t } = useTranslation();
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    /**
+     * Loads all active sessions from GET /sessions and updates local state.
+     * @returns {Promise<void>}
+     */
     async function fetchSessions() {
         setLoading(true);
         try {
@@ -25,6 +35,11 @@ const ActiveSessions = () => {
         fetchSessions();
     }, []);
 
+    /**
+     * Revokes a single session via DELETE /sessions/:id and refreshes the list.
+     * @param {number|string} id - The session ID to revoke.
+     * @returns {Promise<void>}
+     */
     async function handleRevoke(id) {
         try {
             await api.delete(`/sessions/${id}`);
@@ -35,6 +50,11 @@ const ActiveSessions = () => {
         }
     };
 
+    /**
+     * Revokes all sessions except the current one via DELETE /sessions after
+     * user confirmation, then refreshes the list.
+     * @returns {Promise<void>}
+     */
     async function handleRevokeAll() {
         if (!await window.confirm(t('sessions.signOutAllConfirm'))) return;
         try {
@@ -46,6 +66,12 @@ const ActiveSessions = () => {
         }
     };
 
+    /**
+     * Returns a Smartphone icon for mobile user-agents and a Monitor icon for
+     * all other devices.
+     * @param {string|null} userAgent - The raw user-agent string of the session.
+     * @returns {JSX.Element}
+     */
     const getDeviceIcon = (userAgent) => {
         if (!userAgent) return <Monitor className="w-5 h-5 text-text-secondary" />;
         const info = userAgent.toLowerCase();

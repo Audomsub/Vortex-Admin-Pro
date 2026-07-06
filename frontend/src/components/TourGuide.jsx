@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Joyride, STATUS } from 'react-joyride';
 
+/**
+ * Onboarding tour component powered by react-joyride. Automatically starts
+ * a step-by-step walkthrough for first-time users and marks the tour as seen
+ * in localStorage so it does not repeat on subsequent visits.
+ * @returns {JSX.Element}
+ */
 const TourGuide = () => {
     const [run, setRun] = useState(false);
 
@@ -47,6 +53,11 @@ const TourGuide = () => {
         }
     ];
 
+    /**
+     * Handles Joyride lifecycle events and stops the tour when the user
+     * finishes or skips it.
+     * @param {{ status: string }} data - Joyride callback data containing the current status.
+     */
     const handleJoyrideCallback = (data) => {
         const { status } = data;
         const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];

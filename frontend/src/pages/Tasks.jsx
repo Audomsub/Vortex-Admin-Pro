@@ -3,19 +3,29 @@ import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import ModalPortal from '../components/ui/ModalPortal';
 import { CheckSquare, Plus, Edit2, Trash2, Search, ChevronDown } from 'lucide-react';
+import { SkeletonKanbanCard } from '../components/ui/Skeleton';
 import api from '../api/axios';
 import { toast } from '../components/ui/toastHelper';
 import { cn } from '../lib/utils';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
+/**
+ * Returns the Kanban column configuration array translated to the current locale.
+ * @param {Function} t - The react-i18next translation function.
+ * @returns {Array<{id: string, title: string, color: string}>} Array of column definitions.
+ */
 const getColumns = (t) => [
     { id: 'TODO', title: t('tasks.statusTodo'), color: 'bg-zinc-100 dark:bg-zinc-800/50' },
     { id: 'IN_PROGRESS', title: t('tasks.statusInProgress'), color: 'bg-indigo-50 dark:bg-indigo-900/10' },
     { id: 'DONE', title: t('tasks.statusDone'), color: 'bg-green-50 dark:bg-green-900/10' }
 ];
 
-
-
+/**
+ * The Tasks Kanban board page.
+ * Displays tasks grouped into TODO / IN_PROGRESS / DONE columns.
+ * Supports drag-and-drop reordering, creating, editing, and deleting tasks.
+ * @returns {JSX.Element}
+ */
 const Tasks = () => {
     const { t } = useTranslation();
     const COLUMNS = getColumns(t);
@@ -25,7 +35,7 @@ const Tasks = () => {
     const [teams, setTeams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
@@ -34,53 +44,69 @@ const Tasks = () => {
         title: '', description: '', status: 'TODO', priority: 'MEDIUM', assignedTo: '', teamId: ''
     });
 
+    // Delete confirm modal
+    const [taskToDelete, setTaskToDelete] = useState(null);
+
     useEffect(() => {
         fetchData();
     }, []);
 
+    /**
+     * Fetches tasks, users, and teams in parallel using Promise.allSettled so a
+     * permission denial on one endpoint does not blank the entire board.
+     * @returns {Promise<void>}
+     */
     async function fetchData() {
-        try {
-            setLoading(true);
-            const [tasksRes, usersRes, teamsRes] = await Promise.all([
-                api.get('/tasks'),
-                api.get('/users'),
-                api.get('/teams')
-            ]);
-            setTasks(tasksRes.data.data || []);
-            setUsers(usersRes.data.data || []);
-            setTeams(teamsRes.data.data || []);
-        } catch (error) {
-            console.error('Failed to fetch data:', error);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(true);
+        const [tasksRes, usersRes, teamsRes] = await Promise.allSettled([
+            api.get('/tasks'),
+            api.get('/users'),
+            api.get('/teams')
+        ]);
+        setTasks(tasksRes.status === 'fulfilled' ? tasksRes.value.data.data || [] : []);
+        setUsers(usersRes.status === 'fulfilled' ? usersRes.value.data.data || [] : []);
+        setTeams(teamsRes.status === 'fulfilled' ? teamsRes.value.data.data || [] : []);
+        setLoading(false);
     };
 
+    /**
+     * Opens the task create/edit modal, pre-filling form data when editing an existing task.
+     * @param {object|null} [task=null] - The task to edit, or null to open in create mode.
+     */
     const handleOpenModal = (task = null) => {
         if (task) {
             setEditingTask(task);
-            setFormData({ 
-                title: task.title, 
-                description: task.description || '', 
-                status: task.status || 'TODO', 
-                priority: task.priority || 'MEDIUM', 
-                assignedTo: task.assignedToId || '', 
-                teamId: task.teamId || '' 
+            setFormData({
+                title: task.title,
+                description: task.description || '',
+                status: task.status || 'TODO',
+                priority: task.priority || 'MEDIUM',
+                assignedTo: task.assignedToId || '',
+                teamId: task.teamId || ''
             });
         } else {
             setEditingTask(null);
-            setFormData({ 
-                title: '', description: '', status: 'TODO', priority: 'MEDIUM', assignedTo: '', teamId: '' 
+            setFormData({
+                title: '', description: '', status: 'TODO', priority: 'MEDIUM', assignedTo: '', teamId: ''
             });
         }
         setIsModalOpen(true);
     };
 
+    /**
+     * Closes the create/edit modal and resets the editing task state.
+     */
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingTask(null);
     };
 
+    /**
+     * Handles form submission for creating or updating a task.
+     * Parses numeric IDs from select values before sending the payload.
+     * @param {React.FormEvent<HTMLFormElement>} e - The form submit event.
+     * @returns {Promise<void>}
+     */
     async function handleSubmit(e) {
         e.preventDefault();
         if (isSubmitting) return;
@@ -107,8 +133,14 @@ const Tasks = () => {
         }
     };
 
-    async function handleDelete(id) {
-        if (!window.confirm(t('tasks.deleteConfirm'))) return;
+    /**
+     * Confirms and executes the deletion of the task stored in `taskToDelete` state.
+     * @returns {Promise<void>}
+     */
+    async function confirmDelete() {
+        if (!taskToDelete) return;
+        const id = taskToDelete;
+        setTaskToDelete(null);
         try {
             await api.delete(`/tasks/${id}`);
             fetchData();
@@ -118,7 +150,13 @@ const Tasks = () => {
         }
     };
 
-    // Drag Drop Handler
+    /**
+     * Handles a drag-and-drop result from the Kanban board.
+     * Optimistically updates task status in state, then persists to the API.
+     * Reverts on API error.
+     * @param {import('@hello-pangea/dnd').DropResult} result - The drag-and-drop result object.
+     * @returns {Promise<void>}
+     */
     async function onDragEnd(result) {
         const { destination, source, draggableId } = result;
 
@@ -127,12 +165,12 @@ const Tasks = () => {
 
         const taskId = parseInt(draggableId);
         const newStatus = destination.droppableId;
-        
+
         const task = tasks.find(task => task.id === taskId);
         if (task && task.status !== newStatus) {
             const updatedTasks = tasks.map(task => task.id === taskId ? { ...task, status: newStatus } : task);
             setTasks(updatedTasks);
-            
+
             try {
                 await api.put(`/tasks/${taskId}`, {
                     title: task.title,
@@ -150,6 +188,11 @@ const Tasks = () => {
         }
     };
 
+    /**
+     * Returns Tailwind CSS classes for a task priority badge.
+     * @param {'HIGH'|'MEDIUM'|'LOW'|string} priority - The task priority value.
+     * @returns {string} CSS class string for the badge.
+     */
     const getPriorityColor = (priority) => {
         switch (priority) {
             case 'HIGH': return 'text-danger bg-danger/10 border-danger/20';
@@ -178,15 +221,15 @@ const Tasks = () => {
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-                            <input 
-                                type="text" 
-                                placeholder={t('tasks.searchPlaceholder')} 
+                            <input
+                                type="text"
+                                placeholder={t('tasks.searchPlaceholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full sm:w-64 pl-10 pr-4 py-2 bg-surface border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                             />
                         </div>
-                        <button 
+                        <button
                             onClick={() => handleOpenModal()}
                             className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all shadow-lg shadow-primary/20 shrink-0"
                         >
@@ -198,8 +241,18 @@ const Tasks = () => {
 
                 {/* Kanban Board */}
                 {loading ? (
-                    <div className="flex items-center justify-center flex-1">
-                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0 overflow-x-auto pb-4">
+                        {COLUMNS.map(column => (
+                            <div key={column.id} className={cn('flex-1 min-w-[300px] flex flex-col rounded-2xl border border-border p-4', column.color)}>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="skeleton w-24 h-5 rounded-xl" />
+                                    <div className="skeleton w-8 h-6 rounded-md" />
+                                </div>
+                                <div className="space-y-3">
+                                    {Array.from({ length: 3 }).map((_, i) => <SkeletonKanbanCard key={i} />)}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : (
                     <DragDropContext onDragEnd={onDragEnd}>
@@ -207,7 +260,7 @@ const Tasks = () => {
                             {COLUMNS.map(column => (
                                 <Droppable droppableId={column.id} key={column.id}>
                                     {(provided) => (
-                                        <div 
+                                        <div
                                             ref={provided.innerRef}
                                             {...provided.droppableProps}
                                             className={cn("flex-1 min-w-[300px] flex flex-col rounded-2xl border border-border p-4", column.color)}
@@ -218,12 +271,12 @@ const Tasks = () => {
                                                     {filteredTasks.filter(task => task.status === column.id).length}
                                                 </span>
                                             </div>
-                                            
+
                                             <div className="flex-1 overflow-y-auto space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                                 {filteredTasks.filter(task => task.status === column.id).map((task, index) => (
                                                     <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
                                                         {(provided, snapshot) => (
-                                                            <div 
+                                                            <div
                                                                 ref={provided.innerRef}
                                                                 {...provided.draggableProps}
                                                                 {...provided.dragHandleProps}
@@ -237,10 +290,18 @@ const Tasks = () => {
                                                                         {task.priority || 'NONE'}
                                                                     </span>
                                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                        <button onClick={() => handleOpenModal(task)} className="p-1 text-text-secondary hover:text-primary transition-colors">
+                                                                        <button
+                                                                            onPointerDown={(e) => e.stopPropagation()}
+                                                                            onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
+                                                                            className="p-1 text-text-secondary hover:text-primary transition-colors"
+                                                                        >
                                                                             <Edit2 className="w-3.5 h-3.5" />
                                                                         </button>
-                                                                        <button onClick={() => handleDelete(task.id)} className="p-1 text-text-secondary hover:text-danger transition-colors">
+                                                                        <button
+                                                                            onPointerDown={(e) => e.stopPropagation()}
+                                                                            onClick={(e) => { e.stopPropagation(); setTaskToDelete(task.id); }}
+                                                                            className="p-1 text-text-secondary hover:text-danger transition-colors"
+                                                                        >
                                                                             <Trash2 className="w-3.5 h-3.5" />
                                                                         </button>
                                                                     </div>
@@ -249,14 +310,14 @@ const Tasks = () => {
                                                                 {task.description && (
                                                                     <p className="text-xs text-text-secondary line-clamp-2 mb-3">{task.description}</p>
                                                                 )}
-                                                                
+
                                                                 <div className="flex items-center justify-between mt-4">
                                                                     {task.teamName ? (
                                                                         <span className="text-[10px] font-medium bg-black/5 dark:bg-white/5 text-text-secondary px-2 py-1 rounded-md">
                                                                             {task.teamName}
                                                                         </span>
                                                                     ) : <div />}
-                                                                    
+
                                                                     {task.assignedToUsername && (
                                                                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-[10px] text-white font-bold" title={task.assignedToUsername}>
                                                                             {task.assignedToUsername.charAt(0).toUpperCase()}
@@ -295,8 +356,8 @@ const Tasks = () => {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('tasks.taskTitle')}</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     required
                                     value={formData.title}
                                     onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -304,7 +365,7 @@ const Tasks = () => {
                                     placeholder={t('tasks.taskTitlePlaceholder')}
                                 />
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('tasks.statusLabel')}</label>
@@ -375,7 +436,7 @@ const Tasks = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-text-secondary mb-1.5 ml-1">{t('tasks.descriptionLabel')}</label>
-                                <textarea 
+                                <textarea
                                     rows="3"
                                     value={formData.description}
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -384,7 +445,7 @@ const Tasks = () => {
                                 ></textarea>
                             </div>
                             <div className="flex gap-3 pt-4 border-t border-border mt-6">
-                                <button 
+                                <button
                                     type="button"
                                     onClick={handleCloseModal}
                                     className="flex-1 py-3 text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl font-medium transition-colors"
@@ -402,6 +463,40 @@ const Tasks = () => {
                         </form>
                     </div>
                 </div>
+                </ModalPortal>
+            )}
+
+            {/* Delete Confirm Modal */}
+            {taskToDelete && (
+                <ModalPortal>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setTaskToDelete(null)} />
+                        <div className="relative bg-surface rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-border animate-in fade-in zoom-in duration-200">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-danger/10 flex items-center justify-center shrink-0">
+                                    <Trash2 className="w-5 h-5 text-danger" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-text-primary">{t('tasks.deleteTitle') || 'Delete Task'}</h3>
+                                    <p className="text-sm text-text-secondary">{t('tasks.deleteConfirm') || 'Are you sure you want to delete this task?'}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => setTaskToDelete(null)}
+                                    className="flex-1 py-2.5 text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl font-medium transition-colors"
+                                >
+                                    {t('tasks.cancel') || 'Cancel'}
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="flex-1 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl font-medium transition-all shadow-lg shadow-danger/20 active:scale-95"
+                                >
+                                    {t('tasks.deleteBtn') || 'Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </ModalPortal>
             )}
         </Layout>

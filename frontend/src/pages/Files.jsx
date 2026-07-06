@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layout/Layout';
 import ModalPortal from '../components/ui/ModalPortal';
-import { 
-    Folder, File as FileIcon, UploadCloud, Trash2, Edit2, 
+import {
+    Folder, File as FileIcon, UploadCloud, Trash2, Edit2,
     Download, Image as ImageIcon, FileText, Search,
     FileArchive, MonitorPlay, Check, X
 } from 'lucide-react';
+import { SkeletonFileCard } from '../components/ui/Skeleton';
 import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 
@@ -231,8 +232,8 @@ const Files = () => {
 
                 {/* Grid */}
                 {loading ? (
-                    <div className="flex items-center justify-center py-20">
-                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        {Array.from({ length: 10 }).map((_, i) => <SkeletonFileCard key={i} />)}
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

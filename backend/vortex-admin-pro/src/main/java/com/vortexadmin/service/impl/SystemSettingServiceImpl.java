@@ -16,12 +16,23 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Handles system-wide configuration business logic, including retrieval of all
+ * key-value settings, lookup by key, and upsert operations that create the setting
+ * if it does not already exist or update its value if it does.
+ */
 @Service
 @RequiredArgsConstructor
 public class SystemSettingServiceImpl implements SystemSettingService {
 
     private final SystemSettingRepository systemSettingRepository;
 
+    /**
+     * Maps a {@link SystemSetting} entity to a {@link SettingResponse} DTO.
+     *
+     * @param setting the system setting entity to map
+     * @return the corresponding setting response DTO
+     */
     private SettingResponse mapToResponse(SystemSetting setting) {
         return SettingResponse.builder()
                 .id(setting.getId())
@@ -30,6 +41,11 @@ public class SystemSettingServiceImpl implements SystemSettingService {
                 .build();
     }
 
+    /**
+     * Returns all system settings stored in the database.
+     *
+     * @return a list of all setting response DTOs
+     */
     @Override
     public List<SettingResponse> getAllSettings() {
         return systemSettingRepository.findAll().stream()
@@ -37,6 +53,13 @@ public class SystemSettingServiceImpl implements SystemSettingService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns the system setting identified by the given key.
+     *
+     * @param key the setting key to look up
+     * @return the setting response DTO for the matching key
+     * @throws ApiException with {@code 404} if no setting with that key exists
+     */
     @Override
     public SettingResponse getSettingByKey(String key) {
         SystemSetting setting = systemSettingRepository.findBySettingKey(key)
@@ -44,6 +67,13 @@ public class SystemSettingServiceImpl implements SystemSettingService {
         return mapToResponse(setting);
     }
 
+    /**
+     * Creates or updates the system setting identified by the key in the request.
+     * If a setting with the given key already exists its value is updated; otherwise
+     * a new setting record is created (upsert behaviour).
+     *
+     * @param request the upsert request containing the setting key and new value
+     */
     @Override
     @Transactional
     public void updateSetting(SettingRequest request) {

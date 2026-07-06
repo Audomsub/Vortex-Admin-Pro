@@ -4,6 +4,13 @@ import { ShieldCheck, ShieldOff, Copy, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { twoFactorService } from '../services/twoFactorService';
 
+/**
+ * Two-factor authentication settings panel that allows users to enable or
+ * disable TOTP-based 2FA. Displays a QR code and manual secret for setup,
+ * shows one-time backup codes after activation, and prompts for a TOTP code
+ * to confirm disabling 2FA.
+ * @returns {JSX.Element}
+ */
 const TwoFactorSettings = () => {
     const { t } = useTranslation();
     const [status, setStatus] = useState({ enabled: false, remainingBackupCodes: 0 });
@@ -14,6 +21,11 @@ const TwoFactorSettings = () => {
     const [error, setError] = useState('');
     const [copied, setCopied] = useState(false);
 
+    /**
+     * Fetches the current 2FA enablement status from GET /2fa/status and
+     * updates the local state.
+     * @returns {Promise<void>}
+     */
     async function fetchStatus() {
         try {
             const res = await twoFactorService.getStatus();
@@ -27,6 +39,11 @@ const TwoFactorSettings = () => {
         fetchStatus();
     }, []);
 
+    /**
+     * Initiates the 2FA setup flow via POST /2fa/setup and stores the
+     * returned secret and OTP auth URL for QR code rendering.
+     * @returns {Promise<void>}
+     */
     async function handleSetup() {
         setError('');
         try {
@@ -37,6 +54,12 @@ const TwoFactorSettings = () => {
         }
     };
 
+    /**
+     * Submits the entered TOTP code to POST /2fa/verify to activate 2FA and
+     * reveals the one-time backup codes.
+     * @param {React.FormEvent} e
+     * @returns {Promise<void>}
+     */
     async function handleVerify(e) {
         e.preventDefault();
         setError('');
@@ -51,6 +74,12 @@ const TwoFactorSettings = () => {
         }
     };
 
+    /**
+     * Submits the current TOTP or backup code to POST /2fa/disable to turn off
+     * two-factor authentication.
+     * @param {React.FormEvent} e
+     * @returns {Promise<void>}
+     */
     async function handleDisable(e) {
         e.preventDefault();
         setError('');
@@ -65,6 +94,10 @@ const TwoFactorSettings = () => {
         }
     };
 
+    /**
+     * Copies the TOTP secret to the system clipboard and briefly shows a
+     * confirmation checkmark icon.
+     */
     const copySecret = () => {
         navigator.clipboard.writeText(setupData.secret);
         setCopied(true);

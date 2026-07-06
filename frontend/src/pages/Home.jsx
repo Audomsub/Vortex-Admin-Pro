@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
-import { 
+import {
     Users, Activity, UsersRound, CheckSquare, Clock,
     ArrowUpRight, ArrowDownRight, CircleCheck, AlertTriangle, Calendar
 } from 'lucide-react';
-import { 
+import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
@@ -16,11 +16,28 @@ import { createSseClient } from '../utils/sseClient';
 
 const COLORS = ['#6366F1', '#8B5CF6', '#22D3EE', '#10B981', '#F59E0B'];
 
+/**
+ * Determines the trend direction from a trend string.
+ * Returns true for positive trend, false for negative, null for zero or empty.
+ * @param {string} trend - The trend string (e.g. "+5%", "-3%", "0%").
+ * @returns {boolean|null} true if positive, false if negative, null if neutral.
+ */
 const trendDirection = (trend) => {
     if (!trend || trend.startsWith('0')) return null;
     return trend.startsWith('-') ? false : true;
 };
 
+/**
+ * Displays a single KPI statistic card with an icon, value, and optional trend badge.
+ * @param {object} props
+ * @param {string} props.title - Label shown below the value.
+ * @param {string|number} props.value - The primary metric value.
+ * @param {string} [props.trend] - Trend string (e.g. "+5%").
+ * @param {React.ElementType} props.icon - Lucide icon component to render.
+ * @param {boolean|null} [props.positive] - Whether the trend is positive, negative, or neutral.
+ * @param {string} [props.className] - Extra CSS classes for animation staggering.
+ * @returns {JSX.Element}
+ */
 const StatCard = ({ title, value, trend, icon: Icon, positive, className }) => (
     <div className={`bg-surface p-5 rounded-2xl border border-border shadow-premium flex flex-col justify-between group hover:border-primary/40 hover-lift ${className || ''}`}>
         <div className="flex justify-between items-start mb-4">
@@ -45,6 +62,14 @@ const StatCard = ({ title, value, trend, icon: Icon, positive, className }) => (
     </div>
 );
 
+/**
+ * Renders a labeled horizontal progress bar for system health metrics.
+ * @param {object} props
+ * @param {string} props.label - The metric name (e.g. "CPU Usage").
+ * @param {string} props.value - The display value (e.g. "45%"), also used as bar width.
+ * @param {string} props.color - Tailwind background color class (e.g. "bg-primary").
+ * @returns {JSX.Element}
+ */
 const HealthBar = ({ label, value, color }) => (
     <div>
         <div className="flex justify-between text-xs font-medium mb-1">
@@ -57,6 +82,15 @@ const HealthBar = ({ label, value, color }) => (
     </div>
 );
 
+/**
+ * Renders a single item in the recent activity timeline feed.
+ * @param {object} props
+ * @param {string} props.title - Short title of the activity event.
+ * @param {string} props.desc - Longer description of what happened.
+ * @param {string} props.time - Human-readable timestamp string.
+ * @param {'primary'|'success'|'warning'|'danger'} props.type - Determines the icon and color scheme.
+ * @returns {JSX.Element}
+ */
 const ActivityItem = ({ title, desc, time, type }) => {
     const colors = {
         primary: 'bg-primary border-primary/20 text-primary',
@@ -89,12 +123,24 @@ const ActivityItem = ({ title, desc, time, type }) => {
     );
 };
 
+/**
+ * The main dashboard Home page.
+ * Fetches aggregate stats from the backend on mount and subscribes to real-time
+ * SSE updates for live dashboard refresh. Renders KPI cards, charts (user growth,
+ * task activity, login activity, role distribution), system health, recent
+ * activities, and latest users.
+ * @returns {JSX.Element}
+ */
 const Home = () => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    /**
+     * Fetches dashboard statistics from the API and updates local state.
+     * @returns {Promise<void>}
+     */
     async function fetchStats() {
         try {
             const response = await api.get('/dashboard/stats');
@@ -109,11 +155,10 @@ const Home = () => {
     useEffect(() => {
         fetchStats();
 
-        // Setup SSE for real-time dashboard updates
-        const token = localStorage.getItem('token');
-        if (token) {
+        // Setup SSE for real-time dashboard updates; token getter keeps reconnects fresh
+        if (localStorage.getItem('token')) {
             const apiUrl = import.meta.env.VITE_API_URL;
-            const cleanup = createSseClient(`${apiUrl}/notifications/stream`, token, {
+            const cleanup = createSseClient(`${apiUrl}/notifications/stream`, () => localStorage.getItem('token'), {
                 dashboard_update: () => fetchStats(),
             });
             return cleanup;
@@ -155,7 +200,7 @@ const Home = () => {
     return (
         <Layout>
             <div className="space-y-6">
-                
+
                 {/* Hero Section */}
                 <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-6 lg:p-8 rounded-3xl border border-border shadow-premium animate-enter stagger-1">
                     <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-primary/[0.07] via-transparent to-secondary/[0.07]"></div>
@@ -201,7 +246,7 @@ const Home = () => {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                                    <Tooltip 
+                                    <Tooltip
                                         contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '12px', color: 'var(--text-primary)' }}
                                         itemStyle={{ color: 'var(--text-primary)' }}
                                     />
@@ -222,7 +267,7 @@ const Home = () => {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                                    <Tooltip 
+                                    <Tooltip
                                         cursor={{fill: 'var(--border)', opacity: 0.4}}
                                         contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '12px', color: 'var(--text-primary)' }}
                                     />
@@ -301,12 +346,12 @@ const Home = () => {
                         </div>
                         <div className="space-y-6">
                             {stats.recentActivities.length > 0 ? stats.recentActivities.map((act, i) => (
-                                <ActivityItem 
+                                <ActivityItem
                                     key={i}
-                                    title={act.title} 
-                                    desc={act.desc} 
-                                    time={act.time} 
-                                    type={act.type} 
+                                    title={act.title}
+                                    desc={act.desc}
+                                    time={act.time}
+                                    type={act.type}
                                     />
                             )) : (
                                 <p className="text-text-secondary text-sm">{t('home.noRecentActivities')}</p>

@@ -9,6 +9,7 @@ import com.vortexadmin.repository.*;
 import com.vortexadmin.service.DashboardService;
 import com.vortexadmin.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -25,6 +26,11 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+/**
+ * Handles dashboard data aggregation business logic, assembling stat cards, chart data,
+ * role distribution, real-time system health metrics, recent audit activities, and the
+ * latest registered users into a single cached response per authenticated user.
+ */
 @Service
 @RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
@@ -38,6 +44,18 @@ public class DashboardServiceImpl implements DashboardService {
     private final UserSessionRepository userSessionRepository;
     private final DataSource dataSource;
 
+    /**
+     * Assembles and returns the full dashboard data for the current user.
+     * The response includes stat cards (with month-over-month trend percentages),
+     * a 6-month user growth chart, a 7-day task activity chart, a 6-month login activity
+     * chart, a role distribution breakdown, a live system health snapshot, the 5 most
+     * recent audit log entries, and the 4 most recently registered users.
+     * Results are cached per user id using the {@code dashboard} cache.
+     *
+     * @return the fully populated {@link DashboardDataResponse} for the current user
+     * @throws ApiException with {@code 404} if the current user record does not exist
+     */
+    @Cacheable(value = "dashboard", key = "T(com.vortexadmin.util.SecurityUtils).getCurrentUserId()")
     @Override
     public DashboardDataResponse getDashboardStats() {
         User currentUser = userRepository.findById(SecurityUtils.getCurrentUserId())
@@ -90,6 +108,16 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
+    /**
+     * Calculates a month-over-month trend percentage string from two counts.
+     * Returns "+100%" when there was no previous value but there is a current value,
+     * "0%" when the previous count is zero and there is no growth, and the signed
+     * percentage otherwise (e.g. "+25%" or "-10%").
+     *
+     * @param current  the count for the current period
+     * @param previous the count for the previous period
+     * @return a signed percentage trend string such as "+12%" or "-5%"
+     */
     private String calculateTrend(long current, long previous) {
         if (previous == 0) {
             return current > 0 ? "+100%" : "0%";
@@ -98,6 +126,13 @@ public class DashboardServiceImpl implements DashboardService {
         return percent > 0 ? "+" + percent + "%" : percent + "%";
     }
 
+    /**
+     * Generates a 6-month user growth chart by computing the cumulative total and active
+     * user counts at the end of each of the last six calendar months.
+     *
+     * @return a list of six {@link DashboardDataResponse.ChartData} entries, each labelled
+     *         with a 3-letter month abbreviation and populated with {@code users} and {@code active} counts
+     */
     private List<DashboardDataResponse.ChartData> generateUserGrowthChart() {
         LocalDate now = LocalDate.now();
         List<DashboardDataResponse.ChartData> chart = new ArrayList<>();
@@ -116,6 +151,14 @@ public class DashboardServiceImpl implements DashboardService {
         return chart;
     }
 
+    /**
+     * Generates a 7-day task activity chart by counting created and completed (DONE) tasks
+     * for each of the last seven days. Tasks are fetched in one query and bucketed by day
+     * name abbreviation (e.g. "Mon", "Tue").
+     *
+     * @return a list of seven {@link DashboardDataResponse.ChartData} entries, each labelled
+     *         with a 3-letter day abbreviation and populated with {@code created} and {@code completed} counts
+     */
     private List<DashboardDataResponse.ChartData> generateTaskActivityChart() {
         Map<String, long[]> taskCountsByDay = new LinkedHashMap<>();
         LocalDate now = LocalDate.now();
@@ -155,6 +198,14 @@ public class DashboardServiceImpl implements DashboardService {
 
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("MMM yyyy");
 
+    /**
+     * Generates a 6-month login activity chart by counting total logins and concurrent
+     * active sessions (sessions with no logout timestamp) per calendar month.
+     *
+     * @return a list of six {@link DashboardDataResponse.ChartData} entries, each labelled
+     *         with "MMM yyyy" and populated with {@code users} (total logins) and
+     *         {@code active} (open sessions) counts
+     */
     private List<DashboardDataResponse.ChartData> generateLoginActivityChart() {
         Map<YearMonth, long[]> loginCountsByMonth = new LinkedHashMap<>(); // [totalLogins, activeSessions]
         LocalDate now = LocalDate.now();
@@ -188,6 +239,13 @@ public class DashboardServiceImpl implements DashboardService {
         return chart;
     }
 
+    /**
+     * Generates the role distribution data by querying the number of users per role name
+     * directly from the database.
+     *
+     * @return a list of {@link DashboardDataResponse.DistributionData} entries, each with
+     *         a role name and the count of users assigned to that role
+     */
     private List<DashboardDataResponse.DistributionData> generateRoleDistribution() {
         List<DashboardDataResponse.DistributionData> distribution = new ArrayList<>();
         for (Object[] row : userRepository.countUsersByRole()) {
@@ -199,6 +257,15 @@ public class DashboardServiceImpl implements DashboardService {
         return distribution;
     }
 
+    /**
+     * Captures real-time JVM memory usage, disk storage usage, CPU load (via the
+     * {@code com.sun.management.OperatingSystemMXBean} extension), and database
+     * connectivity by acquiring and validating a JDBC connection with a 2-second timeout.
+     * CPU is reported as 0% if the JVM does not expose the extended OS bean.
+     *
+     * @return a {@link DashboardDataResponse.SystemHealth} snapshot with percentage strings
+     *         for CPU, memory, and storage, plus a "Connected" or "Disconnected" database status
+     */
     private DashboardDataResponse.SystemHealth generateSystemHealth() {
         Runtime runtime = Runtime.getRuntime();
         long maxMemory = runtime.maxMemory();
@@ -241,9 +308,17 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
+    /**
+     * Fetches the 5 most recent audit log entries and converts each into an activity DTO
+     * with a human-readable relative time string (e.g. "5 mins ago", "2 hours ago") and
+     * a color-coded type ("danger" for DELETE, "success" for CREATE, "warning" for UPDATE,
+     * "primary" for all others).
+     *
+     * @return a list of up to 5 {@link DashboardDataResponse.ActivityDto} entries
+     */
     private List<DashboardDataResponse.ActivityDto> generateRecentActivities() {
         List<DashboardDataResponse.ActivityDto> activities = new ArrayList<>();
-        for (AuditLog log : auditLogRepository.findTop5ByOrderByCreatedAtDesc()) {
+        for (AuditLog log : auditLogRepository.findTop5WithUser(org.springframework.data.domain.PageRequest.of(0, 5))) {
             String type = "primary";
             if ("DELETE".equalsIgnoreCase(log.getAction())) type = "danger";
             else if ("CREATE".equalsIgnoreCase(log.getAction())) type = "success";
@@ -267,6 +342,14 @@ public class DashboardServiceImpl implements DashboardService {
         return activities;
     }
 
+    /**
+     * Fetches the 4 most recently registered (non-deleted) users and maps each to a
+     * lightweight user DTO that includes an avatar text fallback: the first letter of the
+     * first name if available, otherwise the first letter of the username, or "?" if both
+     * are absent.
+     *
+     * @return a list of up to 4 {@link DashboardDataResponse.UserDto} entries for the newest users
+     */
     private List<DashboardDataResponse.UserDto> generateLatestUsers() {
         List<DashboardDataResponse.UserDto> latest = new ArrayList<>();
         for (User u : userRepository.findTop4ByDeletedAtIsNullOrderByCreatedAtDesc()) {
@@ -281,6 +364,13 @@ public class DashboardServiceImpl implements DashboardService {
         return latest;
     }
 
+    /**
+     * Resolves a single-character avatar text for a user by checking the first name first,
+     * then falling back to the username, and finally to "?" if neither is available.
+     *
+     * @param u the user entity whose avatar text is needed
+     * @return a single uppercase character representing the user, or "?" if no name is set
+     */
     private String resolveAvatarText(com.vortexadmin.entity.User u) {
         if (u.getFirstName() != null && !u.getFirstName().isEmpty()) {
             return u.getFirstName().substring(0, 1).toUpperCase();

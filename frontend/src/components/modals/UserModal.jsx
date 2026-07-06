@@ -3,6 +3,14 @@ import { X } from 'lucide-react';
 import api from '../../api/axios';
 import ModalPortal from '../ui/ModalPortal';
 
+/**
+ * Modal form component for creating, editing, or viewing a user. In create
+ * mode it posts to POST /users; in edit mode it puts to PUT /users/:id.
+ * When `isViewOnly` is true all fields are read-only and no submit button is
+ * shown.
+ * @param {{ isOpen: boolean, onClose: function, user: object|null, onSuccess: function, isViewOnly?: boolean }} props
+ * @returns {JSX.Element|null}
+ */
 const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => {
     const [formData, setFormData] = useState({
         username: '',
@@ -17,6 +25,11 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    /**
+     * Fetches available roles from GET /roles and pre-selects the user's current
+     * role when editing an existing user.
+     * @returns {Promise<void>}
+     */
     async function fetchRoles() {
         try {
             const response = await api.get('/roles');
@@ -61,10 +74,20 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, user]);
 
+    /**
+     * Updates a single form field in state when the user types.
+     * @param {React.ChangeEvent<HTMLInputElement|HTMLSelectElement>} e
+     */
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    /**
+     * Submits the form data to create (POST /users) or update (PUT /users/:id)
+     * a user, then calls onSuccess and closes the modal on success.
+     * @param {React.FormEvent} e
+     * @returns {Promise<void>}
+     */
     async function handleSubmit(e) {
         e.preventDefault();
         setLoading(true);
@@ -121,9 +144,9 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
 
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-text-secondary">Username *</label>
-                        <input 
+                        <input
                             required
-                            type="text" 
+                            type="text"
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
@@ -134,9 +157,9 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
 
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-text-secondary">Email Address *</label>
-                        <input 
+                        <input
                             required
-                            type="email" 
+                            type="email"
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
@@ -148,8 +171,8 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-text-secondary">First Name</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 name="firstName"
                                 value={formData.firstName}
                                 onChange={handleChange}
@@ -159,8 +182,8 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-text-secondary">Last Name</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 name="lastName"
                                 value={formData.lastName}
                                 onChange={handleChange}
@@ -173,9 +196,9 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                     {(!user && !isViewOnly) && (
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-text-secondary">Password *</label>
-                            <input 
+                            <input
                                 required={!user}
-                                type="password" 
+                                type="password"
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
@@ -186,7 +209,7 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
 
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-text-secondary">Role</label>
-                        <select 
+                        <select
                             required
                             name="roleId"
                             value={formData.roleId}
@@ -204,7 +227,7 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                     {user && (
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-text-secondary">Status</label>
-                            <select 
+                            <select
                                 name="status"
                                 value={formData.status}
                                 onChange={handleChange}
@@ -218,16 +241,16 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                     )}
 
                     <div className="pt-4 flex justify-end gap-3">
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             onClick={onClose}
                             className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
                         >
                             {isViewOnly ? 'Close' : 'Cancel'}
                         </button>
                         {!isViewOnly && (
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 disabled={loading}
                                 className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-medium transition-all shadow-sm shadow-primary/20 disabled:opacity-50"
                             >

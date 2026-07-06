@@ -4,6 +4,12 @@ import { Search, FileText, Users, CheckSquare } from 'lucide-react';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
 import './GlobalSearch.css'; // Minimal CSS for CMDK dialog
 
+/**
+ * API-backed global search dialog built with the cmdk library. Renders grouped
+ * results for pages, users, and tasks returned by GET /search. Hidden when
+ * the search state is closed.
+ * @returns {JSX.Element|null}
+ */
 const GlobalSearch = () => {
     const { isOpen, setIsOpen, query, setQuery, results, loading } = useGlobalSearch();
     const navigate = useNavigate();
@@ -11,6 +17,10 @@ const GlobalSearch = () => {
     // Prevent closing immediately when clicking inside
     if (!isOpen) return null;
 
+    /**
+     * Navigates to the URL of the selected search result and closes the dialog.
+     * @param {string} url - The destination URL for the selected result.
+     */
     const handleSelect = (url) => {
         setIsOpen(false);
         navigate(url);
@@ -19,7 +29,7 @@ const GlobalSearch = () => {
     return (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
-            
+
             <Command
                 className="relative z-50 w-full max-w-xl bg-surface dark:bg-zinc-950 border border-border rounded-2xl shadow-2xl overflow-hidden cmdk-dialog"
                 shouldFilter={false} // API does the filtering

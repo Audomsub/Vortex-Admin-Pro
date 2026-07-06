@@ -37,6 +37,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Handles report export business logic by fetching up to {@value #MAX_EXPORT_ROWS} rows
+ * for each supported report type and serialising the data into CSV (with UTF-8 BOM for
+ * Excel compatibility), XLSX (Apache POI), or PDF (OpenPDF with Thai font support)
+ * output formats.
+ */
 @Service
 @RequiredArgsConstructor
 public class ReportExportServiceImpl implements ReportExportService {
@@ -51,17 +57,48 @@ public class ReportExportServiceImpl implements ReportExportService {
 
     private static final int MAX_EXPORT_ROWS = 10_000;
 
+    /**
+     * Internal record that groups the report title, column headers, and all data rows
+     * together before they are serialised into the target format.
+     *
+     * @param title   the human-readable report title (used in PDF and XLSX sheet name)
+     * @param headers the column header labels
+     * @param rows    the data rows, each represented as a list of string cell values
+     */
     private record ReportData(String title, List<String> headers, List<List<String>> rows) {
     }
 
+    /**
+     * Formats a {@link LocalDateTime} value as a string using the pattern
+     * {@code yyyy-MM-dd HH:mm:ss}, or returns an empty string if the value is {@code null}.
+     *
+     * @param dateTime the date-time to format, or {@code null}
+     * @return the formatted date-time string, or "" if {@code null}
+     */
     private String formatDate(LocalDateTime dateTime) {
         return dateTime != null ? dateTime.format(DATE_FORMAT) : "";
     }
 
+    /**
+     * Converts an object to its string representation, returning an empty string for
+     * {@code null} values. Used to safely convert entity field values to cell strings.
+     *
+     * @param value the object to convert
+     * @return the string representation, or "" if {@code null}
+     */
     private String nvl(Object value) {
         return value != null ? String.valueOf(value) : "";
     }
 
+    /**
+     * Fetches the data for the requested report type and returns it as a {@link ReportData}
+     * record. Supported types: "users", "audit", "activity", "organizations", "billing".
+     * Each type fetches up to {@value #MAX_EXPORT_ROWS} rows from the corresponding repository.
+     *
+     * @param reportType the case-insensitive report type identifier
+     * @return a {@link ReportData} record containing the title, headers, and row data
+     * @throws ApiException with {@code 400} if the report type is not recognised
+     */
     private ReportData buildReportData(String reportType) {
         switch (reportType.toLowerCase()) {
             case "users":
@@ -123,6 +160,16 @@ public class ReportExportServiceImpl implements ReportExportService {
         }
     }
 
+    /**
+     * Exports the specified report type in the specified format. Delegates data fetching
+     * to {@link #buildReportData(String)} and serialisation to the appropriate format method.
+     * The returned filename is timestamped (e.g. {@code users-report-20240101-120000.csv}).
+     *
+     * @param reportType the report type to export (e.g. "users", "audit", "billing")
+     * @param format     the output format: "csv", "excel"/"xlsx", or "pdf"
+     * @return an {@link ExportFileResponse} containing the filename, MIME content type, and file bytes
+     * @throws ApiException with {@code 400} if the report type or format is not recognised
+     */
     @Override
     public ExportFileResponse export(String reportType, String format) {
         ReportData data = buildReportData(reportType);
@@ -154,6 +201,13 @@ public class ReportExportServiceImpl implements ReportExportService {
         }
     }
 
+    /**
+     * Escapes a single CSV field value per RFC-4180: fields containing commas, double-quotes,
+     * or newlines are wrapped in double-quotes, and any embedded double-quotes are doubled.
+     *
+     * @param value the raw field value to escape
+     * @return the escaped field string, or "" if {@code null}
+     */
     private String escapeCsv(String value) {
         if (value == null) return "";
         if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
@@ -162,6 +216,14 @@ public class ReportExportServiceImpl implements ReportExportService {
         return value;
     }
 
+    /**
+     * Serialises the report data as a UTF-8 CSV byte array prefixed with a UTF-8 BOM
+     * ({@code EF BB BF}) so Excel opens the file with correct character encoding,
+     * including Thai and other multibyte characters.
+     *
+     * @param data the report data to serialise
+     * @return the CSV file content as a byte array with UTF-8 BOM
+     */
     private byte[] toCsv(ReportData data) {
         StringBuilder sb = new StringBuilder();
         sb.append(data.headers().stream().map(this::escapeCsv).collect(Collectors.joining(","))).append("\n");
@@ -177,6 +239,14 @@ public class ReportExportServiceImpl implements ReportExportService {
         return result;
     }
 
+    /**
+     * Serialises the report data as an XLSX workbook using Apache POI. Header cells are
+     * rendered in bold, and all columns are auto-sized after data population.
+     *
+     * @param data the report data to serialise
+     * @return the XLSX workbook content as a byte array
+     * @throws ApiException with {@code 500} if workbook generation fails
+     */
     private byte[] toExcel(ReportData data) {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet(data.title());
@@ -212,6 +282,17 @@ public class ReportExportServiceImpl implements ReportExportService {
         }
     }
 
+    /**
+     * Serialises the report data as a landscape A4 PDF using OpenPDF. Attempts to locate
+     * a Thai-supporting TrueType font (Tahoma on Windows, TlwgTypo on Linux, Tahoma on macOS)
+     * in common OS font paths to support multibyte characters; falls back to Helvetica if
+     * no suitable font is found. The PDF includes a title, a generation timestamp with record
+     * count, and a full-width table with bold column headers.
+     *
+     * @param data the report data to serialise
+     * @return the PDF file content as a byte array
+     * @throws ApiException with {@code 500} if PDF generation fails
+     */
     private byte[] toPdf(ReportData data) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4.rotate(), 24, 24, 32, 32);

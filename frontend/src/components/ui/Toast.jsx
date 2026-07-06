@@ -7,6 +7,10 @@ import { cn } from '../../lib/utils';
 let _audioCtx = null;
 let _audioReady = false;
 
+/**
+ * Initialises the Web Audio API AudioContext on the first user interaction
+ * to comply with browser autoplay policies. Safe to call multiple times.
+ */
 const unlockAudio = () => {
     if (_audioReady) return;
     try {
@@ -21,6 +25,10 @@ const unlockAudio = () => {
     window.addEventListener(evt, unlockAudio, { once: true, capture: true })
 );
 
+/**
+ * Plays a two-tone C5–E5 notification chime using the Web Audio API.
+ * Silently no-ops if the AudioContext has not been unlocked yet.
+ */
 const playChime = () => {
     if (!_audioReady || !_audioCtx) return;
     try {
@@ -43,6 +51,12 @@ const playChime = () => {
     } catch { /* ignore */ }
 };
 
+/**
+ * Renders a single toast notification card with an icon, title, message,
+ * optional action button, auto-dismiss progress bar, and hover-pause behaviour.
+ * @param {{ item: object, onRemove: function }} props
+ * @returns {JSX.Element}
+ */
 // Single Toast Card Component
 const ToastCard = ({ item, onRemove }) => {
     const navigate = useNavigate();
@@ -53,6 +67,9 @@ const ToastCard = ({ item, onRemove }) => {
     const remainingTime = useRef(item.duration);
     const isHovered = useRef(false);
 
+    /**
+     * Triggers the exit animation and then removes the toast from the list.
+     */
     const handleClose = () => {
         setIsExiting(true);
         setTimeout(() => {
@@ -60,6 +77,11 @@ const ToastCard = ({ item, onRemove }) => {
         }, 300); // match animation exit time
     };
 
+    /**
+     * Navigates to the action path or calls the action onClick handler,
+     * then closes the toast.
+     * @param {React.MouseEvent} e
+     */
     const handleActionClick = (e) => {
         e.stopPropagation();
         if (item.action) {
@@ -87,7 +109,7 @@ const ToastCard = ({ item, onRemove }) => {
             const elapsed = Date.now() - startTime.current;
             const remaining = Math.max(0, totalDuration - elapsed);
             remainingTime.current = remaining;
-            
+
             const percentage = (remaining / totalDuration) * 100;
             setProgress(percentage);
 
@@ -187,6 +209,12 @@ const ToastCard = ({ item, onRemove }) => {
     );
 };
 
+/**
+ * Global toast container that listens for `vortex-toast` custom DOM events and
+ * renders the corresponding ToastCard items in the bottom-right corner of the
+ * viewport. Mount this once at the application root.
+ * @returns {JSX.Element}
+ */
 // Global Toast Container Component
 export const ToastContainer = () => {
     const [toasts, setToasts] = useState([]);
@@ -202,6 +230,10 @@ export const ToastContainer = () => {
         return () => window.removeEventListener('vortex-toast', handleNewToast);
     }, []);
 
+    /**
+     * Removes a toast from the list by its ID.
+     * @param {string} id
+     */
     const removeToast = (id) => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
     };

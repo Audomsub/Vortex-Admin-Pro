@@ -10,7 +10,15 @@ import api from '../api/axios';
 import { toast } from '../components/ui/toastHelper';
 import UserModal from '../components/modals/UserModal';
 import ImportModal from '../components/modals/ImportModal';
+import { Skeleton } from '../components/ui/Skeleton';
 
+/**
+ * The Users management page.
+ * Lists all users in a paginated, filterable, and searchable table with bulk
+ * actions (delete, suspend, change role). Provides modals for creating, viewing,
+ * and editing users, an activity timeline modal, and a geo login map modal.
+ * @returns {JSX.Element}
+ */
 const Users = () => {
     const { t } = useTranslation();
     const [users, setUsers] = useState([]);
@@ -42,6 +50,10 @@ const Users = () => {
         fetchUsers();
     }, []);
 
+    /**
+     * Fetches all users from the API and resets pagination to page 1.
+     * @returns {Promise<void>}
+     */
     async function fetchUsers() {
         try {
             setLoading(true);
@@ -55,6 +67,12 @@ const Users = () => {
         }
     };
 
+    /**
+     * Handles the delete user action. Shows a confirmation dialog, then calls the API.
+     * Also removes the user from the current selection if selected.
+     * @param {number} id - The ID of the user to delete.
+     * @returns {Promise<void>}
+     */
     async function handleDelete(id) {
         if (!window.confirm(t('users.deleteConfirm'))) return;
         try {
@@ -67,7 +85,11 @@ const Users = () => {
         }
     };
 
-    // BUG-037: use the bulk-action endpoint for atomic delete instead of N individual requests
+    /**
+     * Handles bulk deletion of selected users using the bulk-action endpoint.
+     * Shows a confirmation dialog before proceeding, then clears the selection.
+     * @returns {Promise<void>}
+     */
     async function handleBulkDelete() {
         if (!window.confirm(t('users.bulkDeleteConfirm', { count: selectedUsers.length }))) return;
         try {
@@ -80,6 +102,11 @@ const Users = () => {
         }
     };
 
+    /**
+     * Exports the user list in the specified format by downloading from the API.
+     * @param {'csv'|'excel'} format - The export file format.
+     * @returns {Promise<void>}
+     */
     async function handleExport(format) {
         try {
             const response = await api.get(`/users/export?format=${format}`, { responseType: 'blob' });
@@ -96,6 +123,11 @@ const Users = () => {
         }
     };
 
+    /**
+     * Opens the activity timeline modal for a specific user and fetches their audit/session data.
+     * @param {object} user - The user object to show activity for.
+     * @returns {Promise<void>}
+     */
     async function openActivityModal(user) {
         setActivityUser(user);
         setActivityLoading(true);
@@ -109,6 +141,10 @@ const Users = () => {
         }
     }
 
+    /**
+     * Opens the geo login map modal and fetches country-level login statistics.
+     * @returns {Promise<void>}
+     */
     async function openGeoMap() {
         setShowGeoMap(true);
         setGeoLoading(true);
@@ -122,6 +158,10 @@ const Users = () => {
         }
     }
 
+    /**
+     * Fetches all roles from the API and stores them for the bulk role change modal.
+     * @returns {Promise<void>}
+     */
     async function fetchRoles() {
         try {
             const res = await api.get('/roles');
@@ -129,6 +169,11 @@ const Users = () => {
         } catch (e) { console.error(e); }
     }
 
+    /**
+     * Applies a role change to all currently selected users via the bulk-action endpoint.
+     * Requires a role to be selected in the bulk role modal before proceeding.
+     * @returns {Promise<void>}
+     */
     async function handleBulkChangeRole() {
         if (!selectedBulkRoleId) return;
         try {
@@ -142,6 +187,10 @@ const Users = () => {
         }
     }
 
+    /**
+     * Suspends all currently selected users via the bulk-action endpoint after confirmation.
+     * @returns {Promise<void>}
+     */
     async function handleBulkSuspend() {
         if (!window.confirm(t('users.bulkSuspendConfirm', { count: selectedUsers.length }))) return;
         try {
@@ -153,39 +202,54 @@ const Users = () => {
         }
     }
 
+    /**
+     * Opens the UserModal in create mode (no pre-filled user data).
+     */
     const openAddModal = () => {
         setEditingUser(null);
         setIsViewOnly(false);
         setIsModalOpen(true);
     };
 
+    /**
+     * Opens the UserModal in edit mode, pre-filling the form with the given user's data.
+     * @param {object} user - The user to edit.
+     */
     const openEditModal = (user) => {
         setEditingUser(user);
         setIsViewOnly(false);
         setIsModalOpen(true);
     };
 
+    /**
+     * Opens the UserModal in view-only mode for reading a user's profile.
+     * @param {object} user - The user to view.
+     */
     const openViewModal = (user) => {
         setEditingUser(user);
         setIsViewOnly(true);
         setIsModalOpen(true);
     };
 
+    /**
+     * Toggles the selection state of a user row in the bulk-action checkbox list.
+     * @param {number} id - The user ID to toggle.
+     */
     const toggleSelect = (id) => {
         if (selectedUsers.includes(id)) setSelectedUsers(selectedUsers.filter(userId => userId !== id));
         else setSelectedUsers([...selectedUsers, id]);
     };
 
     const filteredUsers = users.filter(user => {
-        const matchesSearch = 
+        const matchesSearch =
             (user.firstName?.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (user.username?.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (user.email?.toLowerCase().includes(searchTerm.toLowerCase()));
-        
+
         const matchesRole = roleFilter === '' || user.roleName?.toLowerCase() === roleFilter.toLowerCase();
         const matchesStatus = statusFilter === '' || user.status?.toLowerCase() === statusFilter.toLowerCase();
-        
+
         return matchesSearch && matchesRole && matchesStatus;
     });
 
@@ -216,13 +280,13 @@ const Users = () => {
                         >
                             <Download size={16} /> Export to Excel
                         </button>
-                        <button 
+                        <button
                             onClick={() => setIsImportModalOpen(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-black/5 dark:hover:bg-white/5 text-text-primary rounded-xl font-medium transition-colors text-sm shadow-sm"
                         >
                             <Upload size={16} /> {t('users.import')}
                         </button>
-                        <button 
+                        <button
                             onClick={openAddModal}
                             className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium transition-all active:scale-[0.98] text-sm shadow-md shadow-primary/20"
                         >
@@ -235,8 +299,8 @@ const Users = () => {
                 <div className="bg-surface p-4 rounded-2xl border border-border shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
                     <div className="relative w-full md:max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             placeholder={t('users.searchPlaceholder')}
                             className="w-full pl-10 pr-4 py-2 bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none text-text-primary"
                             value={searchTerm}
@@ -246,10 +310,10 @@ const Users = () => {
                             }}
                         />
                     </div>
-                    
+
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full md:w-auto">
-                            <select 
+                            <select
                                 className="w-full md:w-auto appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2 pr-10 outline-none focus:border-primary transition-colors cursor-pointer"
                                 value={roleFilter}
                                 onChange={(e) => {
@@ -266,7 +330,7 @@ const Users = () => {
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
                         </div>
                         <div className="relative w-full md:w-auto">
-                            <select 
+                            <select
                                 className="w-full md:w-auto appearance-none bg-background border border-border text-text-primary text-sm rounded-xl px-4 py-2 pr-10 outline-none focus:border-primary transition-colors cursor-pointer"
                                 value={statusFilter}
                                 onChange={(e) => {
@@ -323,8 +387,8 @@ const Users = () => {
                             <thead className="bg-background border-b border-border">
                                 <tr>
                                     <th className="px-6 py-4 w-12">
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50 bg-surface cursor-pointer"
                                             checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                                             onChange={(e) => {
@@ -342,14 +406,29 @@ const Users = () => {
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan="6" className="px-6 py-8 text-center text-text-secondary">{t('users.loading')}</td>
-                                    </tr>
+                                    Array.from({ length: 8 }).map((_, i) => (
+                                        <tr key={i}>
+                                            <td className="px-6 py-4"><Skeleton className="w-4 h-4 rounded" /></td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                                                    <div className="space-y-1.5">
+                                                        <Skeleton className="w-32 h-3" />
+                                                        <Skeleton className="w-44 h-3" />
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4"><Skeleton className="w-20 h-6 rounded-lg" /></td>
+                                            <td className="px-6 py-4"><Skeleton className="w-16 h-6 rounded-full" /></td>
+                                            <td className="px-6 py-4"><Skeleton className="w-24 h-3" /></td>
+                                            <td className="px-6 py-4 text-right"><Skeleton className="w-20 h-6 rounded-lg ml-auto" /></td>
+                                        </tr>
+                                    ))
                                 ) : currentUsers.map((user) => (
                                     <tr key={user.id} className={`hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${selectedUsers.includes(user.id) ? 'bg-primary/5' : ''}`}>
                                         <td className="px-6 py-4">
-                                            <input 
-                                                type="checkbox" 
+                                            <input
+                                                type="checkbox"
                                                 className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50 bg-surface cursor-pointer"
                                                 checked={selectedUsers.includes(user.id)}
                                                 onChange={() => toggleSelect(user.id)}
@@ -376,8 +455,8 @@ const Users = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium
-                                                ${user.status === 'Active' ? 'bg-success/10 text-success' : 
-                                                  user.status === 'Suspended' ? 'bg-danger/10 text-danger' : 
+                                                ${user.status === 'Active' ? 'bg-success/10 text-success' :
+                                                  user.status === 'Suspended' ? 'bg-danger/10 text-danger' :
                                                   'bg-warning/10 text-warning'}`}
                                             >
                                                 {user.status === 'Active' && <CheckCircle2 size={12} />}
@@ -396,13 +475,13 @@ const Users = () => {
                                                 <button onClick={() => openActivityModal(user)} className="p-1.5 text-text-secondary hover:text-secondary hover:bg-secondary/10 rounded-lg transition-colors" title="Activity Timeline">
                                                     <Activity size={16} />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => openEditModal(user)}
                                                     className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit User"
                                                 >
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDelete(user.id)}
                                                     className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" title="Delete User"
                                                 >
@@ -420,7 +499,7 @@ const Users = () => {
                                     {t('users.showing', { start: indexOfFirstUser + 1, end: Math.min(indexOfLastUser, filteredUsers.length), total: filteredUsers.length })}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button 
+                                    <button
                                         disabled={currentPage === 1}
                                         onClick={() => setCurrentPage(p => p - 1)}
                                         className="px-3 py-1.5 rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50 font-medium"
@@ -428,7 +507,7 @@ const Users = () => {
                                         {t('users.previous')}
                                     </button>
                                     <span className="font-medium text-text-primary px-2">{currentPage} / {totalPages}</span>
-                                    <button 
+                                    <button
                                         disabled={currentPage === totalPages}
                                         onClick={() => setCurrentPage(p => p + 1)}
                                         className="px-3 py-1.5 rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50 font-medium"

@@ -15,6 +15,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Handles report statistics business logic by aggregating KPI metrics (revenue, active users),
+ * building time-series revenue charts, and generating user growth charts across configurable
+ * timeframes, with daily granularity for short ranges and monthly granularity for longer ones.
+ */
 @Service
 @RequiredArgsConstructor
 public class ReportStatsServiceImpl implements ReportStatsService {
@@ -22,6 +27,19 @@ public class ReportStatsServiceImpl implements ReportStatsService {
     private final UserRepository userRepository;
     private final InvoiceRepository invoiceRepository;
 
+    /**
+     * Computes and returns the full report statistics for the given timeframe.
+     * Supported timeframes: "7D" (default, 7 days daily), "1M"/"30D" (30 days daily),
+     * "3M" (3 months monthly), "1Y" (1 year monthly), "ALL" (5 years monthly).
+     * Short timeframes use daily granularity for charts; longer timeframes use monthly.
+     * Revenue is summed from PAID invoices; expenses are estimated at 40% of revenue.
+     * Active user counts and new user counts are compared against the equivalent previous
+     * period to compute trend percentages.
+     *
+     * @param timeframe the report timeframe string (e.g. "7D", "1M", "3M", "1Y", "ALL")
+     * @return a {@link ReportStatsResponse} containing KPI cards, revenue chart data,
+     *         and user growth chart data for the requested timeframe
+     */
     @Override
     public ReportStatsResponse getReportStats(String timeframe) {
         LocalDateTime now = LocalDateTime.now();
@@ -129,6 +147,15 @@ public class ReportStatsServiceImpl implements ReportStatsService {
                 .build();
     }
 
+    /**
+     * Calculates a signed percentage trend string comparing two {@link BigDecimal} revenue
+     * values. Returns "+100%" when the previous value is zero but the current is positive,
+     * "0%" when both are zero, and a signed one-decimal-place percentage otherwise.
+     *
+     * @param current  the revenue for the current period
+     * @param previous the revenue for the comparison period
+     * @return a signed percentage string such as "+12.5%" or "-3.0%"
+     */
     private String formatRevenueTrend(BigDecimal current, BigDecimal previous) {
         if (previous.compareTo(BigDecimal.ZERO) == 0) {
             return current.compareTo(BigDecimal.ZERO) > 0 ? "+100%" : "0%";
@@ -139,6 +166,16 @@ public class ReportStatsServiceImpl implements ReportStatsService {
         return (change.compareTo(BigDecimal.ZERO) >= 0 ? "+" : "") + change + "%";
     }
 
+    /**
+     * Calculates a signed percentage trend string comparing two {@code long} counts.
+     * Returns "+100%" when the previous count is zero but the current is positive,
+     * "0%" when the previous is zero and there is no growth, and a signed one-decimal-place
+     * percentage otherwise.
+     *
+     * @param current  the count for the current period
+     * @param previous the count for the comparison period
+     * @return a signed percentage string such as "+25.0%" or "-10.0%"
+     */
     private String formatTrend(long current, long previous) {
         if (previous == 0) return current > 0 ? "+100%" : "0%";
         double change = ((double)(current - previous) / previous) * 100;

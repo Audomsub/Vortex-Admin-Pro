@@ -21,12 +21,27 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+// Single in-flight refresh shared across concurrent 401s so we never
+// fire parallel refresh calls for the same expired token
+let refreshPromise = null;
+
+function refreshAccessToken() {
+    if (!refreshPromise) {
+        const refreshToken = localStorage.getItem('refreshToken');
+        refreshPromise = axios.post(`${API_URL}/auth/refresh`, { refreshToken })
+            .finally(() => { refreshPromise = null; });
+    }
+    return refreshPromise;
+}
+
+const NO_RETRY_URLS = ['/auth/login', '/auth/refresh', '/auth/logout'];
+
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        // BUG-033: suppress toast during token-refresh to avoid duplicate UI feedback
+        // Suppress toast during token-refresh to avoid duplicate UI feedback
         const isRefreshCall = originalRequest?.url?.includes('/auth/refresh');
         if (!error.response) {
             if (!isRefreshCall) toast.error("Backend Offline", "Could not connect to the backend server. Please check if the backend is running.");
@@ -34,11 +49,14 @@ api.interceptors.response.use(
             if (!isRefreshCall) toast.error("Server Error", `Backend encountered an error (${error.response.status}). Please try again later.`);
         }
 
-        if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login') && !originalRequest.url.includes('/auth/refresh')) {
+        const isRetriable = error.response?.status === 401
+            && !originalRequest._retry
+            && !NO_RETRY_URLS.some(url => originalRequest.url.includes(url));
+
+        if (isRetriable) {
             originalRequest._retry = true;
             try {
-                const refreshToken = localStorage.getItem('refreshToken');
-                const res = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+                const res = await refreshAccessToken();
                 const { token } = res.data.data;
                 localStorage.setItem('token', token);
                 originalRequest.headers.Authorization = `Bearer ${token}`;

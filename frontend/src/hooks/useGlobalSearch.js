@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
 
+/**
+ * Hook that manages global search state including open/close toggle,
+ * debounced query input, and API-backed results for users, tasks, and pages.
+ * Listens for Ctrl/Cmd+K to toggle the search dialog.
+ * @returns {{ isOpen: boolean, setIsOpen: function, query: string, setQuery: function, results: { users: object[], tasks: object[], pages: object[] }, loading: boolean }}
+ */
 export function useGlobalSearch() {
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
@@ -20,6 +26,12 @@ export function useGlobalSearch() {
         return () => document.removeEventListener('keydown', down);
     }, []);
 
+    /**
+     * Sends a search request to GET /search?q={searchQuery} and updates the
+     * results state. Clears results immediately when the query is empty.
+     * @param {string} searchQuery - The search string entered by the user.
+     * @returns {Promise<void>}
+     */
     const performSearch = useCallback(async (searchQuery) => {
         if (!searchQuery) {
             setResults({ users: [], tasks: [], pages: [] });

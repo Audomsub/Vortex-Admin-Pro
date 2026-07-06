@@ -3,6 +3,14 @@ import api from '../api/axios';
 import { useAuth } from './useAuth';
 import { ThemeContext } from '../context/ThemeContext';
 
+/**
+ * Context provider that fetches organization branding from GET /organizations
+ * when the user is authenticated and applies the primary color as a CSS custom
+ * property (`--primary`) on the document root. Exposes the branding object and
+ * its setter via ThemeContext.
+ * @param {{ children: React.ReactNode }} props
+ * @returns {JSX.Element}
+ */
 export const ThemeProvider = ({ children }) => {
     const { user } = useAuth();
     const [branding, setBranding] = useState({
@@ -13,6 +21,11 @@ export const ThemeProvider = ({ children }) => {
     });
 
     useEffect(() => {
+        /**
+         * Fetches the first organization's branding fields and stores them in
+         * state. Silently ignores errors (e.g. network issues, no orgs yet).
+         * @returns {Promise<void>}
+         */
         async function fetchBranding() {
             try {
                 const response = await api.get('/organizations');
@@ -33,7 +46,9 @@ export const ThemeProvider = ({ children }) => {
         if (user) {
             fetchBranding();
         }
-    }, [user]);
+        // Key on username, not the user object — it is recreated on every profile merge
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.username]);
 
     useEffect(() => {
         const root = document.documentElement;

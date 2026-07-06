@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { X, UploadCloud, File, CheckCircle2 } from 'lucide-react';
 import api from '../../api/axios';
 
+/**
+ * Modal for bulk-importing users from a CSV file. Accepts a `.csv` upload,
+ * posts it as multipart/form-data to POST /users/import, and shows a success
+ * or failure result screen with the number of imported records.
+ * @param {{ isOpen: boolean, onClose: function, onSuccess?: function }} props
+ * @returns {JSX.Element|null}
+ */
 const ImportModal = ({ isOpen, onClose, onSuccess }) => {
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
@@ -9,6 +16,10 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
 
     if (!isOpen) return null;
 
+    /**
+     * Stores the selected file in state and resets any previous result.
+     * @param {React.ChangeEvent<HTMLInputElement>} e
+     */
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
@@ -16,6 +27,11 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
+    /**
+     * Uploads the selected CSV file to POST /users/import and stores the
+     * import result (count on success, error message on failure).
+     * @returns {Promise<void>}
+     */
     async function handleImport() {
         if (!file) return;
         setUploading(true);
@@ -36,6 +52,9 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
+    /**
+     * Resets all modal state (file, result, uploading flag) and calls onClose.
+     */
     const handleClose = () => {
         setFile(null);
         setResult(null);
@@ -56,10 +75,10 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                 {!result ? (
                     <div className="space-y-4">
                         <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center text-center">
-                            <input 
-                                type="file" 
-                                id="file-upload" 
-                                className="hidden" 
+                            <input
+                                type="file"
+                                id="file-upload"
+                                className="hidden"
                                 accept=".csv"
                                 onChange={handleFileChange}
                             />
@@ -71,7 +90,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                                 <span className="text-text-secondary text-sm">CSV file only (max 5MB)</span>
                             </label>
                         </div>
-                        
+
                         {file && (
                             <div className="flex items-center gap-3 p-3 bg-background border border-border rounded-xl">
                                 <File className="w-5 h-5 text-indigo-400" />
@@ -87,7 +106,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
 
                         <div className="pt-4 flex justify-end gap-3">
                             <button onClick={handleClose} className="px-4 py-2 text-text-secondary hover:text-text-primary transition-colors">Cancel</button>
-                            <button 
+                            <button
                                 onClick={handleImport}
                                 disabled={!file || uploading}
                                 className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white rounded-xl font-medium transition-colors"

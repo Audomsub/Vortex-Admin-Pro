@@ -2,6 +2,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+/**
+ * Breadcrumb navigation component derived from the current URL pathname.
+ * Automatically hidden on the home (`/`) and dashboard (`/dashboard`) routes.
+ * @returns {JSX.Element|null}
+ */
 const Breadcrumbs = () => {
     const { pathname } = useLocation();
     const { t } = useTranslation();
@@ -13,7 +18,12 @@ const Breadcrumbs = () => {
 
     const pathnames = pathname.split('/').filter((x) => x);
 
-    // Helper to format path name into readable title
+    /**
+     * Converts a URL path segment into a human-readable label using i18n
+     * translations, custom route mappings, or capitalised word splitting.
+     * @param {string} segment - A single URL path segment (e.g. "audit-logs").
+     * @returns {string} Human-readable label.
+     */
     const formatSegmentName = (segment) => {
         // Direct translations map if defined in i18n
         const translationKey = `common.breadcrumbs.${segment}`;
@@ -45,8 +55,8 @@ const Breadcrumbs = () => {
     };
 
     return (
-        <nav 
-            aria-label="Breadcrumb" 
+        <nav
+            aria-label="Breadcrumb"
             className="flex items-center gap-2 mb-5 px-1 py-1 text-sm animate-fade-in text-text-secondary select-none"
         >
             <div className="flex items-center">
@@ -68,7 +78,7 @@ const Breadcrumbs = () => {
                     <div key={to} className="flex items-center gap-2">
                         <ChevronRight className="w-3.5 h-3.5 text-text-secondary/40 shrink-0" />
                         {isLast ? (
-                            <span 
+                            <span
                                 className="font-semibold text-text-primary truncate max-w-[120px] sm:max-w-xs"
                                 aria-current="page"
                             >

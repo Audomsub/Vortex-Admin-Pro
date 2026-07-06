@@ -4,6 +4,13 @@ import ModalPortal from './ModalPortal';
 import { AlertTriangle, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
+/**
+ * Global modal dialog component that subscribes to the dialog utility and
+ * renders either a confirmation dialog (with Cancel + OK buttons) or an alert
+ * dialog (with a single OK button) based on the current dialog state.
+ * Mount this once at the application root.
+ * @returns {JSX.Element|null}
+ */
 export const GlobalDialog = () => {
     const [dialog, setDialog] = useState(null);
 
@@ -52,8 +59,8 @@ export const GlobalDialog = () => {
                             onClick={dialog.onConfirm}
                             className={cn(
                                 "px-5 py-2 rounded-xl text-sm font-medium text-white shadow-lg transition-all active:scale-95 min-w-[100px]",
-                                isConfirm 
-                                    ? "bg-warning hover:bg-warning/90 shadow-warning/20" 
+                                isConfirm
+                                    ? "bg-warning hover:bg-warning/90 shadow-warning/20"
                                     : "bg-primary hover:bg-primary-hover shadow-primary/20"
                             )}
                         >

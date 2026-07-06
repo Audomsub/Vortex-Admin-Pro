@@ -1,5 +1,11 @@
 import { X, Search, Monitor, Moon, Keyboard, Users, LayoutDashboard } from 'lucide-react';
 
+/**
+ * Modal that displays a categorised keyboard shortcuts reference cheat sheet
+ * for the Vortex Admin Pro application. Renders nothing when `isOpen` is false.
+ * @param {{ isOpen: boolean, onClose: function }} props
+ * @returns {JSX.Element|null}
+ */
 const ShortcutsModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 

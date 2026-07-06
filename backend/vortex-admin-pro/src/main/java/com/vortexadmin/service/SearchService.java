@@ -11,6 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Service responsible for performing global keyword searches across users, tasks, and
+ * static navigation pages, returning categorised results for the top-bar search feature.
+ */
 @Service
 @RequiredArgsConstructor
 public class SearchService {
@@ -18,6 +22,21 @@ public class SearchService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
 
+    /**
+     * Executes a case-insensitive keyword search across three categories and returns the
+     * combined results grouped by category:
+     * <ul>
+     *   <li><b>users</b> — non-deleted users whose username or email contains the query</li>
+     *   <li><b>tasks</b> — tasks whose title or description contains the query</li>
+     *   <li><b>pages</b> — static navigation entries whose name contains the query</li>
+     * </ul>
+     * Each result item is a map containing at minimum {@code id}, {@code title}, and {@code url}
+     * keys so that the frontend can render and navigate to the matching item uniformly.
+     *
+     * @param query the search keyword; matched case-insensitively using {@code contains}
+     * @return a map with keys {@code "users"}, {@code "tasks"}, and {@code "pages"}, each
+     *         containing a list of result-item maps for that category
+     */
     public Map<String, List<Map<String, Object>>> search(String query) {
         Map<String, List<Map<String, Object>>> results = new HashMap<>();
 

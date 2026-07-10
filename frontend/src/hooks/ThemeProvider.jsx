@@ -39,7 +39,6 @@ export const ThemeProvider = ({ children }) => {
                     });
                 }
             } catch (error) {
-                console.error('Failed to load branding', error);
             }
         }
 

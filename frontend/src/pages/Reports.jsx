@@ -39,7 +39,6 @@ const Reports = () => {
                 setStats(res.data);
             }
         } catch (error) {
-            console.error('Failed to fetch stats:', error);
         } finally {
             setLoading(false);
         }
@@ -68,7 +67,6 @@ const Reports = () => {
         try {
             await reportService.export(type, exportFormat);
         } catch (error) {
-            console.error('Export failed:', error);
             toast.error(t('common.error'), error.response?.data?.message || t('reports.exportFailed'));
         } finally {
             setExporting(null);

@@ -32,7 +32,7 @@ const Billing = () => {
         billingService.getPlans()
             .then(res => setPlans((res.data.data || []).sort(
                 (a, b) => PLAN_ORDER.indexOf(a.name) - PLAN_ORDER.indexOf(b.name))))
-            .catch(err => console.error('Failed to fetch plans', err));
+            .catch(() => {});
     }, [fetchOrganizations]);
 
     useEffect(() => {
@@ -55,7 +55,6 @@ const Billing = () => {
             setInvoices(invRes.data.data || []);
             setDiscounts(discountRes.data.data || { loyaltyDiscountEligible: false, firstYearDiscountEligible: false });
         } catch (error) {
-            console.error('Failed to load billing:', error);
             setSubscription(null);
             setInvoices([]);
             setDiscounts({ loyaltyDiscountEligible: false, firstYearDiscountEligible: false });

@@ -41,7 +41,6 @@ const UserModal = ({ isOpen, onClose, user, onSuccess, isViewOnly = false }) => 
                 }
             }
         } catch (err) {
-            console.error('Failed to fetch roles', err);
         }
     }
 

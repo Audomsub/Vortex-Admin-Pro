@@ -56,7 +56,6 @@ const Roles = () => {
                 handleSelectRole(fetchedRoles[0]);
             }
         } catch (error) {
-            console.error('Failed to fetch data:', error);
         } finally {
             setLoading(false);
         }
@@ -99,7 +98,6 @@ const Roles = () => {
             setRoles(prev => prev.map(r => r.id === selectedRole.id ? { ...r, permissions: selectedPermissions } : r));
             alert(t('roles.alertUpdateSuccess'));
         } catch (error) {
-            console.error('Failed to save role:', error);
             alert(error.response?.data?.message || t('roles.alertUpdateFailed'));
         } finally {
             setSaving(false);
@@ -120,7 +118,6 @@ const Roles = () => {
             fetchInitialData();
             alert(t('roles.alertCreateSuccess'));
         } catch (error) {
-            console.error('Failed to create role:', error);
             alert(error.response?.data?.message || t('roles.alertCreateFailed'));
         } finally {
             setCreating(false);

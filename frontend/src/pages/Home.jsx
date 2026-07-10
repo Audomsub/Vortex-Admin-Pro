@@ -147,7 +147,6 @@ const Home = () => {
             setStats(response.data.data);
             setLoading(false);
         } catch (error) {
-            console.error('Failed to fetch stats:', error);
             setLoading(false);
         }
     };

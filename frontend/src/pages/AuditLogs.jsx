@@ -42,7 +42,6 @@ const AuditLogs = () => {
             const response = await api.get('/audit-logs');
             setLogs(response.data.data || []);
         } catch (error) {
-            console.error('Failed to fetch audit logs:', error);
         } finally {
             setLoading(false);
         }
@@ -64,7 +63,6 @@ const AuditLogs = () => {
             link.click();
             link.parentNode.removeChild(link);
         } catch (error) {
-            console.error('Failed to export audit logs:', error);
             alert(t('auditLogs.exportFailed'));
         }
     };
@@ -93,7 +91,6 @@ const AuditLogs = () => {
             const response = await api.post('/ai/analyze-logs');
             setAiInsights(response.data.data);
         } catch (error) {
-            console.error('AI Analysis failed:', error);
             setAiInsights(`AI Analysis Failed\n\nReason: ${error.response?.data?.message || error.message || 'Cannot connect to server'}\n\nPlease check your backend terminal for more details, or ensure the Gemini API Key is valid.`);
         } finally {
             setIsAnalyzing(false);

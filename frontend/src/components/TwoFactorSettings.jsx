@@ -31,7 +31,6 @@ const TwoFactorSettings = () => {
             const res = await twoFactorService.getStatus();
             setStatus(res.data.data);
         } catch (err) {
-            console.error('Failed to fetch 2FA status', err);
         }
     };
 

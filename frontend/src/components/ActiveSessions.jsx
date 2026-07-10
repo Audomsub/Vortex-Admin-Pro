@@ -25,7 +25,6 @@ const ActiveSessions = () => {
             const res = await api.get('/sessions');
             setSessions(res.data.data);
         } catch (error) {
-            console.error("Failed to fetch sessions", error);
         } finally {
             setLoading(false);
         }
@@ -45,7 +44,6 @@ const ActiveSessions = () => {
             await api.delete(`/sessions/${id}`);
             fetchSessions();
         } catch (error) {
-            console.error("Failed to revoke session", error);
             alert(t('sessions.revokeError'));
         }
     };
@@ -61,7 +59,6 @@ const ActiveSessions = () => {
             await api.delete('/sessions');
             fetchSessions();
         } catch (error) {
-            console.error("Failed to revoke all sessions", error);
             alert(t('sessions.revokeAllError'));
         }
     };

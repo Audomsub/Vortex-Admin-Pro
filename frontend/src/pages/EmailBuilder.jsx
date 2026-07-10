@@ -44,7 +44,7 @@ const EmailBuilder = () => {
                 setCode(welcome.content);
                 setSubject(welcome.subject);
             }
-        }).catch(err => console.error(err));
+        }).catch(() => {});
     }, []);
 
     const handleTemplateChange = async (name) => {
@@ -71,7 +71,6 @@ const EmailBuilder = () => {
             });
             toast.success(t('common.success'), t('emailBuilder.saveSuccess'));
         } catch (error) {
-            console.error('Save failed', error);
             toast.error(t('common.error'), error.response?.data?.message || t('emailBuilder.saveFailed'));
         } finally {
             setSaving(false);

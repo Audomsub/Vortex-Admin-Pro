@@ -29,7 +29,7 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
                 .then(res => {
                     if (res.data.data) setUnreadCount(res.data.data);
                 })
-                .catch(err => console.error("Failed to fetch unread count", err));
+                .catch(() => {});
 
             // Setup SSE for real-time notifications; token getter keeps reconnects fresh
             const apiUrl = import.meta.env.VITE_API_URL;
@@ -51,7 +51,6 @@ const Navbar = ({ onMenuClick, onSearchClick }) => {
                             );
                         }
                     } catch (err) {
-                        console.error("Failed to parse SSE message", err);
                     }
                 },
             });

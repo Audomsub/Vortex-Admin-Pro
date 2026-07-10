@@ -35,7 +35,6 @@ const SystemHealth = () => {
             });
             setLastUpdated(new Date());
         } catch (error) {
-            console.error('Failed to fetch system health', error);
         } finally {
             setLoading(false);
         }

@@ -24,7 +24,7 @@ function fetchAndMergeProfile(setUser) {
             status: profile.status ?? prev?.status,
             roleName: profile.roleName ?? prev?.roleName,
         }));
-    }).catch(err => console.error('Failed to fetch full profile', err));
+    }).catch(() => {});
 }
 
 function applyLanguagePreference() {
@@ -58,7 +58,6 @@ export const AuthProvider = ({ children }) => {
                 setUser({ username: decoded.sub || 'User', roles, permissions });
                 fetchAndMergeProfile(setUser);
             } catch (error) {
-                console.error('Invalid token', error);
                 localStorage.removeItem('token');
                 localStorage.removeItem('refreshToken');
             }
@@ -117,7 +116,6 @@ export const AuthProvider = ({ children }) => {
             const refreshToken = localStorage.getItem('refreshToken');
             await api.post('/auth/logout', { refreshToken });
         } catch (error) {
-            console.error('Logout error', error);
         } finally {
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');

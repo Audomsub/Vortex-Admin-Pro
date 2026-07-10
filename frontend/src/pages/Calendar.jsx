@@ -234,7 +234,6 @@ const Calendar = () => {
             const response = await api.get('/events');
             setEvents(response.data.data || []);
         } catch (error) {
-            console.error('Failed to fetch events:', error);
         } finally {
             setLoading(false);
         }
@@ -286,7 +285,6 @@ const Calendar = () => {
             fetchEvents();
             handleCloseModal();
         } catch (error) {
-            console.error('Failed to save event:', error);
             alert(error.response?.data?.message || t('calendar.errorSavingEvent'));
         }
     }
@@ -298,7 +296,6 @@ const Calendar = () => {
             fetchEvents();
             handleCloseModal();
         } catch (error) {
-            console.error('Failed to delete event:', error);
             alert(error.response?.data?.message || t('calendar.errorDeletingEvent'));
         }
     }

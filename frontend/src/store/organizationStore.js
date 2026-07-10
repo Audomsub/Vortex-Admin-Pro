@@ -20,7 +20,6 @@ export const useOrganizationStore = create((set, get) => ({
             }
             set({ organizations, currentOrgId, loading: false });
         } catch (error) {
-            console.error('Failed to fetch organizations', error);
             set({ loading: false });
         }
     },

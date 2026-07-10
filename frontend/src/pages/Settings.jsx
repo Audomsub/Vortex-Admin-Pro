@@ -65,7 +65,6 @@ const Settings = () => {
                 });
             }
         } catch (error) {
-            console.error('Failed to fetch settings:', error);
         } finally {
             setLoading(false);
         }
@@ -100,7 +99,6 @@ const Settings = () => {
                 alert(t('settings.alerts.settingsSaved'));
             }
         } catch (error) {
-            console.error('Failed to save settings:', error);
             alert(t('settings.alerts.saveFailed') + ': ' + (error.response?.data?.message || 'Unknown error'));
         } finally {
             setSaving(false);

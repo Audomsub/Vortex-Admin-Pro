@@ -29,7 +29,6 @@ const Notifications = () => {
             const response = await api.get('/notifications');
             setNotifications(response.data.data || []);
         } catch (error) {
-            console.error('Failed to fetch notifications:', error);
         } finally {
             setLoading(false);
         }
@@ -51,7 +50,6 @@ const Notifications = () => {
                 n.id === id ? { ...n, isRead: true } : n
             ));
         } catch (error) {
-            console.error('Failed to mark notification as read:', error);
         }
     };
 
@@ -67,7 +65,6 @@ const Notifications = () => {
             await Promise.all(unreadIds.map(id => api.put(`/notifications/${id}/read`)));
             setNotifications(notifications.map(n => ({ ...n, isRead: true })));
         } catch (error) {
-            console.error('Failed to mark all as read:', error);
         }
     };
 

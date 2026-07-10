@@ -19,6 +19,8 @@ import com.vortexadmin.repository.UserRepository;
 
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -57,6 +59,8 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
+
+    private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
 
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
@@ -171,9 +175,7 @@ public class DataSeeder implements CommandLineRunner {
                     .failedLoginAttempts(0)
                     .build();
             userRepository.save(admin);
-            System.out.println("======================================================");
-            System.out.println("Default Super Admin created: admin / password123");
-            System.out.println("======================================================");
+            logger.info("Default Super Admin created: username=admin");
         } else {
             // Only repair a missing role — never override an intentional role change
             User admin = adminOpt.get();

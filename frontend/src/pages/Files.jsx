@@ -40,7 +40,6 @@ const ImagePreview = ({ file }) => {
                 objectUrl = URL.createObjectURL(response.data);
                 if (mounted) setImgSrc(objectUrl);
             } catch (error) {
-                console.error("Failed to load image preview", error);
             } finally {
                 if (mounted) setLoading(false);
             }
@@ -92,7 +91,6 @@ const Files = () => {
             const response = await api.get('/files');
             setFiles(response.data.data || []);
         } catch (error) {
-            console.error('Failed to fetch files:', error);
         } finally {
             setLoading(false);
         }
@@ -117,7 +115,6 @@ const Files = () => {
             // Reset input
             if (fileInputRef.current) fileInputRef.current.value = '';
         } catch (error) {
-            console.error('Failed to upload file:', error);
             alert(error.response?.data?.message || 'Error uploading file');
         } finally {
             setIsUploading(false);
@@ -138,7 +135,6 @@ const Files = () => {
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error('Download failed:', error);
             alert('Failed to download file');
         }
     };
@@ -149,7 +145,6 @@ const Files = () => {
                 await api.delete(`/files/${id}`);
                 fetchFiles();
             } catch (error) {
-                console.error('Failed to delete file:', error);
                 alert(error.response?.data?.message || 'Error deleting file');
             }
         }
@@ -170,7 +165,6 @@ const Files = () => {
             await api.put(`/files/${id}?name=${encodeURIComponent(renameValue)}`);
             fetchFiles();
         } catch (error) {
-            console.error('Failed to rename file:', error);
             alert(error.response?.data?.message || 'Error renaming file');
         } finally {
             setRenamingId(null);

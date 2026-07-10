@@ -39,7 +39,6 @@ const Webhooks = () => {
             const res = await api.get('/webhooks');
             setEndpoints(res.data.data || []);
         } catch (error) {
-            console.error('Failed to fetch webhooks', error);
         } finally {
             setLoading(false);
         }
@@ -54,7 +53,6 @@ const Webhooks = () => {
             setFormData({ name: '', url: '', events: [], active: true });
             fetchEndpoints();
         } catch (error) {
-            console.error('Failed to create webhook', error);
             alert(error.response?.data?.message || t('webhooks.createError'));
         } finally {
             setActionLoading(null);
@@ -72,7 +70,6 @@ const Webhooks = () => {
             });
             fetchEndpoints();
         } catch (error) {
-            console.error('Failed to update webhook', error);
         } finally {
             setActionLoading(null);
         }
@@ -85,7 +82,6 @@ const Webhooks = () => {
             await api.delete(`/webhooks/${id}`);
             fetchEndpoints();
         } catch (error) {
-            console.error('Failed to delete webhook', error);
         } finally {
             setActionLoading(null);
         }
@@ -97,7 +93,6 @@ const Webhooks = () => {
             await api.post(`/webhooks/${id}/test`);
             alert(t('webhooks.testSuccess'));
         } catch (error) {
-            console.error('Failed to send test event', error);
             alert(t('webhooks.testError'));
         } finally {
             setActionLoading(null);
@@ -111,7 +106,6 @@ const Webhooks = () => {
             const res = await api.get(`/webhooks/${id}/deliveries`);
             setLogs(res.data.data || []);
         } catch (error) {
-            console.error('Failed to fetch logs', error);
         } finally {
             setLogsLoading(false);
         }

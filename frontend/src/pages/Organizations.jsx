@@ -32,7 +32,6 @@ const Organizations = () => {
             const res = await organizationService.getMyPendingInvitations();
             setPendingInvitations(res.data.data || []);
         } catch (error) {
-            console.error('Failed to load organizations:', error);
         } finally {
             setLoading(false);
         }
@@ -54,7 +53,6 @@ const Organizations = () => {
                 setInvitations([]);
             }
         } catch (error) {
-            console.error('Failed to load organization detail:', error);
         }
     };
 

@@ -45,7 +45,6 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
             setResult({ success: true, count: response.data.data.importedCount });
             if (onSuccess) onSuccess();
         } catch (error) {
-            console.error('Import failed', error);
             setResult({ success: false, error: 'Failed to import data' });
         } finally {
             setUploading(false);

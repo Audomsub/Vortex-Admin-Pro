@@ -61,7 +61,6 @@ const Users = () => {
             setUsers(response.data.data || []);
             setCurrentPage(1); // Reset to page 1 on fetch
         } catch (error) {
-            console.error('Failed to fetch users:', error);
         } finally {
             setLoading(false);
         }
@@ -80,7 +79,6 @@ const Users = () => {
             fetchUsers();
             setSelectedUsers(selectedUsers.filter(userId => userId !== id));
         } catch (error) {
-            console.error('Failed to delete user:', error);
             toast.error(t('common.error'), error.response?.data?.message || t('users.errorDelete'));
         }
     };
@@ -97,7 +95,6 @@ const Users = () => {
             fetchUsers();
             setSelectedUsers([]);
         } catch (error) {
-            console.error('Failed to delete users:', error);
             toast.error(t('common.error'), error.response?.data?.message || t('users.errorBulkDelete'));
         }
     };
@@ -118,7 +115,6 @@ const Users = () => {
             link.click();
             link.parentNode.removeChild(link);
         } catch (error) {
-            console.error('Failed to export users:', error);
             toast.error(t('common.error'), error.response?.data?.message || t('users.errorExport'));
         }
     };
@@ -135,7 +131,6 @@ const Users = () => {
             const res = await api.get(`/users/${user.id}/activity`);
             setActivityData(res.data.data);
         } catch (e) {
-            console.error(e);
         } finally {
             setActivityLoading(false);
         }
@@ -152,7 +147,6 @@ const Users = () => {
             const res = await api.get('/users/geo-stats');
             setGeoStats(res.data.data || {});
         } catch (e) {
-            console.error(e);
         } finally {
             setGeoLoading(false);
         }
@@ -166,7 +160,7 @@ const Users = () => {
         try {
             const res = await api.get('/roles');
             setRoles(res.data.data || []);
-        } catch (e) { console.error(e); }
+        } catch {}
     }
 
     /**

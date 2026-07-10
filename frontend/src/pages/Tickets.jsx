@@ -103,7 +103,6 @@ const Tickets = () => {
             const response = await api.get('/tickets');
             setTickets(response.data.data || []);
         } catch (error) {
-            console.error('Error fetching tickets', error);
         } finally {
             setLoading(false);
         }
@@ -114,7 +113,6 @@ const Tickets = () => {
             const response = await api.get(`/tickets/${ticketId}/messages`);
             setMessages(response.data.data || []);
         } catch (error) {
-            console.error('Error fetching messages', error);
         }
     };
 
@@ -134,7 +132,6 @@ const Tickets = () => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }).catch(err => {
-            console.error('Failed to copy link', err);
         });
     };
 
@@ -152,7 +149,6 @@ const Tickets = () => {
             setNewTicket({ subject: '', customerName: currentUserName, priority: 'Medium' });
             fetchTickets();
         } catch (error) {
-            console.error('Error creating ticket', error);
         }
     };
 
@@ -162,7 +158,6 @@ const Tickets = () => {
             setActiveTicket({ ...activeTicket, status: newStatus });
             setTickets(tickets.map(t => t.id === activeTicket.id ? { ...t, status: newStatus } : t));
         } catch (error) {
-            console.error('Error updating status', error);
         }
     };
 
@@ -177,7 +172,6 @@ const Tickets = () => {
             setMessages([...messages, response.data.data]);
             setReplyText('');
         } catch (error) {
-            console.error('Error sending reply', error);
         }
     };
 

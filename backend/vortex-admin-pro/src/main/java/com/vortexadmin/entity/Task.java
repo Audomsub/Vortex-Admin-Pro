@@ -30,11 +30,11 @@ public class Task {
 
     /** Workflow state of the task: TODO, IN_PROGRESS, or DONE; defaults to TODO on creation. */
     @Column(length = 50)
-    private String status; // TODO, IN_PROGRESS, DONE
+    private String status;
 
     /** Importance level of the task: LOW, MEDIUM, or HIGH; defaults to MEDIUM on creation. */
     @Column(length = 50)
-    private String priority; // LOW, MEDIUM, HIGH
+    private String priority;
 
     /** The user responsible for completing this task; {@code null} means unassigned. */
     @ManyToOne(fetch = FetchType.LAZY)

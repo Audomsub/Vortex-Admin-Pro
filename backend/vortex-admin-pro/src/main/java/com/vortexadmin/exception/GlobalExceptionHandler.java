@@ -32,14 +32,15 @@ import java.util.Map;
  *   }
  * </pre>
  *
- * <p>Three exception tiers are handled:
+ * <p>Exception tiers handled (most-specific first):
  * <ol>
- *   <li>{@link ApiException} – business logic errors with a caller-defined HTTP status
- *       (e.g., 404, 403, 409).</li>
- *   <li>{@link MethodArgumentNotValidException} – Bean Validation failures on request
- *       body DTOs, returning a field-by-field error map with HTTP 400.</li>
- *   <li>{@link Exception} – catch-all for unexpected runtime errors, returning HTTP 500
- *       with a generic user-safe message while logging the full stack trace.</li>
+ *   <li>{@link ApiException} – business logic errors with a caller-defined HTTP status.</li>
+ *   <li>{@link MethodArgumentNotValidException} – Bean Validation failures → 400.</li>
+ *   <li>{@link AccessDeniedException} – insufficient authority → 403.</li>
+ *   <li>{@link NoResourceFoundException} – no route matched → 404.</li>
+ *   <li>{@link HttpRequestMethodNotSupportedException} – wrong HTTP verb → 405.</li>
+ *   <li>{@link MethodArgumentTypeMismatchException} – path variable type error → 400.</li>
+ *   <li>{@link Exception} – catch-all for unexpected errors → 500 (stack trace logged).</li>
  * </ol>
  */
 @RestControllerAdvice

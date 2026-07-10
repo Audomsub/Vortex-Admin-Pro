@@ -38,7 +38,6 @@ const Profile = () => {
                     lastName: profile.lastName || ''
                 }));
             } catch (error) {
-                console.error("Failed to load profile", error);
             }
         };
         fetchProfile();
@@ -64,7 +63,6 @@ const Profile = () => {
             });
             toast.success(t('profile.alerts.profileUpdated'));
         } catch (error) {
-            console.error(error);
             toast.error(t('profile.alerts.profileUpdateFailed'));
         } finally {
             setSaving(false);
@@ -86,7 +84,6 @@ const Profile = () => {
             toast.success(t('profile.alerts.passwordUpdated'));
             setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
         } catch (error) {
-            console.error(error);
             toast.error(error.response?.data?.message || t('profile.alerts.profileUpdateFailed'));
         } finally {
             setSaving(false);

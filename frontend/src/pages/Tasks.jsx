@@ -126,7 +126,6 @@ const Tasks = () => {
             fetchData();
             handleCloseModal();
         } catch (error) {
-            console.error('Failed to save task:', error);
             toast.error(t('common.error'), error.response?.data?.message || t('tasks.errorSave'));
         } finally {
             setIsSubmitting(false);
@@ -145,7 +144,6 @@ const Tasks = () => {
             await api.delete(`/tasks/${id}`);
             fetchData();
         } catch (error) {
-            console.error('Failed to delete task:', error);
             toast.error(t('common.error'), error.response?.data?.message || t('tasks.errorDelete'));
         }
     };
@@ -181,7 +179,6 @@ const Tasks = () => {
                     teamId: task.teamId
                 });
             } catch (error) {
-                console.error('Failed to update task status:', error);
                 // Revert on error
                 fetchData();
             }

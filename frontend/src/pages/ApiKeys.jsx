@@ -51,7 +51,6 @@ const ApiKeys = () => {
             }
         } catch (err) {
             setError(t('apiKeys.loadError'));
-            console.error(err);
         } finally {
             setLoading(false);
         }
@@ -85,7 +84,6 @@ const ApiKeys = () => {
             }
         } catch (err) {
             alert(err.response?.data?.message || t('apiKeys.createError'));
-            console.error(err);
         } finally {
             setIsSubmitting(false);
         }
@@ -100,7 +98,6 @@ const ApiKeys = () => {
                 setKeys(keys.map(k => k.id === id ? { ...k, revoked: true } : k));
             } catch (err) {
                 alert(err.response?.data?.message || t('apiKeys.revokeError'));
-                console.error(err);
             }
         }
     };

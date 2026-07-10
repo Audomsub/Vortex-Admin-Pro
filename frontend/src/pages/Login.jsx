@@ -22,7 +22,6 @@ const Login = () => {
                 await loginWithGoogle(tokenResponse.access_token);
                 navigate('/');
             } catch (err) {
-                console.error('Google login error:', err);
                 setError('Google login failed');
             }
         },
@@ -42,7 +41,6 @@ const Login = () => {
             }
             navigate('/');
         } catch (err) {
-            console.error('Login error:', err);
             setError(err.response?.data?.message || 'Invalid username or password');
         }
     };

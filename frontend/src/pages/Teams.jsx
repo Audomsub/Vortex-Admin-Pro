@@ -29,7 +29,6 @@ const Teams = () => {
             const response = await api.get('/teams');
             setTeams(response.data.data);
         } catch (error) {
-            console.error('Failed to fetch teams:', error);
         } finally {
             setLoading(false);
         }
@@ -63,7 +62,6 @@ const Teams = () => {
             fetchTeams();
             handleCloseModal();
         } catch (error) {
-            console.error('Failed to save team:', error);
             alert(error.response?.data?.message || 'Error saving team');
         }
     };
@@ -74,7 +72,6 @@ const Teams = () => {
                 await api.delete(`/teams/${id}`);
                 fetchTeams();
             } catch (error) {
-                console.error('Failed to delete team:', error);
                 alert(error.response?.data?.message || 'Error deleting team');
             }
         }

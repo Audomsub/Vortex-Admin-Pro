@@ -43,7 +43,6 @@ export function useGlobalSearch() {
             const res = await api.get('/search', { params: { q: searchQuery } });
             setResults(res.data.data || { users: [], tasks: [], pages: [] });
         } catch (error) {
-            console.error('Search failed', error);
             setResults({ users: [], tasks: [], pages: [] });
         } finally {
             setLoading(false);

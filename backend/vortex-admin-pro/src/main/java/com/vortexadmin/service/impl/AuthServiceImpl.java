@@ -282,17 +282,17 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public JwtResponse refreshToken(TokenRefreshRequest request) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "Refresh token is not in database!"));
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Refresh token is not in database!"));
 
         if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(refreshToken);
-            throw new ApiException(HttpStatus.FORBIDDEN, "Refresh token was expired. Please make a new signin request");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Refresh token was expired. Please make a new signin request");
         }
 
         User user = refreshToken.getUser();
         if (user == null) {
             refreshTokenRepository.delete(refreshToken);
-            throw new ApiException(HttpStatus.FORBIDDEN, "Refresh token has no associated user");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Refresh token has no associated user");
         }
 
         UserDetailsImpl userDetails = UserDetailsImpl.build(user);

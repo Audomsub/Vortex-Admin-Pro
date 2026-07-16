@@ -102,7 +102,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             String rawKey = request.getHeader(API_KEY_HEADER);
             if (StringUtils.hasText(rawKey) && SecurityContextHolder.getContext().getAuthentication() == null) {
                 String keyHash = ApiKeyUtils.hash(rawKey);
-                Optional<ApiKey> keyOpt = apiKeyRepository.findByKeyHash(keyHash);
+                Optional<ApiKey> keyOpt = apiKeyRepository.findByKeyHashWithPermissions(keyHash);
 
                 if (keyOpt.isPresent()) {
                     ApiKey apiKey = keyOpt.get();

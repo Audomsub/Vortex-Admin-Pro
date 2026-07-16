@@ -3,6 +3,8 @@ package com.vortexadmin.repository;
 import com.vortexadmin.entity.ApiKey;
 import com.vortexadmin.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -32,6 +34,21 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, Long> {
      * @return an {@link Optional} containing the matching {@link ApiKey}, or empty if not found
      */
     Optional<ApiKey> findByKeyHash(String keyHash);
+
+    /**
+     * Finds an API key by hash and eagerly fetches user → role → permissions in a single
+     * query so the result can be used outside of a Hibernate session (e.g., in a servlet
+     * filter) without triggering a {@link org.hibernate.LazyInitializationException}.
+     *
+     * @param keyHash the SHA-256 hash of the raw API key string
+     * @return an {@link Optional} containing the fully-loaded {@link ApiKey}, or empty if not found
+     */
+    @Query("SELECT ak FROM ApiKey ak " +
+           "JOIN FETCH ak.user u " +
+           "JOIN FETCH u.role r " +
+           "LEFT JOIN FETCH r.permissions " +
+           "WHERE ak.keyHash = :keyHash")
+    Optional<ApiKey> findByKeyHashWithPermissions(@Param("keyHash") String keyHash);
 
     /**
      * Finds an API key by its primary key and owning user, ensuring that a user can only

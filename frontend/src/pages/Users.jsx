@@ -10,6 +10,7 @@ import api from '../api/axios';
 import { toast } from '../components/ui/toastHelper';
 import UserModal from '../components/modals/UserModal';
 import ImportModal from '../components/modals/ImportModal';
+import ModalPortal from '../components/ui/ModalPortal';
 import { Skeleton } from '../components/ui/Skeleton';
 
 /**
@@ -354,7 +355,7 @@ const Users = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => { fetchRoles(); setBulkRoleModal(true); }}
-                                className="text-sm px-3 py-1.5 bg-white dark:bg-zinc-800 text-text-primary rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors shadow-sm"
+                                className="text-sm px-3 py-1.5 bg-white dark:bg-zinc-800 text-black rounded-lg border border-border hover:bg-black/5 dark:hover:bg-white/5 transition-colors shadow-sm"
                             >
                                 {t('users.changeRole')}
                             </button>
@@ -531,6 +532,7 @@ const Users = () => {
 
             {/* Activity Timeline Modal */}
             {activityUser && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-surface rounded-2xl border border-border w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
                         <div className="flex items-center justify-between p-5 border-b border-border">
@@ -598,10 +600,12 @@ const Users = () => {
                         </div>
                     </div>
                 </div>
+                </ModalPortal>
             )}
 
             {/* Geo Login Map Modal */}
             {showGeoMap && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-surface rounded-2xl border border-border w-full max-w-lg shadow-2xl">
                         <div className="flex items-center justify-between p-5 border-b border-border">
@@ -639,10 +643,12 @@ const Users = () => {
                         </div>
                     </div>
                 </div>
+                </ModalPortal>
             )}
 
             {/* Bulk Change Role Modal */}
             {bulkRoleModal && (
+                <ModalPortal>
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-surface rounded-2xl border border-border w-full max-w-sm shadow-2xl p-6 space-y-4">
                         <h2 className="text-lg font-bold text-text-primary">Change Role for {selectedUsers.length} user(s)</h2>
@@ -674,6 +680,7 @@ const Users = () => {
                         </div>
                     </div>
                 </div>
+                </ModalPortal>
             )}
         </Layout>
     );

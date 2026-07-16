@@ -189,8 +189,8 @@ const Layout = ({ children }) => {
                     onMenuClick={() => setIsMobileMenuOpen(true)}
                     onSearchClick={openPalette}
                 />
-                <div className="flex-1 relative transform-gpu overflow-hidden">
-                    <main className="absolute inset-0 overflow-y-auto scrollbar-thin">
+                <div className="flex-1 relative overflow-hidden">
+                    <main id="page-scroll" className="absolute inset-0 overflow-y-auto scrollbar-thin">
                         <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 animate-slide-up">
                             <Breadcrumbs />
                             {children}

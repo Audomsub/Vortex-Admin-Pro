@@ -109,7 +109,7 @@ public class AuthServiceImpl implements AuthService {
      * @throws ApiException if credentials are invalid, the account is locked, suspended, or soft-deleted
      */
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = ApiException.class)
     public JwtResponse authenticateUser(LoginRequest loginRequest, HttpServletRequest request) {
         Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
         userOpt.ifPresent(this::validateUserActive);

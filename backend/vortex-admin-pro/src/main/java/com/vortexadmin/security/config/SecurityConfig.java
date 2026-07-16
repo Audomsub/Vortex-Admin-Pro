@@ -11,10 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.authentication.AuthenticationManager;
-
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -86,13 +85,15 @@ public class SecurityConfig {
      * Exposes the Spring Security {@link AuthenticationManager} as a bean so that it can
      * be injected into authentication controllers (e.g., the login endpoint).
      *
-     * @param authConfig the auto-configured {@link AuthenticationConfiguration}.
+     * <p>Creates a {@link ProviderManager} directly with our {@link DaoAuthenticationProvider},
+     * guaranteeing that {@link BCryptPasswordEncoder} is used for password verification
+     * regardless of Spring Security auto-configuration behavior.
+     *
      * @return the application's primary {@link AuthenticationManager}.
-     * @throws Exception if the authentication manager cannot be retrieved.
      */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
+    public AuthenticationManager authenticationManager() {
+        return new ProviderManager(authenticationProvider());
     }
 
     /**
@@ -118,8 +119,7 @@ public class SecurityConfig {
      *
      * @return a fully configured {@link DaoAuthenticationProvider}.
      */
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
+    private DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());

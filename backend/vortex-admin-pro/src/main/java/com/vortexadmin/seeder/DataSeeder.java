@@ -177,11 +177,35 @@ public class DataSeeder implements CommandLineRunner {
             userRepository.save(admin);
             logger.info("Default Super Admin created: username=admin");
         } else {
-            // Only repair a missing role — never override an intentional role change
+            // Repair role, restore soft-deleted/suspended/locked state, and reset default password
             User admin = adminOpt.get();
+            boolean changed = false;
             if (admin.getRole() == null) {
                 admin.setRole(superAdminRole);
+                changed = true;
+            }
+            if (admin.getDeletedAt() != null) {
+                admin.setDeletedAt(null);
+                changed = true;
+                logger.info("Super Admin account restored (was soft-deleted)");
+            }
+            if (!"Active".equalsIgnoreCase(admin.getStatus())) {
+                admin.setStatus("Active");
+                changed = true;
+                logger.info("Super Admin account re-activated (was {})", admin.getStatus());
+            }
+            if (admin.getLockoutUntil() != null) {
+                admin.setLockoutUntil(null);
+                admin.setFailedLoginAttempts(0);
+                changed = true;
+                logger.info("Super Admin account unlocked");
+            }
+            // Always keep the default password in sync so dev restarts are never blocked
+            admin.setPassword(passwordEncoder.encode("password123"));
+            changed = true;
+            if (changed) {
                 userRepository.save(admin);
+                logger.info("Super Admin account repaired: username=admin");
             }
         }
 

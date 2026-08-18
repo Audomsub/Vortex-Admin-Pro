@@ -83,6 +83,13 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- DOTENV (loads .env into Spring's Environment for local dev) -->
+		<dependency>
+			<groupId>me.paulschwarz</groupId>
+			<artifactId>springboot3-dotenv</artifactId>
+			<version>5.1.0</version>
+		</dependency>
+
 		<!-- LOMBOK -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

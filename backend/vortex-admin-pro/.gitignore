@@ -35,6 +35,8 @@ build/
 ### Local credentials (never commit) ###
 src/main/resources/application-local.yaml
 src/main/resources/application-local.properties
+.env
+!.env.example
 
 ### Logs and local artifacts ###
 *.log

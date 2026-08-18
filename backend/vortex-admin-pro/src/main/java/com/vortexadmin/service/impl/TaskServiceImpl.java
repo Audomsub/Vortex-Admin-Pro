@@ -139,6 +139,7 @@ public class TaskServiceImpl implements TaskService {
      * @return a list of task response DTOs visible to the current caller
      */
     @Override
+    @Transactional(readOnly = true)
     public List<TaskResponse> getTasksByTeam(Long teamId) {
         // No team-membership model exists, so own-only callers see just their own tasks in the team
         boolean hasFullRead = SecurityUtils.hasAuthority("task.read");
@@ -158,6 +159,7 @@ public class TaskServiceImpl implements TaskService {
      *                      another user without the {@code task.read} authority
      */
     @Override
+    @Transactional(readOnly = true)
     public List<TaskResponse> getTasksByAssignee(Long userId) {
         if (!SecurityUtils.hasAuthority("task.read") && !userId.equals(SecurityUtils.getCurrentUserId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access Denied");
@@ -176,6 +178,7 @@ public class TaskServiceImpl implements TaskService {
      *                      or {@code 403} if the caller does not have read access
      */
     @Override
+    @Transactional(readOnly = true)
     public TaskResponse getTaskById(Long id) {
         return mapToResponse(getTaskCheckingAccess(id, "task.read"));
     }

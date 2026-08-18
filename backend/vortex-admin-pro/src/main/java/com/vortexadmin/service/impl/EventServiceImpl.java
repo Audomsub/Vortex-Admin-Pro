@@ -60,6 +60,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventResponse> getAllEvents() {
         Long userId = SecurityUtils.getCurrentUserId();
         return eventRepository.findByCreatedByIdOrAttendeeId(userId)
@@ -67,6 +68,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EventResponse getEventById(Long id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Event not found"));

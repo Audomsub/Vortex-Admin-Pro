@@ -73,6 +73,7 @@ public class RoleServiceImpl implements RoleService {
      * @throws ApiException with {@code 404} if no role with that id exists
      */
     @Override
+    @Transactional(readOnly = true)
     public RoleResponse getRoleById(Long id) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Role not found"));

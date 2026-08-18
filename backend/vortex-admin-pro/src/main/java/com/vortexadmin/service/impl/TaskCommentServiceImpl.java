@@ -14,6 +14,7 @@ import com.vortexadmin.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -81,6 +82,7 @@ public class TaskCommentServiceImpl implements TaskCommentService {
      *                      or {@code 403} if the caller does not have read access
      */
     @Override
+    @Transactional(readOnly = true)
     public List<TaskCommentResponse> getCommentsByTaskId(Long taskId) {
         getTaskCheckingAccess(taskId, "task.read");
         return taskCommentRepository.findByTaskIdOrderByCreatedAtAsc(taskId).stream()

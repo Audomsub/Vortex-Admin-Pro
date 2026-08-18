@@ -135,7 +135,7 @@ public class SecurityConfig {
      *   <li>CSRF protection is disabled (stateless REST API).</li>
      *   <li>Unauthenticated requests to protected endpoints are handled by
      *       {@link JwtAuthEntryPoint} (returns HTTP 401).</li>
-     *   <li>Public paths: {@code /api/auth/**}, {@code /api/public/**},
+     *   <li>Public paths: {@code /api/auth/**}, {@code /api/public/**}, {@code /error},
      *       {@code /v3/api-docs/**}, {@code /swagger-ui/**}.</li>
      *   <li>Actuator endpoints require the {@code SUPER_ADMIN} role.</li>
      *   <li>All other requests require authentication.</li>
@@ -155,6 +155,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth ->
                 auth.requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/api/public/**").permitAll()
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
                     .requestMatchers("/actuator/**").hasRole("SUPER_ADMIN")
                     .anyRequest().authenticated()

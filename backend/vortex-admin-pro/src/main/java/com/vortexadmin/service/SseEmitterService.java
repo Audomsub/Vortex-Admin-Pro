@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +41,7 @@ public class SseEmitterService {
 
         try {
             emitter.send(SseEmitter.event().name("connected").data("ok"));
-        } catch (IOException e) {
+        } catch (Exception e) {
             removeEmitter(userId, emitter);
         }
         return emitter;
